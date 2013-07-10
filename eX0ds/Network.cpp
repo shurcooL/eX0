@@ -72,7 +72,8 @@ glfwLockMutex(oPlayerTick);
 	oUpdateOthersPositionPacket.pack("cc", (u_char)2, pClient->cCurrentUpdateSequenceNumber);
 	for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 	{
-		if (PlayerGet(nPlayer)->pClient != NULL && PlayerGet(nPlayer)->pClient->GetJoinStatus() == IN_GAME)
+		if (PlayerGet(nPlayer)->pClient != NULL && PlayerGet(nPlayer)->pClient->GetJoinStatus() == IN_GAME
+			&& PlayerGet(nPlayer)->GetTeam() != 2)
 		{
 			oUpdateOthersPositionPacket.pack("c", (u_char)1);
 
@@ -97,11 +98,11 @@ bool NetworkProcessTcpPacket(CPacket &oPacket, CClient *pClient)
 	u_short snPacketType; oPacket.unpack("h", &snPacketType);
 
 	switch (snPacketType) {
-	// Join Game Request
+	// Join Server Request
 	case 1:
 		// Check if this client has already joined
 		if (pClient->GetJoinStatus() >= ACCEPTED) {
-			printf("Error: This client has already joined, but sent another Join Game Request packet.\n");
+			printf("Error: This client has already joined, but sent another Join Server Request packet.\n");
 			return false;
 		}
 
@@ -116,12 +117,13 @@ bool NetworkProcessTcpPacket(CPacket &oPacket, CClient *pClient)
 
 			if (snVersion == 1 && memcmp(szPassphrase, "somerandompass01", 16) == 0)
 			{
-				// Valid join game request packet
-				printf("Got a valid TcpPacketJoinGameRequest_t packet! yay\n");
+				// Valid Join Server Request packet
+				printf("Got a valid TcpPacketJoinServerRequest_t packet! yay.. yay... ;/\n");
 			} else {
 				// Drop the connection to this unsupported client
-				printf("Error: Got an INVALID TcpPacketJoinGameRequest_t packet, dropping connection.\n");
+				printf("Error: Got an INVALID TcpPacketJoinServerRequest_t packet, dropping connection.\n");
 				delete pClient;
+				return true;
 			}
 
 			// Get a free player slot, if one exists, for this new client
@@ -133,37 +135,30 @@ bool NetworkProcessTcpPacket(CPacket &oPacket, CClient *pClient)
 				pClient->SetPlayerID(nPlayerID);
 				pClient->SetJoinStatus(ACCEPTED);
 
-				// DEBUG: Randomly position the player
-				float x, y;
-				do {
-					x = static_cast<float>(rand() % 2000 - 1000);
-					y = static_cast<float>(rand() % 2000 - 1000);
-				} while (ColHandIsPointInside((int)x, (int)y) || !ColHandCheckPlayerPos(&x, &y));
-				PlayerGet(nPlayerID)->Position(x, y, 0.001f * (rand() % 1000) * Math::TWO_PI);
-				printf("Positioning player %d at %f, %f.\n", nPlayerID, x, y);
-
-				// Accept the connection, send a Join Game Accept packet
-				CPacket oAcceptPacket;
-				oAcceptPacket.pack("hhcc", 0, (u_short)2, (unsigned char)nPlayerID, (unsigned char)nPlayerCount);
-				oAcceptPacket.CompleteTpcPacketSize();
-				oAcceptPacket.SendTcp(pClient, TCP_CONNECTED);
+				// Accept the connection, send a Join Server Accept packet
+				CPacket oJoinServerAcceptPacket;
+				oJoinServerAcceptPacket.pack("hhcc", 0, (u_short)2, (unsigned char)nPlayerID, (unsigned char)nPlayerCount);
+				oJoinServerAcceptPacket.CompleteTpcPacketSize();
+				oJoinServerAcceptPacket.SendTcp(pClient, TCP_CONNECTED);
 			} else {
-				// Refuse join game request
-				CPacket oRefusePacket;
-				oRefusePacket.pack("hhc", 0, (u_short)3, 1);
-				oRefusePacket.CompleteTpcPacketSize();
-				oRefusePacket.SendTcp(pClient, TCP_CONNECTED);
+				// Refuse join server request
+				CPacket oJoinServerRefusePacket;
+				oJoinServerRefusePacket.pack("hhc", 0, (u_short)3, 1);
+				oJoinServerRefusePacket.CompleteTpcPacketSize();
+				oJoinServerRefusePacket.SendTcp(pClient, TCP_CONNECTED);
+				delete pClient;
+				return true;
 			}
 		}
 		break;
-	// Client Entered Game
+	// Entered Game Notification
 	case 7:
 		// Check if this client has NOT joined
 		if (pClient->GetJoinStatus() < UDP_CONNECTED) {
 			printf("Error: This client hasn't yet joined, ignoring TCP packet.\n");
 			return false;
 		} else if (pClient->GetJoinStatus() >= IN_GAME) {
-			printf("Error: This client has already entered game, but sent another Client Entered Game packet.\n");
+			printf("Error: This client has already entered game, but sent another Entered Game Notification packet.\n");
 			return false;
 		}
 
@@ -171,18 +166,6 @@ bool NetworkProcessTcpPacket(CPacket &oPacket, CClient *pClient)
 		else {
 			pClient->SetJoinStatus(IN_GAME);
 			printf("Player #%d (name '%s') has entered the game.\n", pClient->GetPlayerID(), pClient->GetPlayer()->GetName().c_str());
-
-			// Send a Player Entered Game to all the other clients
-			CPacket oPlayerEnteredGamePacket;
-			oPlayerEnteredGamePacket.pack("hh", 0, (u_short)25);
-			oPlayerEnteredGamePacket.pack("c", (u_char)pClient->GetPlayerID());
-			oPlayerEnteredGamePacket.pack("c", (u_char)pClient->GetPlayer()->GetName().length());
-			oPlayerEnteredGamePacket.pack("t", &pClient->GetPlayer()->GetName());
-			//oPlayerEnteredGamePacket.pack("c", pClient->cLastCommandSequenceNumber);
-			oPlayerEnteredGamePacket.pack("fff", pClient->GetPlayer()->GetX(),
-				pClient->GetPlayer()->GetY(), pClient->GetPlayer()->GetZ());
-			oPlayerEnteredGamePacket.CompleteTpcPacketSize();
-			oPlayerEnteredGamePacket.BroadcastTcpExcept(pClient, UDP_CONNECTED);
 
 			// DEBUG: Test the scheduler
 			EventFunction_f pEventFunction = &TestFunction;
@@ -205,16 +188,78 @@ bool NetworkProcessTcpPacket(CPacket &oPacket, CClient *pClient)
 			oPacket.unpack("et", snPacketSize - 4, &sTextMessage);
 
 			// Valid Send Text Message packet
-			printf("Player %d sends msg '%s'.\n",
-				pClient->GetPlayerID(), sTextMessage.c_str());
+			printf("Player %d sends msg '%s'.\n", pClient->GetPlayerID(), sTextMessage.c_str());
 
 			// Create a Broadcast Text Message packet
 			CPacket oBroadcastMessagePacket;
-			oBroadcastMessagePacket.pack("hhct", 0, (u_short)11, (unsigned char)pClient->GetPlayerID(), &sTextMessage);
+			oBroadcastMessagePacket.pack("hhct", 0, (u_short)11, (u_char)pClient->GetPlayerID(), &sTextMessage);
 			oBroadcastMessagePacket.CompleteTpcPacketSize();
 
 			// Broadcast the text message to all players that are connected
 			oBroadcastMessagePacket.BroadcastTcp();
+		}
+		break;
+	// Join Team Request
+	case 27:
+		// Check if this client has NOT joined
+		if (pClient->GetJoinStatus() < UDP_CONNECTED) {
+			printf("Error: This client hasn't yet joined, ignoring TCP packet.\n");
+			return false;
+		}
+
+		if (snPacketSize != 5) return false;		// Check packet size
+		else {
+			u_char cTeam;
+			oPacket.unpack("c", &cTeam);
+			pClient->GetPlayer()->SetTeam((int)cTeam);
+
+			printf("Player #%d (name '%s') joined team %d.\n", pClient->GetPlayerID(), pClient->GetPlayer()->GetName().c_str(), cTeam);
+
+			// Create a Player Joined Team packet
+			CPacket oPlayerJoinedTeam;
+			oPlayerJoinedTeam.pack("hhc", 0, (u_short)28, pClient->GetPlayerID());
+			oPlayerJoinedTeam.pack("c", (u_char)pClient->GetPlayer()->GetTeam());
+
+			if (pClient->GetPlayer()->GetTeam() != 2)
+			{
+				// DEBUG: Randomly position the player
+				float x, y;
+				do {
+					x = static_cast<float>(rand() % 2000 - 1000);
+					y = static_cast<float>(rand() % 2000 - 1000);
+				} while (ColHandIsPointInside((int)x, (int)y) || !ColHandCheckPlayerPos(&x, &y));
+				pClient->GetPlayer()->Position(x, y, 0.001f * (rand() % 1000) * Math::TWO_PI);
+				printf("Positioning player %d at %f, %f.\n", pClient->GetPlayerID(), x, y);
+
+				// DEBUG: Perform the cLastCommandSequenceNumber synchronization to time
+				double d = glfwGetTime() / (256.0 / pClient->cCommandRate);
+				d -= floor(d);
+				d *= 256.0;
+				pClient->cLastCommandSequenceNumber = (u_char)d;
+
+				oPlayerJoinedTeam.pack("c", pClient->cLastCommandSequenceNumber);
+				oPlayerJoinedTeam.pack("fff", pClient->GetPlayer()->GetX(),
+					pClient->GetPlayer()->GetY(), pClient->GetPlayer()->GetZ());
+			}
+
+			oPlayerJoinedTeam.CompleteTpcPacketSize();
+
+			/*if (pClient->GetJoinStatus() < IN_GAME)
+			{
+				pClient->SetJoinStatus(IN_GAME);
+				printf("Player #%d (name '%s') has entered the game.\n", pClient->GetPlayerID(), pClient->GetPlayer()->GetName().c_str());
+
+				// Notify the player he joined the game
+				oPlayerJoinedTeam.SendTcp(pClient);
+
+				// DEBUG: Test the scheduler
+				EventFunction_f pEventFunction = &TestFunction;
+				CTimedEvent oEvent(glfwGetTime(), 1.0 / pClient->cUpdateRate, pEventFunction, (void *)pClient);
+				pTimedEventScheduler->ScheduleEvent(oEvent);
+				pClient->nUpdateEventId = oEvent.GetId();
+			} else {*/
+				oPlayerJoinedTeam.BroadcastTcp();
+			//}
 		}
 		break;
 	// Local Player Info
@@ -234,19 +279,22 @@ bool NetworkProcessTcpPacket(CPacket &oPacket, CClient *pClient)
 			PlayerGet(pClient->GetPlayerID())->SetName(sName);
 			oPacket.unpack("cc", &pClient->cCommandRate, &pClient->cUpdateRate);
 
-			if (pClient->cCommandRate < 1 || pClient->cCommandRate > 100
-			  || pClient->cUpdateRate < 1 || pClient->cUpdateRate > 100)
+			if (pClient->cCommandRate < 1 || pClient->cCommandRate > 100 ||
+				pClient->cUpdateRate < 1 || pClient->cUpdateRate > 100)
 			{
 				printf("Client rates (%d, %d) for player %d are out of range, sending refuse packet.\n",
 					pClient->cCommandRate, pClient->cUpdateRate, pClient->GetPlayerID());
 
-				CPacket oRefusePacket;
-				oRefusePacket.pack("hhc", 0, (u_short)3, 2);
-				oRefusePacket.CompleteTpcPacketSize();
-				oRefusePacket.SendTcp(pClient, TCP_CONNECTED);
+				CPacket oJoinServerRefusePacket;
+				oJoinServerRefusePacket.pack("hhc", 0, (u_short)3, 2);
+				oJoinServerRefusePacket.CompleteTpcPacketSize();
+				oJoinServerRefusePacket.SendTcp(pClient, TCP_CONNECTED);
 			}
 			else
 			{
+				// Set team to Spectator by default
+				pClient->GetPlayer()->SetTeam(2);
+
 				// Set the player tick time
 				pClient->GetPlayer()->fTickTime = 1.0f / pClient->cCommandRate;
 
@@ -262,14 +310,18 @@ bool NetworkProcessTcpPacket(CPacket &oPacket, CClient *pClient)
 				for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 				{
 					// Include the client who's connecting and all IN_GAME clients
-					if (nPlayer == pClient->GetPlayerID() || (PlayerGet(nPlayer)->pClient != NULL
-					  && PlayerGet(nPlayer)->pClient->GetJoinStatus() == IN_GAME))
+					if (nPlayer == pClient->GetPlayerID() || (PlayerGet(nPlayer)->pClient != NULL &&
+						PlayerGet(nPlayer)->pClient->GetJoinStatus() == IN_GAME))
 					{
 						oCurrentPlayersInfoPacket.pack("c", (u_char)PlayerGet(nPlayer)->GetName().length());
 						oCurrentPlayersInfoPacket.pack("t", &PlayerGet(nPlayer)->GetName());
-						oCurrentPlayersInfoPacket.pack("c", PlayerGet(nPlayer)->pClient->cLastCommandSequenceNumber);
-						oCurrentPlayersInfoPacket.pack("fff", PlayerGet(nPlayer)->GetX(),
-							PlayerGet(nPlayer)->GetY(), PlayerGet(nPlayer)->GetZ());
+						oCurrentPlayersInfoPacket.pack("c", (u_char)PlayerGet(nPlayer)->GetTeam());
+						if (PlayerGet(nPlayer)->GetTeam() != 2)
+						{
+							oCurrentPlayersInfoPacket.pack("c", PlayerGet(nPlayer)->pClient->cLastCommandSequenceNumber);
+							oCurrentPlayersInfoPacket.pack("fff", PlayerGet(nPlayer)->GetX(),
+								PlayerGet(nPlayer)->GetY(), PlayerGet(nPlayer)->GetZ());
+						}
 					} else {
 						oCurrentPlayersInfoPacket.pack("c", (char)0);
 					}
@@ -277,11 +329,23 @@ bool NetworkProcessTcpPacket(CPacket &oPacket, CClient *pClient)
 				oCurrentPlayersInfoPacket.CompleteTpcPacketSize();
 				oCurrentPlayersInfoPacket.SendTcp(pClient, UDP_CONNECTED);
 
-				// Send a Permission To Join packet
-				CPacket oPermissionToJoinPacket;
-				oPermissionToJoinPacket.pack("hh", 0, (u_short)6);
-				oPermissionToJoinPacket.CompleteTpcPacketSize();
-				oPermissionToJoinPacket.SendTcp(pClient, UDP_CONNECTED);
+				// Send a Enter Game Permission packet
+				CPacket oEnterGamePermissionPacket;
+				oEnterGamePermissionPacket.pack("hh", 0, (u_short)6);
+				oEnterGamePermissionPacket.CompleteTpcPacketSize();
+				oEnterGamePermissionPacket.SendTcp(pClient, UDP_CONNECTED);
+
+				// Send a Player Joined Server packet to all the other clients
+				CPacket oPlayerJoinedServerPacket;
+				oPlayerJoinedServerPacket.pack("hh", 0, (u_short)25);
+				oPlayerJoinedServerPacket.pack("c", (u_char)pClient->GetPlayerID());
+				oPlayerJoinedServerPacket.pack("c", (u_char)pClient->GetPlayer()->GetName().length());
+				oPlayerJoinedServerPacket.pack("t", &pClient->GetPlayer()->GetName());
+				//oPlayerJoinedServerPacket.pack("c", pClient->cLastCommandSequenceNumber);
+				//oPlayerJoinedServerPacket.pack("fff", pClient->GetPlayer()->GetX(),
+				//	pClient->GetPlayer()->GetY(), pClient->GetPlayer()->GetZ());
+				oPlayerJoinedServerPacket.CompleteTpcPacketSize();
+				oPlayerJoinedServerPacket.BroadcastTcpExcept(pClient, UDP_CONNECTED);
 			}
 		}
 		break;

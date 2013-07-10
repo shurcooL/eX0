@@ -26,7 +26,7 @@ CPlayer::CPlayer()
 	fAimingDistance = 200.0;
 	fHealth = 100;
 	sName = "Unnamed Player";
-	iTeam = 0;
+	m_nTeam = 0;
 	bEmptyClicked = true;
 	fTicks = 0;
 	fTickTime = 0;
@@ -110,9 +110,14 @@ void CPlayer::BuyClip()
 	//oWeapons[iSelWeapon].GiveClip();
 }
 
-void CPlayer::SetTeam(int iValue)
+void CPlayer::SetTeam(int nTeam)
 {
-	iTeam = iValue;
+	m_nTeam = nTeam;
+}
+
+int CPlayer::GetTeam()
+{
+	return m_nTeam;
 }
 
 void CPlayer::SetStealth(bool bOn)
@@ -451,9 +456,9 @@ void CPlayer::Render()
 		glColor3f(0.2, 0.5, 0.2);
 	else*/ /*if (fHealth <= 0)
 		glColor3f(0.1, 0.1, 0.1);
-	else if (iTeam == 0)
+	else if (m_nTeam == 0)
 		glColor3f(1, 0, 0);
-	else if (iTeam == 1)
+	else if (m_nTeam == 1)
 		glColor3f(0, 0, 1);
 
 	if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

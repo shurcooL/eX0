@@ -172,4 +172,7 @@ extern int				nPingPacketNumber;
 extern u_char			cCommandRate;
 extern u_char			cUpdateRate;
 
+extern bool				bSelectTeamDisplay;
+extern bool				bSelectTeamReady;
+
 #endif // _globals_H_

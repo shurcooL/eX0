@@ -15,7 +15,8 @@ public:
 	void CalcTrajs();
 	void CalcColResp();
 	void Render();
-	void SetTeam(int iValue);
+	void SetTeam(int nTeam);
+	int GetTeam(void);
 	void SetStealth(bool bOn);
 	float GetX();
 	float GetY();
@@ -72,7 +73,7 @@ private:
 	//CWeapon		oWeapons[4];
 	float		fHealth;
 	string		sName;
-	int			iTeam;
+	int			m_nTeam;
 };
 
 // allocate memory for all the players

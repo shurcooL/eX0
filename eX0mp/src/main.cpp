@@ -40,8 +40,10 @@ void eX0_assert(bool expression, string message)
 bool Init(int argc, char *argv[])
 {
 	// init glfw
-	if (!glfwInit())
+	if (!glfwInit()) {
+		printf("Couldn't init GLFW...\n");
 		return false;
+	}
 
 	// let the use choose whether to run in fullscreen mode
 	bFullscreen = false;
@@ -52,10 +54,12 @@ bool Init(int argc, char *argv[])
 
 	// create the window
 	glfwGetDesktopMode(&oDesktopMode);
-	glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 4);
-	//if (!glfwOpenWindow(640, 480, 5, 6, 5, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW))
-	if (!glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW))
+	glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 0);
+	//if (!glfwOpenWindow(640, 480, 5, 6, 5, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW)) {
+	if (!glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW)) {
+		printf("Couldn't open the window...\n");
 		return false;
+	}
 	//glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
 	glfwSetWindowPos(oDesktopMode.Width - 650, oDesktopMode.Height / 2 - 240);
 	glfwSetWindowTitle(((string)"eX0 v0.0 (Built on " + __DATE__ + " at " + __TIME__ + ")").c_str());	// set the window title
@@ -145,8 +149,14 @@ void Terminate(int nExitCode)
 // resize the window callback function
 void GLFWCALL ResizeWindow(int iWidth, int iHeight)
 {
-	if (iWidth != 640 || iHeight != 480)
-		Terminate(1);		// Refuse to run in non-native resolution, for now
+	if (iWidth != 640 || iHeight != 480) {
+#ifdef WIN32
+		MessageBox(NULL, "Refusing to run in non-native resolution (for now).", "eX0", MB_OK);
+#else
+		printf("Refusing to run in non-native resolution (for now).\n");
+#endif
+		//Terminate(1);		// Refuse to run in non-native resolution, for now
+	}
 }
 
 // set glfw callback functions
@@ -291,7 +301,11 @@ int main(int argc, char *argv[])
 			// player tick
 			if (bPaused) { fTempFloat = dTimePassed; dTimePassed = 0; }
 			//PlayerTick();
-			PlayerGet(iLocalPlayerID)->Tick();
+			if (PlayerGet(iLocalPlayerID)->GetTeam() != 2 && !PlayerGet(iLocalPlayerID)->IsDead()) {
+				PlayerGet(iLocalPlayerID)->Tick();
+			} else {
+				PlayerGet(iLocalPlayerID)->FakeTick();
+			}
 
 			// particle engine tick
 			oParticleEngine.Tick();
@@ -314,7 +328,7 @@ glfwLockMutex(oPlayerTick);
 			//PlayerGet(iLocalPlayerID)->RenderInPast(2 * oPlayers[iLocalPlayerID]->GetZ());
 			//PlayerGet(iLocalPlayerID)->RenderInPast(Math::TWO_PI - 2 * oPlayers[iLocalPlayerID]->GetZ());
 			//for (int i = 1; i <= 100; i += 1) PlayerGet(0/*iLocalPlayerID*/)->RenderInPast(i * 0.1f);
-			PlayerGet(iLocalPlayerID)->RenderInPast(kfInterpolate);
+			//PlayerGet(iLocalPlayerID)->RenderInPast(kfInterpolate);
 glfwUnlockMutex(oPlayerTick);
 			RenderPlayers();
 

@@ -29,7 +29,8 @@ public:
 	void CalcColResp(void);
 	void Render(void);
 	void RenderInPast(float fTimeAgo);
-	void SetTeam(int iValue);
+	void SetTeam(int nTeam);
+	int GetTeam(void);
 	void SetStealth(bool bOn);
 	float GetX(void);
 	float GetY(void);
@@ -59,12 +60,14 @@ public:
 	void InitWeapons(void);
 	void BuyClip(void);
 	void Tick(void);
+	void FakeTick(void);
 	bool IsReloading(void);
 	float GetHealth(void);
 	void GiveHealth(float fValue);
 	bool IsDead(void);
 	string & GetName(void);
 	void SetName(string &sNewName);
+	void RespawnReset(void);
 
 	int			iID;
 	bool		bEmptyClicked;
@@ -93,7 +96,7 @@ private:
 	CWeapon		oWeapons[4];
 	float		fHealth;
 	string		sName;
-	int			iTeam;
+	int			m_nTeam;
 
 	list<SequencedState_t>		oStateHistory;
 	State_t						oOnlyKnownState;

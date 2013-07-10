@@ -1,0 +1,95 @@
+TCP Packets
+===========
+
+Data Types:
+¯¯¯¯¯¯¯¯¯¯¯
+char - char, 1 byte
+short - short int, 2 byte
+int - int, 4 bytes
+float - float, 4 bytes
+double - double, 8 bytes
+
+Common TCP Packet Header:
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+Packet Length in Bytes (short) - 2 bytes
+Packet Type (short)            - 2 bytes
+----------------------------------------
+Total TCP Packet Header Length - 4 bytes
+
+Client -> Server TCP Packets:
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+1. Join Server Request (size == 4 + 18 + SIGNATURE_SIZE == 22 + SIGNATURE_SIZE):
+Version (short) = 1
+Passphrase (16 char) = "somerandompass01"
+Signature (SIGNATURE_SIZE = 8 char)
+
+7. Entered Game Notification (size == 4 + 0 == 4):
+Empty
+
+10. Send Text message (size >= 4 + 1 >= 5):
+Message (* char)
+
+27. Join Team Request (size == 4 + 1 == 5):
+Team (char)
+
+30. Local Player Info (size >= 4 + 4 >= 8):
+Name Length (char)
+Name (* char)
+Command Rate (char)
+Update Rate (char)
+
+Server -> Client TCP Packets:
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+2. Join Server Accept (size == 4 + 2 == 6):
+Your Id (char)
+TotalPlayerCount (char)
+
+3. Join Server Refuse (size == 4 + 1 == 5):
+Refuse Reason (char)
+
+5. UDP Connection Established (size == 4 + 0 == 4):
+Empty
+
+6. Enter Game Permission (size == 4 + 0 == 4):
+Empty
+
+11. Broadcast Text Message (size >= 4 + 2 >= 6):
+Player Id (char)
+Message (* char)
+
+20. Load Level (size >= 4 + 1 >= 5):
+Level Filename (* char)
+
+21. Current Players Info (size >= 4 + nPlayerCount >= 4 + nPlayerCount):
+[
+	Name Length (char) >= 1
+	Name (* char)
+	Team (char)
+	[ if (Team != 2)
+		Last Command Sequence Number (char)
+		fX (float)
+		fY (float)
+		fZ (float)
+	]
+] else
+[
+	Name Length (char) = 0
+]
+
+25. Player Joined Server (size >= 4 + 3 >= 7):
+Player Id (char)
+Name Length (char)
+Name (* char)
+
+26. Player Left Server (size == 4 + 1 == 5):
+Player Id (char)
+
+28. Player Joined Team (size >= 4 + 2 >= 6):
+Player Id (char)
+Team (char)
+[ if (Team != 2)
+	Last Command Sequence Number (char)
+	fX (float)
+	fY (float)
+	fZ (float)
+]

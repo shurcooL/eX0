@@ -1,8 +1,10 @@
+Client Command
 Packet Type 1:
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 type (char) = 1
 
 
+Server Update
 Update Others Position Packet (Type 2):
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 type (char) = 2
@@ -22,4 +24,4 @@ cCurrentUpdateSequenceNumber (char)
 Handshake Packet (Type 100):
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 type (char) = 100
-signature (4 char)
+signature (8 char)

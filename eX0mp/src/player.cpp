@@ -28,7 +28,7 @@ CPlayer::CPlayer()
 	fAimingDistance = 200.0;
 	fHealth = 100;
 	sName = "Unnamed Player";
-	iTeam = 0;
+	m_nTeam = 0;
 	bEmptyClicked = true;
 	fTicks = 0;
 	//fUpdateTicks = 0;
@@ -42,6 +42,28 @@ CPlayer::CPlayer()
 CPlayer::~CPlayer()
 {
 	// nothing to do here yet
+}
+
+void CPlayer::FakeTick()
+{
+glfwLockMutex(oPlayerTick);
+
+	// is the player not connected?
+	if (!bConnected) {
+		glfwUnlockMutex(oPlayerTick);
+		return;
+	}
+
+	fTicks = dCurTime - (dNextTickTime - 1.0 / cCommandRate);
+	while (dCurTime >= dNextTickTime)
+	{
+		dNextTickTime += 1.0 / cCommandRate;
+		fTicks = dCurTime - (dNextTickTime - 1.0 / cCommandRate);
+
+		++cCurrentCommandSequenceNumber;
+	}
+
+glfwUnlockMutex(oPlayerTick);
 }
 
 void CPlayer::Tick()
@@ -182,9 +204,14 @@ void CPlayer::BuyClip()
 	oWeapons[iSelWeapon].GiveClip();
 }
 
-void CPlayer::SetTeam(int iValue)
+void CPlayer::SetTeam(int nTeam)
 {
-	iTeam = iValue;
+	m_nTeam = nTeam;
+}
+
+int CPlayer::GetTeam()
+{
+	return m_nTeam;
 }
 
 void CPlayer::SetStealth(bool bOn)
@@ -195,6 +222,23 @@ void CPlayer::SetStealth(bool bOn)
 	iIsStealth = (int)bOn;
 
 	if (iIsStealth) printf("Stealth ON!\n");
+}
+
+// A partial reset of the player state that happens when the player respawns (or changes team, etc.)
+void CPlayer::RespawnReset()
+{
+	fX = 0;
+	fY = 0;
+	fOldX = 0;
+	fOldY = 0;
+	fVelX = 0;
+	fVelY = 0;
+	fZ = 0;
+	fOldZ = 0;
+	iIsStealth = 0;
+	nMoveDirection = -1;
+	iSelWeapon = 2;
+	fHealth = 100.0f;
 }
 
 bool CPlayer::IsDead()
@@ -458,7 +502,7 @@ void CPlayer::Position(float fNewX, float fNewY, float fNewZ)
 
 void CPlayer::Position(float fNewX, float fNewY, float fNewZ, u_char cSequenceNumber)
 {
-		// is the player dead?
+	// is the player dead?
 	if (IsDead()) return;
 
 	fIntX = fOldX = fX = fNewX;
@@ -561,9 +605,9 @@ void CPlayer::Render()
 		glColor3f(0.2, 0.5, 0.2);
 	else */if (IsDead())
 		glColor3f(0.1f, 0.1f, 0.1f);
-	else if (iTeam == 0)
+	else if (m_nTeam == 0)
 		glColor3f(1, 0, 0);
-	else if (iTeam == 1)
+	else if (m_nTeam == 1)
 		glColor3f(0, 0, 1);
 	else
 		glColor3f(0, 1, 0);
@@ -670,66 +714,6 @@ void CPlayer::Render()
 		glVertex2i(oVector.x, oVector.y);
 		glVertex2i(oRay.Origin().x, oRay.Origin().y);
 	glEnd();*/
-
-	// DEBUG some debug info
-	if (1 && !glfwGetKey(GLFW_KEY_TAB) && iID == iLocalPlayerID)
-	{
-		OglUtilsSwitchMatrix(SCREEN_SPACE_MATRIX);
-		OglUtilsSetMaskingMode(NO_MASKING_MODE);
-		glColor3f(1, 1, 1);
-
-		sTempString = "x: " + ftos(fIntX);
-		glLoadIdentity();
-		OglUtilsPrint(0, 20, 0, false, (char *)sTempString.c_str());
-		sTempString = "y: " + ftos(fIntY);
-		glLoadIdentity();
-		OglUtilsPrint(0, 30, 0, false, (char *)sTempString.c_str());
-		sTempString = "z: " + ftos(fZ);
-		glLoadIdentity();
-		OglUtilsPrint(0, 40, 0, false, (char *)sTempString.c_str());
-		sTempString = "velocity: " + ftos(GetVelocity());
-		glLoadIdentity();
-		OglUtilsPrint(150, 20, 0, false, (char *)sTempString.c_str());
-
-		for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
-		{
-			if (PlayerGet(iLoop1)->bConnected) {
-				glLoadIdentity();
-				sTempString = (string)"pl#" + itos(iLoop1) + " name: '" + oPlayers[iLoop1]->GetName()
-					+ "' hp: " + itos((int)oPlayers[iLoop1]->GetHealth())
-					//+ " ccsn: " + itos(oPlayers[iLoop1]->cCurrentCommandSequenceNumber)
-					+ " lacsn: " + itos(oPlayers[iLoop1]->cLastAckedCommandSequenceNumber)
-					+ " vel: " + ftos(oPlayers[iLoop1]->GetVelocity());
-				OglUtilsPrint(0, 50 + iLoop1 * 10, 0, false, (char *)sTempString.c_str());
-			}
-		}
-
-		sTempString = "max oLocallyPredictedInputs.size(): " + itos(iTempInt);
-		glLoadIdentity();
-		OglUtilsPrint(0, 50 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
-		//sTempString = "fTempFloat: " + ftos(fTempFloat);
-		sTempString = "Latency: " + ftos(fLastLatency);
-		glLoadIdentity();
-		OglUtilsPrint(0, 65 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
-
-		// Networking info
-		sTempString = "cCurrentCommandSequenceNumber = " + itos(cCurrentCommandSequenceNumber);
-		glLoadIdentity();
-		OglUtilsPrint(0, 90 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
-		//sTempString = "cLastAckedCommandSequenceNumber = " + itos(cLastAckedCommandSequenceNumber);
-		//glLoadIdentity();
-		//OglUtilsPrint(0, 105 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
-		sTempString = "cLastUpdateSequenceNumber = " + itos(cLastUpdateSequenceNumber);
-		glLoadIdentity();
-		OglUtilsPrint(0, 120 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
-		sTempString = "oUnconfirmedMoves.size() = " + itos(oUnconfirmedMoves.size());
-		glLoadIdentity();
-		OglUtilsPrint(0, 135 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
-
-		OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
-		RenderOffsetCamera(false);
-		OglUtilsSetMaskingMode(WITH_MASKING_MODE);
-	}
 
 if (iID == iLocalPlayerID) ++counter1;
 }
@@ -945,9 +929,9 @@ void CPlayer::RenderInPast(float fTimeAgo)
 	// select player color
 	if (IsDead())
 		glColor3f(0.1f, 0.1f, 0.1f);
-	else if (iTeam == 0)
+	else if (m_nTeam == 0)
 		glColor3f(1, 0, 0);
-	else if (iTeam == 1)
+	else if (m_nTeam == 1)
 		glColor3f(0, 0, 1);
 	else
 		glColor3f(0, 1, 0);

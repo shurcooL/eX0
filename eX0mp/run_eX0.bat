@@ -1,1 +1,1 @@
-eX0.exe red.cse.yorku.ca Alex
+eX0.exe red.cse.yorku.ca %username%

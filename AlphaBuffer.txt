@@ -1,0 +1,59 @@
+Setup
+¯¯¯¯¯
+blendfunc(zero, srcalpha) -> (0) * srca + (srca) * dsta = srca * dsta
+or
+blendfunc(dstalpha, zero) -> (dsta) * srca + (0) * dsta = dsta * srca
+
+eg. srca = 0.25, dsta = 0.8; result = 0.25 * 0.8 = 0.2
+
+=========================================================================
+
+Comeback??
+¯¯¯¯¯¯¯¯¯¯
+blendfunc(one-srca, one) -> (?) * srca + (?) * dsta = ?
+eg.                      -> (?) * 0.25 + (?) * 0.2 = 0.8
+
+Doesn't seem to be possible. :(
+
+=========================================================================
+
+Here's an idea (that needs more thinking on):
+-render the players first, set the alpha buffer to appopriate value.
+-such that when you render the ground on top, it covers up the players
+ that are hidden and blends with the ones that are (semi-) visible.
+-meh... I didn't get anywhere with it (maybe I didn't think enough).
+
+Another idea (I think it might be doable):
+-render the entire ground first.
+-then render the invisible zone on top of the scene, making it darker,
+ and filling in the alpha buffer at the same time (use stencil buffer
+ to prevent overdraw - possible conflict with smoke grenades?)
+  A) invizible zone darkening:
+      colormask(1,1,1,1)
+      blendfunc(zero, srccolor)
+      color(0.5, 0.5, 0.5, 0)
+      stencilwrite(set 1)
+      stenciltest(equal 1)
+  B) smoke grenade darkening:
+      colormask(1,1,1,1)
+      blendfunc(zero, srccolor)? <- unsure; will be using a texture
+      color(0.5, 0.5, 0.5, 0)?
+      stencilwrite(off)
+      stenciltest(equal 1)
+-then render all objects on top using alpha buffer blending to prevent
+ them from appearing in the hidden areas (potentially use 2 passes for
+ transparent objects, first pass to set alpha buffer accordingly, 2nd
+ pass to actually render the object)
+  A) opaque object:
+      1st pass -> colormask(1,1,1,0)
+                  blendfunc(dstalpha, one-dstalpha)
+  B) transparent object:
+      1st pass -> colormask(0,0,0,1)
+                  blendfunc(zero, srcalpha)
+      2nd pass -> colormask(1,1,1,0)
+                  blendfunc(dstalpha, one-dstalpha)
+-the stencil buffer conflict with smoke grandes can be overcome by
+ turning off the stencil-write when drawing smoke grenade darkening
+-BIG PROBLEM: this method still suffers from the inability to reset the
+ alpha buffer back to its previous state after rendering a transparent
+ object. This only affects overlapping objects, but still is a big prob.

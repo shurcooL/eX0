@@ -1,8 +1,10 @@
 eX0 Protocol Handshake Draft
-¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+============================
+
  Client                                        | Server
------------------------------------------------+-----------------------------------------------
-					-- Connecting --
+===============================================|================================================
+					       |
+----------------------------------------- Connecting -------------------------------------------
 Connect (TCP) to server,
 Set nJoinStatus=TCP_CONN.
 						Accept TCP connection,
@@ -18,15 +20,17 @@ Send UDP packet (type 100) with same sig.
 						Send UDP Conn Established (5).
 Receive UDP Conn Established,
 Set nJoinStatus=UDP_CONN.
-					-- Info Exchange --
+
+----------------------------------------- Info Exchange ----------------------------------------
 Start syncing the clock,
 Send Local Player Info (30).
 						Receive Local Player Info,
 						Send Load Level (20),
-						Send Curr Player Info (21).
+						Send Curr Players Info (21).
 Receive Load Level,
-Receive Curr Player Info.
-					-- Start Game --
+Receive Curr Players Info.
+
+----------------------------------------- Spectator --------------------------------------------
 						Send Permission To Join (6).
 Receive Permission To Join,
 Set nJoinStatus=IN_GAME,
@@ -34,12 +38,14 @@ Send Client Entered Game (7).
 						Receieve Client Entered Game,
 						Set nJoinStatus=IN_GAME.
 						Send Player Entered Game to all others (25).
-					-- Game Started --
+
+----------------------------------------- Start Game -------------------------------------------
 Send Own Position (1).
 						Receive Own Position,
 						Send Other Players Position (2).
 Receive Other Players Position.
-					-- Client Leaves --
+
+----------------------------------------- Game Started -----------------------------------------
 Disconnect (TCP) gracefully.
 						Send Player Left Game to all others (26),
 						Delete CClient().

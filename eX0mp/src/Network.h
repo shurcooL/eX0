@@ -54,6 +54,8 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize/*, CClient * pCl
 
 void NetworkSendUdpHandshakePacket(void *pArgument);
 
+void NetworkJoinGame(void);
+
 void NetworkShutdownThread(void);
 
 void NetworkDestroyThread(void);

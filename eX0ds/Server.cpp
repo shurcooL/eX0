@@ -92,7 +92,7 @@ bool ServerCreateThread()
 
 	printf("Server thread created.\n");
 
-	return oServerThread >= 0;
+	return (oServerThread >= 0);
 }
 
 void GLFWCALL ServerThread(void *pArg)
@@ -228,20 +228,16 @@ void GLFWCALL ServerThread(void *pArg)
 							}
 
 							if (pClient->GetJoinStatus() >= IN_GAME) {
-								// Send a Player Left Game to all the other clients
-								CPacket oPlayerLeftGamePacket;
-								oPlayerLeftGamePacket.pack("hh", 0, (u_short)26);
-								oPlayerLeftGamePacket.pack("c", (u_char)pClient->GetPlayerID());
-								oPlayerLeftGamePacket.CompleteTpcPacketSize();
-								oPlayerLeftGamePacket.BroadcastTcpExcept(pClient, UDP_CONNECTED);
+								// Send a Player Left Server to all the other clients
+								CPacket oPlayerLeftServerPacket;
+								oPlayerLeftServerPacket.pack("hh", 0, (u_short)26);
+								oPlayerLeftServerPacket.pack("c", (u_char)pClient->GetPlayerID());
+								oPlayerLeftServerPacket.CompleteTpcPacketSize();
+								oPlayerLeftServerPacket.BroadcastTcpExcept(pClient, UDP_CONNECTED);
 							}
 
 							// Remove the player, if he's already connected
-							//if (PlayerGetFromSocket(i) != NULL)
-							//	PlayerGetFromSocket(i)->bConnected = false;
 							delete pClient;
-
-							//NetworkCloseSocket(i); // bye!
 							FD_CLR(i, &master); // remove from master set
 							it1 = oActiveSockets.erase(it1);
 							bGoToNextIt = false;

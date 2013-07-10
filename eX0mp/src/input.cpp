@@ -13,6 +13,9 @@ bool		bAutoReload = true;
 int			nChatMode;
 string		sChatString;
 
+bool		bSelectTeamDisplay = true;
+bool		bSelectTeamReady = false;		// Indicates we're ready to select a team, ie. got a response to previous request
+
 // do mouse movement calcs
 void InputMouseMovCalcs()
 {
@@ -164,10 +167,16 @@ void InputProcessKey(int iKey, int iAction)
 			return;
 		}
 
-		switch (iKey) {
+		switch (iKey)
+		{
 		// escape key
 		case GLFW_KEY_ESC:
-			Terminate(0);
+			if (bSelectTeamDisplay && iGameState == 0) {
+				bSelectTeamDisplay = false;
+				printf("Cancelled team selection.\n");
+			} else {
+				Terminate(0);
+			}
 			break;
 		// 'r' - reload
 		case 'R':
@@ -231,6 +240,65 @@ void InputProcessKey(int iKey, int iAction)
 			sChatString = "";
 			nChatMode = 1;
 			glfwEnable(GLFW_KEY_REPEAT);
+			break;
+		// Select Team display
+		case 'J':
+			if (!bSelectTeamDisplay && iGameState == 0) {
+				bSelectTeamDisplay = true;
+			}
+			break;
+		case '1':
+			if (!bSelectTeamDisplay && iGameState == 0) {
+				bSelectTeamDisplay = true;
+			}
+			if (bSelectTeamDisplay && bSelectTeamReady && PlayerGet(iLocalPlayerID)->GetTeam() != 0 && iGameState == 0) {
+				bSelectTeamDisplay = bSelectTeamReady = false;
+				printf("Joining team Red.\n");
+				PlayerGet(iLocalPlayerID)->GiveHealth(-150.0f);
+
+				// Send a Join Team Request packet
+				CPacket oJoinTeamRequest;
+				oJoinTeamRequest.pack("hhc", 0, (u_short)27, (u_char)0);
+				oJoinTeamRequest.CompleteTpcPacketSize();
+				oJoinTeamRequest.SendTcp();
+			}
+			break;
+		case '2':
+			if (!bSelectTeamDisplay && iGameState == 0) {
+				bSelectTeamDisplay = true;
+			}
+			if (bSelectTeamDisplay && bSelectTeamReady && PlayerGet(iLocalPlayerID)->GetTeam() != 1 && iGameState == 0) {
+				bSelectTeamDisplay = bSelectTeamReady = false;
+				printf("Joining team Blue.\n");
+				PlayerGet(iLocalPlayerID)->GiveHealth(-150.0f);
+
+				// Send a Join Team Request packet
+				CPacket oJoinTeamRequest;
+				oJoinTeamRequest.pack("hhc", 0, (u_short)27, (u_char)1);
+				oJoinTeamRequest.CompleteTpcPacketSize();
+				oJoinTeamRequest.SendTcp();
+			}
+			break;
+		case '3':
+			if (!bSelectTeamDisplay && iGameState == 0) {
+				bSelectTeamDisplay = true;
+			}
+			if (bSelectTeamDisplay && bSelectTeamReady && PlayerGet(iLocalPlayerID)->GetTeam() != 2 && iGameState == 0) {
+				bSelectTeamDisplay = bSelectTeamReady = false;
+				printf("Joining as a Spectator.\n");
+				PlayerGet(iLocalPlayerID)->GiveHealth(-150.0f);
+
+				// Send a Join Team Request packet
+				CPacket oJoinTeamRequest;
+				oJoinTeamRequest.pack("hhc", 0, (u_short)27, (u_char)2);
+				oJoinTeamRequest.CompleteTpcPacketSize();
+				oJoinTeamRequest.SendTcp();
+			}
+			break;
+		case '0':
+			if (bSelectTeamDisplay && bSelectTeamReady && iGameState == 0) {
+				bSelectTeamDisplay = false;
+			}
 			break;
 		// any other key
 		default:
