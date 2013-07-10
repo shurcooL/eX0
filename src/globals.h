@@ -32,6 +32,7 @@ p = pointer
 #include <time.h>		// for date and time functions (used in log)
 #include <math.h>
 #include <GL/glfw.h>	// the glfw header
+#include <list>
 
 #ifdef WIN32
 #include "MMGR/mmgr.h"	// Fluid Studios Memory Manager
@@ -42,7 +43,7 @@ p = pointer
 // standard other //
 ////////////////////
 using namespace std;	// so that we can use string class
-#pragma warning(once : 4244 4305)
+#pragma warning(once : 4244 4305 4996)
 
 
 /////////////////////
@@ -51,7 +52,10 @@ using namespace std;	// so that we can use string class
 extern "C"
 {
 #include "gpc/gpc.h"		// the gpc library
-}	
+}
+#include "PolyBoolean/polybool.h"
+#include "PolyBoolean/pbio.h"
+using namespace POLYBOOLEAN;
 #include "main.h"
 #include "Mgc/MgcIntr2DLinLin.h"
 #include "Mgc/MgcDist2DVecLin.h"
@@ -78,6 +82,10 @@ using namespace Mgc;
 //////////////////////
 extern int			iGameState;
 extern bool			bPaused;
+
+// DEBUG: Debug state variables
+extern bool			bWireframe;
+extern bool			bUseDefaultTriangulation;
 
 extern GLFWvidmode	oDesktopMode;
 extern bool			bFullscreen;
@@ -109,11 +117,9 @@ extern int			iTempInt;
 
 extern gpc_polygon	oPolyLevel;
 extern gpc_tristrip	oTristripLevel;
-
-extern FILE			*oFile;
+extern PAREA		*pPolyBooleanLevel;
 
 extern TextureIDs_t	oTextureIDs;
-//extern WeaponSpec_t	oWeaponSpecs[3];
 extern CParticle	oParticleEngine;
 
 extern GLUquadricObj	*oQuadricObj;

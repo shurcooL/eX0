@@ -76,6 +76,16 @@ void CParticle::Render()
 				glDisable(GL_BLEND);
 				glShadeModel(GL_FLAT);
 				break;
+			// DEBUG: Render the smoke cloud FOV mask in wireframe
+			case ParticleTypes::SMOKE_CLOUD:
+				/*OglUtilsSetMaskingMode(NO_MASKING_MODE);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+				glLineWidth(1);
+				glColor3f(1, 0, 0);
+				RenderSmokeFOVMask(oParticles[iLoop1].oPosition, oParticles[iLoop1].fMaxDamage);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				OglUtilsSetMaskingMode(WITH_MASKING_MODE);*/
+				break;
 			default:
 				break;
 			}
@@ -338,6 +348,12 @@ void CParticle::Tick()
 					}
 				}
 
+				// Create a smoke grenade cloud
+				if (oParticles[iLoop1].iWhatType == ParticleTypes::BOUNCY_BULLET) {
+					AddParticle(oParticles[iLoop1].oPosition.x, oParticles[iLoop1].oPosition.y,
+					  0, 0, ParticleTypes::SMOKE_CLOUD, 60, 30, oParticles[iLoop1].iOwnerID); 
+				}
+
 				// Kill it and continue w/ the next particle
 				oParticles[iLoop1].iWhatType = 0;
 				continue;
@@ -356,6 +372,26 @@ void CParticle::Tick()
 				oParticles[iLoop1].oPosition += oParticles[iLoop1].oVelocity;
 				CollisionHandling(iLoop1);
 			}
+		}
+	}
+}
+
+void CParticle::RenderFOVMask()
+{
+	// Setup the rendering mode
+	//OglUtilsSetMaskingMode(RENDER_TO_MASK_MODE);
+	//OglUtilsSetMaskValue(0);
+
+	for (int iLoop1 = 0; iLoop1 < iNumParticles; iLoop1++)
+	{
+		switch(oParticles[iLoop1].iWhatType)
+		{
+		// smoke
+		case ParticleTypes::SMOKE_CLOUD:
+			RenderSmokeFOVMask(oParticles[iLoop1].oPosition, oParticles[iLoop1].fMaxDamage);
+			break;
+		default:
+			break;
 		}
 	}
 }

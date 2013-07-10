@@ -8,6 +8,9 @@
 int				iGameState = 0;
 bool			bPaused = false;
 
+bool			bWireframe = false;
+bool			bUseDefaultTriangulation = true;
+
 GLFWvidmode		oDesktopMode;
 bool			bFullscreen = false;
 
@@ -22,8 +25,6 @@ string			sFpsString = (string)"eX0";
 string			sTempString = (string)"";
 float			fTempFloat = 0;
 int				iTempInt = 0;
-
-FILE			*oFile;
 
 // initialization
 void Init(int argc, char *argv[])
@@ -44,7 +45,7 @@ void Init(int argc, char *argv[])
 	if (!glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW))
 		Terminate(1);
 	glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
-	glfwSetWindowTitle(((string)"eX0 (Built " + __DATE__")").c_str());	// set the window title
+	glfwSetWindowTitle(((string)"eX0 (Built on " + __DATE__" at " + __TIME__ + ")").c_str());	// set the window title
 
 	glfwSwapInterval(0);		// Turn V-Sync off
 
@@ -128,6 +129,9 @@ void Terminate(int iExitCode)
 	// deinit
 	Deinit();
 
+	// DEBUG: Print out the memory usage stats
+	m_dumpMemoryReport();
+
 	exit(iExitCode);
 }
 
@@ -160,13 +164,15 @@ void RestartGame()
 		oPlayers[iLoop1]->Position(x, y);
 		oPlayers[iLoop1]->SetZ(0.001f * (rand() % 1000) * Math::TWO_PI);
 	}
-	//oPlayers[1]->Position(0, 20);
-	//oPlayers[1]->Position(145, -240);
-	//oPlayers[1]->SetZ(3.0f);
-	oPlayers[1]->SetTeam(1);
-	//oPlayers[1]->SetStealth(true);
-	//oPlayers[1]->GiveHealth(-100);		// damn ppl can't even kill the stupid bot
-	//oPlayers[0]->GiveHealth(+5000);		// semi-god mode?
+	if (iNumPlayers >= 2) {
+		//oPlayers[1]->Position(0, 20);
+		//oPlayers[1]->Position(145, -240);
+		//oPlayers[1]->SetZ(3.0f);
+		oPlayers[1]->SetTeam(1);
+		//oPlayers[1]->SetStealth(true);
+		//oPlayers[1]->GiveHealth(-100);		// damn ppl can't even kill the stupid bot
+		//oPlayers[0]->GiveHealth(+5000);		// semi-god mode?
+	}
 
 	printf("Game restarted. ============================\n");
 }
@@ -210,7 +216,7 @@ int main(int argc, char *argv[])
 		// fps calcs
 		iFpsFrames++;
 		fFpsTimePassed = fCurTime - fFpsBaseTime;
-		if (fFpsTimePassed >= 1.0)
+		if (fFpsTimePassed >= 0.75)
 		{
 			sFpsString = (string)"eX0 - " + ftos(iFpsFrames / fFpsTimePassed) + " fps";
 			//glfwSetWindowTitle(sTempString.c_str());
@@ -234,6 +240,7 @@ int main(int argc, char *argv[])
 			InputMouseHold();
 
 			// DEBUG - test bot AI
+			if (iNumPlayers >= 2) {
 				#define BOT_AI_SENSOR_LENGTH 13.0f
 				// update bot's rotated vels
 				static float fTempTimer2 = -1.0f;
@@ -312,6 +319,7 @@ int main(int argc, char *argv[])
 					if (ColHandIsPointInside(oPlayers[1]->GetIntX() + Math::Sin(oPlayers[1]->GetZ()) * BOT_AI_SENSOR_LENGTH, oPlayers[1]->GetIntY() + Math::Cos(oPlayers[1]->GetZ()) * BOT_AI_SENSOR_LENGTH * 2))
 						oPlayers[1]->Move(-1);
 				} else { if (glfwGetKey('Q')) oPlayers[1]->Move(0); else oPlayers[1]->Move(-1); }
+			}
 
 			// DEBUG: Make other bots shoot
 				for (int iLoop1 = 2; iLoop1 < iNumPlayers; iLoop1++) {
@@ -353,7 +361,7 @@ int main(int argc, char *argv[])
 			OglUtilsSetMaskingMode(NO_MASKING_MODE);
 
 // DEBUG - testing temporary bot AI check points
-if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+if (iNumPlayers >= 2 && glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
 {
 oPlayers[1]->Render();
 int x, y;
@@ -390,7 +398,7 @@ for (int i = 0; i < 1; ++i)
 
 		// finish it up
 		glFlush();
-		glfwPollEvents();
+		//glfwPollEvents();
 		glfwSwapBuffers();
 	}
 

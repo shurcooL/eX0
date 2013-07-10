@@ -380,7 +380,7 @@ void CPlayer::Render()
 	else if (iTeam == 1)
 		glColor3f(0, 0, 1);
 
-	if (glfwGetKey('Q')) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	if (iID == iLocalPlayerID)
 	// local player
 	{
@@ -455,7 +455,7 @@ void CPlayer::Render()
 			glPopMatrix();
 		//}
 	}
-	if (glfwGetKey('Q')) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	/*Ray2	oRay;
 	oRay.Origin().x = fIntX;

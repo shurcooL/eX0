@@ -5,45 +5,72 @@ int		iCameraType = 0;
 // render the static scene
 void RenderStaticScene()
 {
-	int iLoop1, iLoop2;
+	int nLoop1, nLoop2;
 
 	OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
 	RenderOffsetCamera(false);
 
-	// fill in the ground
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, oTextureIDs.iFloor);
-	glColor3f(0.9, 0.9, 0.9);
-	for (iLoop1 = 0; iLoop1 < oTristripLevel.num_strips; iLoop1++)
+	// DEBUG: Render the ground using one of the two triangulations (gpc or PolyBoolean)
+	if (bUseDefaultTriangulation)
 	{
-		if (glfwGetKey('Q')) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		//glColor3f(1.0, 0.0, 0.0);
-		glLineWidth(1.0);
-		//glShadeModel(GL_SMOOTH);
-		glBegin(GL_TRIANGLE_STRIP);
-		//glBegin(GL_LINE_STRIP);
-			for (iLoop2 = 0; iLoop2 < oTristripLevel.strip[iLoop1].num_vertices; iLoop2++)
-			{
-				//glColor3f(1.0 - (iLoop2 % 2 * 1), (iLoop2 % 2 * 1), 0.0);
-				glTexCoord2f((float)oTristripLevel.strip[iLoop1].vertex[iLoop2].x / 256.0, (float)oTristripLevel.strip[iLoop1].vertex[iLoop2].y / -256.0);
-				glVertex2i(oTristripLevel.strip[iLoop1].vertex[iLoop2].x, oTristripLevel.strip[iLoop1].vertex[iLoop2].y);
-			}
-		glEnd();
-		if (glfwGetKey('Q')) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		// fill in the ground
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, oTextureIDs.iFloor);
+		glColor3f(0.9, 0.9, 0.9);
+		for (nLoop1 = 0; nLoop1 < oTristripLevel.num_strips; nLoop1++)
+		{
+			if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			//glColor3f(1.0, 0.0, 0.0);
+			glLineWidth(1.0);
+			//glShadeModel(GL_SMOOTH);
+			glBegin(GL_TRIANGLE_STRIP);
+			//glBegin(GL_LINE_STRIP);
+				for (nLoop2 = 0; nLoop2 < oTristripLevel.strip[nLoop1].num_vertices; nLoop2++)
+				{
+					//glColor3f(1.0 - (nLoop2 % 2 * 1), (nLoop2 % 2 * 1), 0.0);
+					glTexCoord2f((float)oTristripLevel.strip[nLoop1].vertex[nLoop2].x / 256.0, (float)oTristripLevel.strip[nLoop1].vertex[nLoop2].y / -256.0);
+					glVertex2i(oTristripLevel.strip[nLoop1].vertex[nLoop2].x, oTristripLevel.strip[nLoop1].vertex[nLoop2].y);
+				}
+			glEnd();
+			if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+		glDisable(GL_TEXTURE_2D);
+	} else
+	{
+		// Fill in the ground using the PolyBoolean triangulation
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, oTextureIDs.iFloor);
+		glColor3f(0.9, 0.9, 0.9);
+		for (nLoop1 = 0; nLoop1 < pPolyBooleanLevel->tnum; ++nLoop1)
+		{
+			if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glLineWidth(1.0);
+			glBegin(GL_TRIANGLES);
+				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v0->g.x / 256.0, (float)pPolyBooleanLevel->tria[nLoop1].v0->g.y / -256.0);
+				glVertex2i(pPolyBooleanLevel->tria[nLoop1].v0->g.x, pPolyBooleanLevel->tria[nLoop1].v0->g.y);
+
+				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v1->g.x / 256.0, (float)pPolyBooleanLevel->tria[nLoop1].v1->g.y / -256.0);
+				glVertex2i(pPolyBooleanLevel->tria[nLoop1].v1->g.x, pPolyBooleanLevel->tria[nLoop1].v1->g.y);
+
+				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v2->g.x / 256.0, (float)pPolyBooleanLevel->tria[nLoop1].v2->g.y / -256.0);
+				glVertex2i(pPolyBooleanLevel->tria[nLoop1].v2->g.x, pPolyBooleanLevel->tria[nLoop1].v2->g.y);
+			glEnd();
+			if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+		glDisable(GL_TEXTURE_2D);
 	}
-	glDisable(GL_TEXTURE_2D);
 
 	// draw the outline
 	glColor3f(0.9, 0.9, 0.9);
 	glLineWidth(1.5);
 	glEnable(GL_LINE_SMOOTH);
 	glEnable(GL_BLEND);
-	for (iLoop1 = 0; iLoop1 < oPolyLevel.num_contours; iLoop1++)
+	for (nLoop1 = 0; nLoop1 < oPolyLevel.num_contours; nLoop1++)
 	{
 		glBegin(GL_LINE_LOOP);
-			for (iLoop2 = 0; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
+			for (nLoop2 = 0; nLoop2 < oPolyLevel.contour[nLoop1].num_vertices; nLoop2++)
 			{
-				glVertex2i(oPolyLevel.contour[iLoop1].vertex[iLoop2].x, oPolyLevel.contour[iLoop1].vertex[iLoop2].y);
+				glVertex2i(oPolyLevel.contour[nLoop1].vertex[nLoop2].x, oPolyLevel.contour[nLoop1].vertex[nLoop2].y);
 			}
 		glEnd();
 	}
@@ -53,12 +80,12 @@ void RenderStaticScene()
 
 	// vertices
 	/*glColor3f(1.0, 0.0, 0.0);
-	for (iLoop1 = 0; iLoop1 < oPolyLevel.num_contours; iLoop1++)
+	for (nLoop1 = 0; nLoop1 < oPolyLevel.num_contours; nLoop1++)
 	{
 		glBegin(GL_POINTS);
-			for (iLoop2 = 0; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
+			for (nLoop2 = 0; nLoop2 < oPolyLevel.contour[nLoop1].num_vertices; nLoop2++)
 			{
-				glVertex2i(oPolyLevel.contour[iLoop1].vertex[iLoop2].x, oPolyLevel.contour[iLoop1].vertex[iLoop2].y);
+				glVertex2i(oPolyLevel.contour[nLoop1].vertex[nLoop2].x, oPolyLevel.contour[nLoop1].vertex[nLoop2].y);
 			}
 		glEnd();
 	}*/
@@ -153,26 +180,38 @@ void RenderFOV()
 	// Create the FOV mask
 	RenderCreateFOVMask();
 
+	// Render the smoke grenade masks
+	oParticleEngine.RenderFOVMask();
+
 	// Highlight the Field of View
 	OglUtilsSetMaskingMode(WITH_MASKING_MODE);
 
-	{
-		//OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
-		RenderOffsetCamera(true);
+	//OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
+	RenderOffsetCamera(true);
 
-		glEnable(GL_BLEND);
-		glShadeModel(GL_SMOOTH);
-		glBegin(GL_QUADS);
-			glColor4f(1, 1, 1, 0.15);
-			glVertex2i(-250, -15);
-			glVertex2i(250, -15);
-			glColor4f(1, 1, 1, 0.05);
-			glVertex2i(750, 1000);
-			glVertex2i(-750, 1000);
-		glEnd();
-		glShadeModel(GL_FLAT);
-		glDisable(GL_BLEND);
-	}
+	glEnable(GL_BLEND);
+	glShadeModel(GL_SMOOTH);
+	glBegin(GL_QUADS);
+		glColor4f(1, 1, 1, 0.075);
+		glVertex2i(-250, -15);
+		glVertex2i(250, -15);
+		glColor4f(1, 1, 1, 0.025);
+		glVertex2i(750, 1000);
+		glVertex2i(-750, 1000);
+	glEnd();
+
+	glShadeModel(GL_FLAT);
+
+	glStencilFunc(GL_NOTEQUAL, 1, 1);
+	glBegin(GL_QUADS);
+		glColor4f(0, 0, 0, 0.6);
+		glVertex2i(-750, -250);
+		glVertex2i(750, -250);
+		glVertex2i(750, 1000);
+		glVertex2i(-750, 1000);
+	glEnd();
+	glStencilFunc(GL_EQUAL, 1, 1);
+	glDisable(GL_BLEND);
 }
 
 // Creates the FOV mask
@@ -186,49 +225,26 @@ void RenderCreateFOVMask()
 	OglUtilsSetMaskingMode(RENDER_TO_MASK_MODE);
 	OglUtilsSetMaskValue(1);
 
-	{
-		OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
-		RenderOffsetCamera(true);		// Reset the matrix, local reference frame
+	//OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
+	RenderOffsetCamera(true);		// Reset the matrix, local reference frame
 
-		glBegin(GL_TRIANGLES);
-			glVertex2i(-1250, 1000);
-			glVertex2i(0, 0);
-			glVertex2i(1250, 1000);
-		glEnd();
-		gluDisk(oQuadricObj, 0, 8, 12, 1);
-	}
+	glBegin(GL_TRIANGLES);
+		glVertex2i(-1250, 1000);
+		glVertex2i(0, 0);
+		glVertex2i(1250, 1000);
+	glEnd();
+	gluDisk(oQuadricObj, 0, 8, 12, 1);
 
 	// Now clip away from the full view what's blocked by the walls
 	OglUtilsSetMaskValue(0);
 
 	RenderOffsetCamera(false);		// Reset the matrix, global reference frame
 
-	{
-		glBegin(GL_QUADS);
-			for (iLoop1 = 0; iLoop1 < oPolyLevel.num_contours; iLoop1++)
+	glBegin(GL_QUADS);
+		for (iLoop1 = 0; iLoop1 < oPolyLevel.num_contours; iLoop1++)
+		{
+			for (iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
 			{
-				for (iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
-				{
-					glVertex2i(oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x, oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y);
-
-					oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
-					oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
-					oRay.Direction().x = oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
-					oRay.Direction().y = oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
-					oVector = MathProjectRay(oRay, 500);
-					glVertex2i(oVector.x, oVector.y);
-
-					oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2].x;
-					oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2].y;
-					oRay.Direction().x = oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
-					oRay.Direction().y = oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
-					oVector = MathProjectRay(oRay, 500);
-					glVertex2i(oVector.x, oVector.y);
-
-					glVertex2i(oPolyLevel.contour[iLoop1].vertex[iLoop2].x, oPolyLevel.contour[iLoop1].vertex[iLoop2].y);
-				}
-
-				// last vertex
 				glVertex2i(oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x, oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y);
 
 				oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
@@ -238,15 +254,114 @@ void RenderCreateFOVMask()
 				oVector = MathProjectRay(oRay, 500);
 				glVertex2i(oVector.x, oVector.y);
 
-				oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[0].x;
-				oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[0].y;
+				oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2].x;
+				oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2].y;
 				oRay.Direction().x = oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
 				oRay.Direction().y = oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
 				oVector = MathProjectRay(oRay, 500);
 				glVertex2i(oVector.x, oVector.y);
 
-				glVertex2i(oPolyLevel.contour[iLoop1].vertex[0].x, oPolyLevel.contour[iLoop1].vertex[0].y);
+				glVertex2i(oPolyLevel.contour[iLoop1].vertex[iLoop2].x, oPolyLevel.contour[iLoop1].vertex[iLoop2].y);
 			}
+
+			// last vertex
+			glVertex2i(oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x, oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y);
+
+			oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
+			oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
+			oRay.Direction().x = oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
+			oRay.Direction().y = oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
+			oVector = MathProjectRay(oRay, 500);
+			glVertex2i(oVector.x, oVector.y);
+
+			oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[0].x;
+			oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[0].y;
+			oRay.Direction().x = oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
+			oRay.Direction().y = oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
+			oVector = MathProjectRay(oRay, 500);
+			glVertex2i(oVector.x, oVector.y);
+
+			glVertex2i(oPolyLevel.contour[iLoop1].vertex[0].x, oPolyLevel.contour[iLoop1].vertex[0].y);
+		}
+	glEnd();
+}
+
+void RenderSmokeFOVMask(Mgc::Vector2 oSmokePosition, float fSmokeRadius)
+{
+	const float		fSmokeMaskLength = 750;
+	const int		nSubdivisions = 4;
+
+	Mgc::Vector2 oPlayerPosition(oPlayers[iLocalPlayerID]->GetIntX(), oPlayers[iLocalPlayerID]->GetIntY());
+	Mgc::Vector2 oDirection = (oSmokePosition - oPlayerPosition);
+	float fDistance = oDirection.Unitize();
+	float fAngleToPlayer = Math::ATan2(-oDirection.y, -oDirection.x);
+
+	// Check if the player located outside of the smoke
+	if (fDistance > fSmokeRadius) {
+		// Circular part
+		glPushMatrix();
+		glTranslatef(oSmokePosition.x, oSmokePosition.y, 0);
+		gluDisk(oQuadricObj, 0, fSmokeRadius * 0.75, 16, 1);
+		glPopMatrix();
+
+		// Trapezoid part
+		float fAngle = Mgc::Math::ACos(fSmokeRadius / fDistance);
+		Mgc::Vector2 oEndPoint = oSmokePosition + oDirection * (fSmokeMaskLength - fDistance);
+		Mgc::Vector2 oCrossDirection = oDirection.UnitCross();
+		Mgc::Vector2 oEndPointR = oEndPoint + oCrossDirection * (Mgc::Math::Tan(Mgc::Math::HALF_PI - fAngle) * fSmokeMaskLength);
+		Mgc::Vector2 oEndPointL = oEndPoint - oCrossDirection * (Mgc::Math::Tan(Mgc::Math::HALF_PI - fAngle) * fSmokeMaskLength);
+
+		glEnable(GL_POLYGON_STIPPLE);
+		glBegin(GL_TRIANGLE_FAN);
+			glVertex2f(oSmokePosition.x, oSmokePosition.y);
+			//glVertex2f(oEndPoint.x, oEndPoint.y);
+			glVertex2f(oEndPointR.x, oEndPointR.y);
+
+			// Just before step
+			glVertex2f(oSmokePosition.x + fSmokeRadius * Mgc::Math::Cos(fAngleToPlayer + fAngle),
+					   oSmokePosition.y + fSmokeRadius * Mgc::Math::Sin(fAngleToPlayer + fAngle));
+
+			// Intermediate steps
+			for (int nStep = nSubdivisions - 1; nStep > -nSubdivisions; --nStep) {
+				float fTempAngle = (float)nStep / nSubdivisions * Mgc::Math::HALF_PI;
+				if (Mgc::Math::FAbs(fTempAngle) >= fAngle) continue;
+
+				glVertex2f(oSmokePosition.x + fSmokeRadius * Mgc::Math::Cos(fAngleToPlayer + fTempAngle),
+						   oSmokePosition.y + fSmokeRadius * Mgc::Math::Sin(fAngleToPlayer + fTempAngle));
+			}
+
+			// Middle step
+			//glVertex2f((oSmokePosition - oDirection * fSmokeRadius).x, (oSmokePosition - oDirection * fSmokeRadius).y);
+
+			// Just after step
+			glVertex2f(oSmokePosition.x + fSmokeRadius * Mgc::Math::Cos(fAngleToPlayer - fAngle),
+					   oSmokePosition.y + fSmokeRadius * Mgc::Math::Sin(fAngleToPlayer - fAngle));
+
+			glVertex2f(oEndPointL.x, oEndPointL.y);
+			glVertex2f(oEndPointR.x, oEndPointR.y);
 		glEnd();
+		glDisable(GL_POLYGON_STIPPLE);
+	}
+	else
+	{
+		// Circular part
+		glPushMatrix();
+		glTranslatef(oSmokePosition.x, oSmokePosition.y, 0);
+		gluDisk(oQuadricObj, 0, fSmokeRadius * 0.75, 16, 1);
+		glPopMatrix();
+
+		// The rest
+		glPushMatrix();
+		RenderOffsetCamera(true);
+		glEnable(GL_POLYGON_STIPPLE);
+		glBegin(GL_QUADS);
+			glColor4f(0, 0, 0, 0.6);
+			glVertex2i(-750, -250);
+			glVertex2i(750, -250);
+			glVertex2i(750, 1000);
+			glVertex2i(-750, 1000);
+		glEnd();
+		glDisable(GL_POLYGON_STIPPLE);
+		glPopMatrix();
 	}
 }

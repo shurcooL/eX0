@@ -530,14 +530,12 @@ static	void	dumpLeakReport()
 {
 	// Open the report file
 
-	FILE	*fp = fopen(memoryLeakLogFile, "w+b");
+	FILE	*fp = fopen(memoryLeakLogFile, "wb");
 
 	// If you hit this assert, then the memory report generator is unable to log information to a file (can't open the file for
 	// some reason.)
 	m_assert(fp);
 	if (!fp) return;
-
-	// Any leaks?
 
 	// Header
 
@@ -550,6 +548,9 @@ static	void	dumpLeakReport()
 	fprintf(fp, " ---------------------------------------------------------------------------------------------------------------------------------- \r\n");
 	fprintf(fp, "\r\n");
 	fprintf(fp, "\r\n");
+
+	// Any leaks?
+
 	if (stats.totalAllocUnitCount)
 	{
 		fprintf(fp, "%d memory leak%s found:\r\n", stats.totalAllocUnitCount, stats.totalAllocUnitCount == 1 ? "":"s");
@@ -1691,7 +1692,7 @@ void	m_dumpMemoryReport(const char *filename, const bool overwrite)
 
 	FILE	*fp = NULL;
 	
-	if (overwrite)	fp = fopen(filename, "w+b");
+	if (overwrite)	fp = fopen(filename, "wb");
 	else		fp = fopen(filename, "ab");
 
 	// If you hit this assert, then the memory report generator is unable to log information to a file (can't open the file for
@@ -1699,14 +1700,14 @@ void	m_dumpMemoryReport(const char *filename, const bool overwrite)
 	m_assert(fp);
 	if (!fp) return;
 
-        // Header
+	// Header
 
-        static  char    timeString[25];
-        memset(timeString, 0, sizeof(timeString));
-        time_t  t = time(NULL);
-        struct  tm *tme = localtime(&t);
+	static  char    timeString[25];
+	memset(timeString, 0, sizeof(timeString));
+	time_t  t = time(NULL);
+	struct  tm *tme = localtime(&t);
 	fprintf(fp, " ---------------------------------------------------------------------------------------------------------------------------------- \r\n");
-        fprintf(fp, "|                                             Memory report for: %02d/%02d/%04d %02d:%02d:%02d                                               |\r\n", tme->tm_mon + 1, tme->tm_mday, tme->tm_year + 1900, tme->tm_hour, tme->tm_min, tme->tm_sec);
+	fprintf(fp, "|                                             Memory report for: %02d/%02d/%04d %02d:%02d:%02d                                               |\r\n", tme->tm_mon + 1, tme->tm_mday, tme->tm_year + 1900, tme->tm_hour, tme->tm_min, tme->tm_sec);
 	fprintf(fp, " ---------------------------------------------------------------------------------------------------------------------------------- \r\n");
 	fprintf(fp, "\r\n");
 	fprintf(fp, "\r\n");

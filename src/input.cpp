@@ -140,6 +140,11 @@ void InputProcessKey(int iKey, int iAction)
 		// 'v' - change camera view
 		case 'V':
 			iCameraType = (++iCameraType) % 2;
+
+			// Reset the mask
+			OglUtilsSetMaskingMode(RENDER_TO_MASK_MODE);
+			glClear(GL_STENCIL_BUFFER_BIT);
+			OglUtilsSetMaskingMode(NO_MASKING_MODE);
 			break;
 		// restart the game
 		case GLFW_KEY_F1:
@@ -160,6 +165,15 @@ void InputProcessKey(int iKey, int iAction)
 						oPlayers[iLoop1]->GiveHealth(-100);
 				}
 			}
+			break;
+		// DEBUG: Toggle the wireframe mode
+		case GLFW_KEY_F2:
+			bWireframe = !bWireframe;
+			break;
+		// DEBUG: Toggle between gpc and PolyBoolean triangulations
+		case GLFW_KEY_F3:
+			bUseDefaultTriangulation = !bUseDefaultTriangulation;
+			printf("Using %s triangulation.\n", bUseDefaultTriangulation ? "gpc" : "PB");
 			break;
 		// any other key
 		default:

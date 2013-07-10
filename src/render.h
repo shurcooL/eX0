@@ -15,8 +15,11 @@ void RenderInteractiveScene();
 
 void RenderOffsetCamera(bool bLocalPlayerReferenceFrame);
 
-// renders the fov zone
+// Renders the FOV zone
 void RenderFOV();
 
 // Creates the FOV mask
 void RenderCreateFOVMask();
+
+// Renders the FOV mask from a smoke grenade
+void RenderSmokeFOVMask(Mgc::Vector2 oSmokePosition, float fSmokeRadius);
