@@ -1,5 +1,6 @@
 eX0 To-Do List (highest priority on top)
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+-Think about "commands that fail".
 /?-Refactor the WpnCommand packet sending code so that when a gun is empty, the client won't flood the server with 500+ packets/sec of impossible FIRE wpn commands.
 -Fix the WpnCommand packet sending code not to spam same weapon change packets.
 -Look into why oParticleEngine.Tick(); sometimes takes >3ms even without any active particles (when doing heavy multitasking, i.e. >1 eX0 instances running).

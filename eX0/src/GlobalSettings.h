@@ -5,7 +5,7 @@
 #ifdef _DEBUG
 #	define EX0_DEBUG
 #endif
-#define EX0_VERSION "0.0071"
+#define EX0_VERSION "0.0073"
 
 #ifdef EX0_CLIENT
 #	define EX0_PRODUCT_STRING "eX0"
@@ -45,7 +45,5 @@ typedef int					int32;
 typedef unsigned int		uint32;
 typedef long long			int64;
 typedef unsigned long long	uint64;
-
-#define nullptr 0
 
 #endif // __GlobalSettings_H__

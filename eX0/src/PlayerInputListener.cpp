@@ -201,6 +201,20 @@ bool PlayerInputListener::MutexProcessButton(int nDevice, int nButton, bool bPre
 
 		return true;
 	}
+	else if (nDevice == 2000)		// 1st Joystick
+	{
+		switch (nButton)
+		{
+		case 2:
+			m_bWeaponReloadTEST = (true == bPressed);
+			break;
+		default:
+			return false;
+			break;
+		}
+
+		return true;
+	}
 
 	return false;
 }
@@ -243,12 +257,20 @@ bool PlayerInputListener::MutexProcessAxis(int nDevice, int nAxis, double dPosit
 	{
 		if (nAxis == 0)			// 1st Axis
 		{
-			m_dRotationAxisState = dPosition / 10.0;
-			//m_dStrafeAxisState = dPosition;
+			//m_dRotationAxisState = dPosition / 10.0;
+			m_dStrafeAxisState = dPosition;
 		}
 		else if (nAxis == 1)	// 2nd Axis
 		{
 			m_dForwardAxisState = dPosition;
+		}
+		else if (nAxis == 2)	// 3rd Axis
+		{
+			m_bWeaponFireTEST = (dPosition <= -0.5);
+		}
+		else if (nAxis == 4)	// 5th Axis
+		{
+			m_dRotationAxisState = dPosition / 10.0;
 		}
 		else
 			return false;

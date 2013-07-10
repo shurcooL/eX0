@@ -83,6 +83,8 @@ public:
     static Real FUZZ;
 };
 
+Vector2 operator* (Real fScalar, const Vector2& rkVector);
+
 #include "MgcVector2.inl"
 
 } // namespace Mgc

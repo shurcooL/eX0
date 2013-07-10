@@ -5,6 +5,23 @@
 #	include "../eX0ds/src/globals.h"
 #endif // EX0_CLIENT
 
+double TimeScaleTEST()
+{
+#if 0
+	//return 0.0001;
+	static double LastTime = glfwGetTime();
+	static double ReportedTime = 0;
+	int x, y; glfwGetMousePos(&x, &y);
+	double ThisTime = glfwGetTime();
+	ReportedTime += ((double)y / -480) * (ThisTime - LastTime);
+	//ReportedTime += (glfwGetKey(GLFW_KEY_SPACE) ? 0.01 : 0.5) * (ThisTime - LastTime);
+	LastTime = ThisTime;
+	return ReportedTime;
+#else
+	return glfwGetTime();
+#endif
+}
+
 GameTimer::GameTimer()
 	: m_dTimeOffset(0),
 	  m_dCurrentTime(0),
@@ -56,7 +73,7 @@ void GameTimer::UpdateTime()
 
 	if (false == m_bSyncTime)
 	{
-		double dNewCurrentTime = glfwGetTime() + m_dTimeOffset;
+		double dNewCurrentTime = TimeScaleTEST() + m_dTimeOffset;
 		m_dTimePassed = dNewCurrentTime - m_dCurrentTime;
 		m_dCurrentTime = dNewCurrentTime;
 	}
@@ -64,9 +81,9 @@ void GameTimer::UpdateTime()
 	{
 		glfwLockMutex(m_oSyncMutex);
 
-		m_dTimePassed = (glfwGetTime() + m_dTimeOffset) - m_dCurrentTime;
+		m_dTimePassed = (TimeScaleTEST() + m_dTimeOffset) - m_dCurrentTime;
 		m_dTimeOffset = m_dSyncTimeOffset;
-		m_dCurrentTime = glfwGetTime() + m_dTimeOffset;
+		m_dCurrentTime = TimeScaleTEST() + m_dTimeOffset;
 
 		m_bSyncTime = false;
 
@@ -94,7 +111,7 @@ void GameTimer::SetTime(double dNewCurrentTime)
 {
 	eX0_assert(m_bIsStarted);
 
-	m_dTimeOffset = dNewCurrentTime - glfwGetTime();
+	m_dTimeOffset = dNewCurrentTime - TimeScaleTEST();
 	m_dCurrentTime = dNewCurrentTime;
 	m_dTimePassed = 0;
 

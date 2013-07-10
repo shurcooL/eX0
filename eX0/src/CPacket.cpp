@@ -79,7 +79,7 @@ void CPacket::ConvertToReadOnly()
 **  s - string (known length)
 **  z - string (16-bit length is automatically prepended)
 */
-u_int CPacket::pack(char *format, ...)
+u_int CPacket::pack(const char * format, ...)
 {
 	//eX0_assert(m_bOwnBuffer, "Tried to pack a constant (existing) CPacket");
 	eX0_assert(m_nPacketType == WRITE_ONLY, "m_nPacketType == WRITE_ONLY in pack()");
@@ -92,8 +92,8 @@ u_int CPacket::pack(char *format, ...)
 	bool b;
 	float f;
 	double d;
-	char *s;
-	string *t;
+	char * s;
+	string * t;
 	u_int size = 0, len;
 
 	va_start(ap, format);
@@ -188,21 +188,21 @@ u_int CPacket::pack(char *format, ...)
 **
 **  e - set length as an int parameter
 */
-void CPacket::unpack(char *format, ...)
+void CPacket::unpack(const char * format, ...)
 {
 	eX0_assert(m_nPacketType == READ_ONLY, "m_nPacketType == READ_ONLY");
 
 	va_list ap;
-	short *h;
-	int *l;
+	short * h;
+	int * l;
 	int pf;
 	long long pd;
-	char *c;
-	bool *b;
-	float *f;
-	double *d;
-	char *s;
-	string *t;
+	char * c;
+	bool * b;
+	float * f;
+	double * d;
+	char * s;
+	string * t;
 	u_int len, count, maxstrlen = 0;
 
 	va_start(ap, format);
@@ -358,7 +358,7 @@ long double CPacket::unpack754(long long i, u_int bits, u_int expbits)
 /*
 ** packi16() -- store a 16-bit int into a char buffer (like htons())
 */
-void CPacket::packi16(u_char *buf, u_int i)
+void CPacket::packi16(u_char * buf, u_int i)
 {
 	*buf++ = static_cast<u_char>(i>>8); *buf++ = static_cast<u_char>(i);
 }
@@ -366,7 +366,7 @@ void CPacket::packi16(u_char *buf, u_int i)
 /*
 ** packi32() -- store a 32-bit int into a char buffer (like htonl())
 */
-void CPacket::packi32(u_char *buf, u_long i)
+void CPacket::packi32(u_char * buf, u_long i)
 {
 	*buf++ = (u_char)(i>>24); *buf++ = (u_char)(i>>16);
 	*buf++ = (u_char)(i>>8);  *buf++ = (u_char)i;
@@ -375,7 +375,7 @@ void CPacket::packi32(u_char *buf, u_long i)
 /*
 ** packi64() -- store a 64-bit int into a char buffer
 */
-void CPacket::packi64(u_char *buf, u_int64 i)
+void CPacket::packi64(u_char * buf, u_int64 i)
 {
 	*buf++ = (u_char)(i>>56); *buf++ = (u_char)(i>>48);
 	*buf++ = (u_char)(i>>40); *buf++ = (u_char)(i>>32);
@@ -386,7 +386,7 @@ void CPacket::packi64(u_char *buf, u_int64 i)
 /*
 ** unpacki16() -- unpack a 16-bit int from a char buffer (like ntohs())
 */
-u_int CPacket::unpacki16(u_char *buf)
+u_int CPacket::unpacki16(u_char * buf)
 {
 	return (buf[0]<<8) | buf[1];
 }
@@ -394,7 +394,7 @@ u_int CPacket::unpacki16(u_char *buf)
 /*
 ** unpacki32() -- unpack a 32-bit int from a char buffer (like ntohl())
 */
-u_long CPacket::unpacki32(u_char *buf)
+u_long CPacket::unpacki32(u_char * buf)
 {
 	return (buf[0]<<24) | (buf[1]<<16) | (buf[2]<<8) | buf[3];
 }
@@ -402,7 +402,7 @@ u_long CPacket::unpacki32(u_char *buf)
 /*
 ** unpacki64() -- unpack a 64-bit int from a char buffer
 */
-u_int64 CPacket::unpacki64(u_char *buf)
+u_int64 CPacket::unpacki64(u_char * buf)
 {
 //	return ((u_int64)buf[0]<<56) | ((u_int64)buf[1]<<48) | ((u_int64)buf[2]<<40) | ((u_int64)buf[3]<<32)
 //		| (buf[4]<<24) | (buf[5]<<16) | (buf[6]<<8) | buf[7];

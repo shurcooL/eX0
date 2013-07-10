@@ -10,9 +10,9 @@
 #include <ctype.h>
 #endif // WIN32
 
-#include <GL/gl.h>
-#include <GL/glu.h>
-//#include <GL/glfw.h>
+//#include <GL/gl.h>
+//#include <GL/glu.h>
+#include <GL/glfw.h>
 
 /**
 	Note : Being a singleton all the data we 'want' is located

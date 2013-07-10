@@ -61,7 +61,7 @@ bool Init(int, char *[])
 	if (!glfwInit()) {
 		printf("Couldn't init GLFW...\n");
 		return false;
-	}
+	} else { int major, minor, rev; glfwGetVersion(&major, &minor, &rev); printf("Using glfw library %d.%d.%d", major, minor, rev); if (!(GLFW_VERSION_MAJOR == major && GLFW_VERSION_MINOR == minor && GLFW_VERSION_REVISION == rev)) printf(" (mis-matched header %d.%d.%d)", GLFW_VERSION_MAJOR, GLFW_VERSION_MINOR, GLFW_VERSION_REVISION); printf(".\n"); }
 	printf("Main thread tid = %d.\n", glfwGetThreadID());
 
 	if (bWindowModeDEBUG)
@@ -82,7 +82,7 @@ bool Init(int, char *[])
 											  0);
 #endif // EX0_DEBUG
 		glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
-		//if (glfwOpenWindow(1920, 1200, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow()) { printf("Opened a window (try 0)...\n"); } else
+		//if (glfwOpenWindow(2560, 1600, 8, 8, 8, 0, 24, 8, GLFW_FULLSCREEN) && CheckWindow()) { printf("Opened a window (try 0)...\n"); } else
 		if (glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
 		{
 			printf("Opened a window (try 1)...\n");
@@ -309,7 +309,7 @@ void DumpStateHistory(std::list<AuthState_st> & oStateHistory)
 	dCurrentTimepoint *= 256;
 
 	printf("dCurrentTimepoint = %f\n", dCurrentTimepoint);
-	printf("size %d\n", oStateHistory.size());
+	printf("size %lu\n", oStateHistory.size());
 	printf("front 2nd %d: (%f, %f, %f)\n", oStateHistory.begin().operator ++().operator *().oState.cSequenceNumber, oStateHistory.begin().operator ++().operator *().oState.oState.fX, oStateHistory.begin().operator ++().operator *().oState.oState.fY, oStateHistory.begin().operator ++().operator *().oState.oState.fZ);
 	printf("front 1st %d: (%f, %f, %f)\n", oStateHistory.front().oState.cSequenceNumber, oStateHistory.front().oState.oState.fX, oStateHistory.front().oState.oState.fY, oStateHistory.front().oState.oState.fZ);
 	printf("GameSession->GlobalStateSequenceNumberTEST %d\n", g_pGameSession->GlobalStateSequenceNumberTEST);
@@ -317,7 +317,7 @@ void DumpStateHistory(std::list<AuthState_st> & oStateHistory)
 	printf("\n");
 }
 
-std::string unescape(char * cstr)
+std::string unescape(const char * cstr)
 {
 	std::string str;
 	for (uint32 ch = 0; ch < strlen(cstr); ++ch)
@@ -398,7 +398,7 @@ int main(int argc, char * argv[])
 	if (2 == argc && 0 == strcmp(argv[1], runcode))
 		argc = 1;		// Ignore the runcode parameter
 	else {
-		std::string cmd; cmd = cmd + "\"" + argv[0] + "\" " + runcode + " & echo. & echo If anything went wrong, please copy the log above and send it to shurcooL. & pause";
+		std::string cmd; cmd = "\"" + cmd + "\"" + argv[0] + "\" " + runcode + " & echo. & echo If anything went wrong, please copy the log above and send it to shurcooL. & pause\"";
 		system(cmd.c_str());
 		/*STARTUPINFO siStartupInfo; memset(&siStartupInfo, 0, sizeof(siStartupInfo)); siStartupInfo.cb = sizeof(siStartupInfo);
 		PROCESS_INFORMATION piProcessInfo; memset(&piProcessInfo, 0, sizeof(piProcessInfo));
@@ -467,13 +467,21 @@ int main(int argc, char * argv[])
 	// Connect to the server
 	if (nRunModeDEBUG == 0)	// Client only
 	{
+#ifdef EX0_DEBUG
 		glfwSetWindowPos(oDesktopMode.Width - 650 * 2, oDesktopMode.Height / 2 - 240);
 		if (!(argc >= 2 && NetworkConnect(argv[1], DEFAULT_PORT)) &&
-			!NetworkConnect("shurcool.no-ip.org"/*"cse.yorku.ca"*/, DEFAULT_PORT))
+			!NetworkConnect("cse.yorku.ca", DEFAULT_PORT) &&
+			!NetworkConnect("shurcool.no-ip.org", DEFAULT_PORT))
 		{
 			Terminate(1);
 		}
-		//NetworkConnect("shurvaio", DEFAULT_PORT);
+#else
+		glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
+		if (!NetworkConnect("cse.yorku.ca", DEFAULT_PORT))
+		{
+			Terminate(1);
+		}
+#endif // EX0_DEBUG
 	} else if (nRunModeDEBUG == 2)			// Both server and client
 	{
 		// Connect to local server
@@ -501,7 +509,7 @@ glfwLockMutex(oPlayerTick);
 		for (int nBotNumber = 1; nBotNumber <= 0; ++nBotNumber)
 		{//Bot test
 			CPlayer * pTestPlayer = new CPlayer();
-			std::string sName = "Test Mimic " + itos(nBotNumber);
+			std::string sName = "Test Bot " + itos(nBotNumber);
 			pTestPlayer->SetName(sName);
 			pTestPlayer->m_pController = new AiController(*pTestPlayer);
 			pTestPlayer->m_pStateAuther = new LocalStateAuther(*pTestPlayer);
@@ -570,7 +578,7 @@ glfwUnlockMutex(oPlayerTick);
 		g_pGameSession->MainTimer().UpdateTime();
 
 		pFpsCounter->IncrementCounter();
-		FpsCounter::UpdateCounters(g_pGameSession->MainTimer().GetTime());
+		FpsCounter::UpdateCounters(g_pGameSession->MainTimer().GetTime());		// TODO: Use real time for this, not potentially scaled game time...
 		if (!bWindowModeDEBUG) FpsCounter::PrintCounters();
 //if (glfwGetKey('O')) {CTimedEventScheduler * p = pTimedEventScheduler; pTimedEventScheduler = NULL; delete p;}
 
@@ -658,8 +666,20 @@ glfwUnlockMutex(oPlayerTick);
 			}
 
 			// Swap Buffers (and Poll Events)
-			if (!bPaused) glfwSwapBuffers();
+			if (!bPaused) { glfwSwapBuffers(); glFinish(); /* glFinish is a stuttering fix for ATI 4670 */ }
 			else { glfwSleep(0.010); glfwPollEvents(); }
+
+			static bool WindowWasActive = true;
+			bool WindowActive = (GL_TRUE == glfwGetWindowParam(GLFW_ACTIVE));
+			if (WindowActive && !WindowWasActive)
+			{
+				printf("Window became active.\n");
+			}
+			else if (!WindowActive && WindowWasActive)
+			{
+				printf("Window went inactive.\n");
+			}
+			WindowWasActive = WindowActive;
 
 			if (glfwGetWindowParam(GLFW_ACTIVE))
 			{

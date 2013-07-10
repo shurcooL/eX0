@@ -42,7 +42,7 @@ void InputManager::UnregisterListener(InputListener * pListener)
 {
 	glfwLockMutex(m_oListenersMutex);
 
-	for (std::vector<InputListener *>::const_iterator it1 = m_oListeners.begin(); it1 != m_oListeners.end(); ++it1)
+	for (std::vector<InputListener *>::iterator it1 = m_oListeners.begin(); it1 != m_oListeners.end(); ++it1)
 		if ((*it1) == pListener)
 		{
 			m_oListeners.erase(it1);
@@ -100,11 +100,11 @@ void InputManager::InitializeJoysticks()
 
 			m_oJoysticks.push_back(oJoystick);
 
-			printf("Joystick id=%d: %d axes, %d buttons.\n", oJoystick.nId, oJoystick.nAxes, oJoystick.nButtons);
+			std::cout << "Joystick id=" << oJoystick.nId << ": " << oJoystick.nAxes << " axes, " << oJoystick.nButtons << " buttons.\n";
 		}
 	}
 
-	printf("%d joysticks initialized.\n", m_oJoysticks.size());
+	std::cout << m_oJoysticks.size() << " joysticks initialized.\n";
 }
 
 void GLFWCALL InputManager::ProcessKey(int nKey, int nAction)
@@ -113,7 +113,7 @@ void GLFWCALL InputManager::ProcessKey(int nKey, int nAction)
 
 	glfwLockMutex(m_pInstance->m_oListenersMutex);
 
-	for (std::vector<InputListener *>::const_reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
+	for (std::vector<InputListener *>::reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
 	{
 		(*it1)->ProcessButton(0 /* Keyboard */, nKey, (GLFW_PRESS == nAction));
 	}
@@ -130,7 +130,7 @@ void GLFWCALL InputManager::ProcessChar(int nChar, int nAction)
 
 	glfwLockMutex(m_pInstance->m_oListenersMutex);
 
-	for (std::vector<InputListener *>::const_reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
+	for (std::vector<InputListener *>::reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
 	{
 		(*it1)->ProcessCharacter(nChar, (GLFW_PRESS == nAction));
 	}
@@ -149,14 +149,14 @@ void GLFWCALL InputManager::ProcessMouseButton(int nMouseButton, int nAction)
 
 	if (true == m_pInstance->IsMousePointerVisible())
 	{
-		for (std::vector<InputListener *>::const_reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
+		for (std::vector<InputListener *>::reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
 		{
 			(*it1)->ProcessMouseButton(nMouseButton, (GLFW_PRESS == nAction));
 		}
 	}
 	else
 	{
-		for (std::vector<InputListener *>::const_reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
+		for (std::vector<InputListener *>::reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
 		{
 			(*it1)->ProcessButton(1000 /* Mouse */, nMouseButton, (GLFW_PRESS == nAction));
 		}
@@ -181,7 +181,7 @@ void GLFWCALL InputManager::ProcessMousePos(int nMousePosX, int nMousePosY)
 	{
 		bPreviousMousePosSet = false;
 
-		for (std::vector<InputListener *>::const_reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
+		for (std::vector<InputListener *>::reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
 		{
 			(*it1)->ProcessMousePosition(nMousePosX, nMousePosY);
 		}
@@ -207,7 +207,7 @@ void GLFWCALL InputManager::ProcessMousePos(int nMousePosX, int nMousePosY)
 			nPreviousMousePosX = nMousePosX;
 			nPreviousMousePosY = nMousePosY;
 
-			for (std::vector<InputListener *>::const_reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
+			for (std::vector<InputListener *>::reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
 			{
 				(*it1)->ProcessSlider(1000 /* Mouse */, 0 /* Mouse X Axis */, static_cast<double>(nMouseMovedX));
 				(*it1)->ProcessSlider(1000 /* Mouse */, 1 /* Mouse Y Axis */, static_cast<double>(nMouseMovedY));
@@ -234,7 +234,7 @@ void GLFWCALL InputManager::ProcessMouseWheel(int nMouseWheelPosition)
 		int nMouseWheelMoved = nMouseWheelPosition - nPreviousMouseWheelPosition;
 		nPreviousMouseWheelPosition = nMouseWheelPosition;
 
-		for (std::vector<InputListener *>::const_reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
+		for (std::vector<InputListener *>::reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
 		{
 			(*it1)->ProcessSlider(1000 /* Mouse */, 2 /* Mouse Wheel */, nMouseWheelMoved);
 		}
@@ -248,7 +248,7 @@ void InputManager::ProcessJoysticks()
 	glfwLockMutex(m_pInstance->m_oListenersMutex);
 
 	int nDevice = 2000;		// Joystick
-	for (std::vector<Joystick_t>::const_iterator it1 = m_oJoysticks.begin(); it1 != m_oJoysticks.end(); ++nDevice)
+	for (std::vector<Joystick_t>::iterator it1 = m_oJoysticks.begin(); it1 != m_oJoysticks.end(); ++nDevice)
 	{
 		Joystick_t	oJoystick = *it1;
 		float *		pJoystickPos = new float[oJoystick.nAxes];
@@ -259,7 +259,7 @@ void InputManager::ProcessJoysticks()
 
 		for (u_int nAxis = 0; nAxis < oJoystick.nAxes; ++nAxis)
 		{
-			for (std::vector<InputListener *>::const_reverse_iterator it2 = m_pInstance->m_oListeners.rbegin(); it2 != m_pInstance->m_oListeners.rend(); ++it2)
+			for (std::vector<InputListener *>::reverse_iterator it2 = m_pInstance->m_oListeners.rbegin(); it2 != m_pInstance->m_oListeners.rend(); ++it2)
 			{
 				(*it2)->ProcessAxis(nDevice /* Joystick Number */, nAxis /* Axis Number */, pJoystickPos[nAxis] /* Axis Position */);
 			}
@@ -267,7 +267,7 @@ void InputManager::ProcessJoysticks()
 
 		for (u_int nButton = 0; nButton < oJoystick.nButtons; ++nButton)
 		{
-			for (std::vector<InputListener *>::const_reverse_iterator it2 = m_pInstance->m_oListeners.rbegin(); it2 != m_pInstance->m_oListeners.rend(); ++it2)
+			for (std::vector<InputListener *>::reverse_iterator it2 = m_pInstance->m_oListeners.rbegin(); it2 != m_pInstance->m_oListeners.rend(); ++it2)
 			{
 				(*it2)->ProcessButton(nDevice /* Joystick Number */, nButton /* Button Number */, (GLFW_PRESS == pJoystickButtons[nButton]) /* Button Pressed */);
 			}
@@ -279,7 +279,7 @@ void InputManager::ProcessJoysticks()
 		if (0 == nReturnedAxes && 0 == nReturnedButtons)
 		{
 			// Joystick no longer functional/connected
-			printf("WARNING: Joystick id=%d has been disconnected.\n", oJoystick.nId);
+			std::cout << "WARNING: Joystick id=" << oJoystick.nId << " has been disconnected.\n";
 			it1 = m_oJoysticks.erase(it1);
 		}
 		else
@@ -293,7 +293,7 @@ void InputManager::TimePassed(double dTimePassed)
 {
 	glfwLockMutex(m_pInstance->m_oListenersMutex);
 
-	for (std::vector<InputListener *>::const_reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
+	for (std::vector<InputListener *>::reverse_iterator it1 = m_pInstance->m_oListeners.rbegin(); it1 != m_pInstance->m_oListeners.rend(); ++it1)
 	{
 		(*it1)->TimePassed(dTimePassed);
 	}

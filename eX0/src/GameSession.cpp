@@ -9,8 +9,8 @@ GameSession * g_pGameSession = NULL;
 
 GameSession::GameSession()
 	: GlobalStateSequenceNumberTEST(0),
-	  m_oLogicTimer(),
 	  m_oMainTimer(),
+	  m_oLogicTimer(),
 	  m_pNetworkMonitor(new ThroughputMonitor())
 {
 	m_oLogicTimer.StartSyncingTimer(&m_oMainTimer);

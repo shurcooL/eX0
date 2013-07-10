@@ -51,10 +51,10 @@ void CParticle::Render()
 				glEnable(GL_BLEND);
 				glBegin(GL_LINES);
 					//glColor4d(1.0, 0.65, 0.05, 0.1);
-					glColor4d(1.0, 0.65, 0.05, 0.05);
+					glColor4d(1.0, 0.65, 0.05, 0.075);
 					glVertex2d(fIntPos.x - oParticles[iLoop1].oVelocity.x * 0.2, fIntPos.y - oParticles[iLoop1].oVelocity.y * 0.2);
 					//glColor4d(0.95, 0.95, 0.1, 0.9);
-					glColor4d(0.95, 0.95, 0.1, 0.15);
+					glColor4d(0.95, 0.95, 0.1, 0.2);
 					glVertex2d(fIntPos.x + oParticles[iLoop1].oVelocity.x * 0.1, fIntPos.y + oParticles[iLoop1].oVelocity.y * 0.1);
 				glEnd();
 				glDisable(GL_BLEND);
@@ -132,9 +132,9 @@ void CParticle::Render()
 				glEnable(GL_BLEND);
 				glBegin(GL_LINES);
 					glColor4d(0.5, 0.1, 0.1, 0.1);
-					glVertex2d(fIntPos.x - oParticles[iLoop1].oVelocity.x * 0, fIntPos.y - oParticles[iLoop1].oVelocity.y * 0);
+					glVertex2d(fIntPos.x - oParticles[iLoop1].oVelocity.x * 2, fIntPos.y - oParticles[iLoop1].oVelocity.y * 2);
 					glColor4d(0.990, 0.05, 0.05, 0.9);
-					glVertex2d(fIntPos.x + oParticles[iLoop1].oVelocity.x * 2, fIntPos.y + oParticles[iLoop1].oVelocity.y * 2);
+					glVertex2d(fIntPos.x + oParticles[iLoop1].oVelocity.x * 0, fIntPos.y + oParticles[iLoop1].oVelocity.y * 0);
 				glEnd();
 				glDisable(GL_BLEND);
 				glDisable(GL_LINE_SMOOTH);
@@ -435,15 +435,15 @@ void CParticle::HitCheck(int nParticle)
 			{
 				// Angle(Normal) + (HALF_PI * 10% * (-100%~+100%))
 				double dRandomAngle = MathCoordToRad(0, 0, (int)(oParticles[nParticle].oVelocity.x * 1000), (int)(oParticles[nParticle].oVelocity.y * 1000)) + Math::HALF_PI + (((rand() % 1001)*0.001) * 2 - 1) * Math::HALF_PI * 0.1;
-				double dVelocity = 15 * (0.75 + (rand() % 1001)*0.001*0.5);		// 5.0 * (75%~125%)
-				AddParticle(oParticles[nParticle].dDieAt,
+				double dVelocity = 20 * (0.75 + (rand() % 1001)*0.001*0.5);		// 5.0 * (75%~125%)
+				AddParticle(oParticles[nParticle].dDieAt - 1.75 * PARTICLE_TICK_TIME,
 					oParticles[nParticle].oPosition.x + (float)(oParticles[nParticle].dDieAt - oParticles[nParticle].dTime) / (float)PARTICLE_TICK_TIME * 0.999f * oParticles[nParticle].oVelocity.x,
 					oParticles[nParticle].oPosition.y + (float)(oParticles[nParticle].dDieAt - oParticles[nParticle].dTime) / (float)PARTICLE_TICK_TIME * 0.999f * oParticles[nParticle].oVelocity.y,
 					// DEBUG: I will need to re-add player's velocity to the equation eventually...
 					Math::Sin((float)dRandomAngle) * (float)dVelocity,
 					Math::Cos((float)dRandomAngle) * (float)dVelocity,
 					BLOOD_SPLATTER, 0,
-					(float)dVelocity / 30.0f + 0.1f, oParticles[nParticle].iWillHit);
+					(float)dVelocity / 150.0f + 0.1f, oParticles[nParticle].iWillHit);
 			}
 		}
 		else
@@ -536,6 +536,7 @@ void CParticle::Tick()
 			{
 				oParticles[iLoop1].dTime += PARTICLE_TICK_TIME;
 
+				oParticles[iLoop1].oPosition += oParticles[iLoop1].oVelocity;
 				if (BOUNCY_BULLET == oParticles[iLoop1].iWhatType) {
 					// DEBUG: This is actually bouncy-bullet-specific stuff (i.e. slow down significantly during its last 1.25 secs of life
 					if (oParticles[iLoop1].dDieAt - dCurrentTime > 1.25)
@@ -550,7 +551,6 @@ void CParticle::Tick()
 					if (fVelocity + oParticles[iLoop1].fAcceleration > 0.01f) fVelocity += oParticles[iLoop1].fAcceleration; else fVelocity = 0.01f;
 					oParticles[iLoop1].oVelocity *= fVelocity;
 				}
-				oParticles[iLoop1].oPosition += oParticles[iLoop1].oVelocity;
 
 				CollisionHandling(iLoop1);
 				HitCheck(iLoop1);
@@ -620,7 +620,8 @@ void CParticle::AddParticle(double dTime, float fX, float fY, float fVelX, float
 	oParticles[iNextAvailParticle].iWillHit = NO_PLAYER;
 	oParticles[iNextAvailParticle].oHitNormal = Vector2::ZERO;
 	oParticles[iNextAvailParticle].iOwnerID = iOwnerID;
-	oParticles[iNextAvailParticle].fRenderTimeOffset = (rand() % 1001)*0.001f * 1.0f/60;	// DEBUG: Assuming 60 fps, if higher fps, this value range is too high
+	//oParticles[iNextAvailParticle].fRenderTimeOffset = (rand() % 1001)*0.001f * 1.0f/60;	// DEBUG: Assuming 60 fps, if higher fps, this value range is too high
+	oParticles[iNextAvailParticle].fRenderTimeOffset = 0;
 
 	oParticles[iNextAvailParticle].iWhatType = iWhatType;		// Assign iWhatType last to make this function more thread safe
 

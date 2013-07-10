@@ -234,16 +234,16 @@ void RenderHUD()
 		// Networking info
 		sTempString = "GlobalStateSequenceNumberTEST = " + itos(g_pGameSession->GlobalStateSequenceNumberTEST);
 		glLoadIdentity();
-		OglUtilsPrint(0, 145+7, 1, LEFT, (char *)sTempString.c_str());
-		if (pServer != NULL) {
+		OglUtilsPrint(0, 145+7*1, 1, LEFT, (char *)sTempString.c_str());
+		if (nullptr != pServer) {
 			sTempString = "cLastUpdateSequenceNumber = " + itos(pServer->cLastUpdateSequenceNumber);
 			glLoadIdentity();
-			OglUtilsPrint(0, 145+14, 1, LEFT, (char *)sTempString.c_str());
+			OglUtilsPrint(0, 145+7*2, 1, LEFT, (char *)sTempString.c_str());
 		}
-		if (pLocalPlayer != NULL) {
+		if (nullptr != pLocalPlayer) {
 			sTempString = "oUnconfirmedMoves.size() = " + itos(pLocalPlayer->oUnconfirmedMoves.size());
 			glLoadIdentity();
-			OglUtilsPrint(0, 145+21, 1, LEFT, (char *)sTempString.c_str());
+			OglUtilsPrint(0, 145+7*3, 1, LEFT, (char *)sTempString.c_str());
 		}
 
 		//OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
@@ -274,9 +274,10 @@ void RenderPlayers()
 
 	// Render the local player last
 	if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) {
-		/*for (int i = 0; i <= 1; ++i)
+		/*for (int i = 0; i <= 100; ++i)
 			pLocalPlayer->RenderInPast(kfInterpolate * i);*/
 		//pLocalPlayer->RenderInPast(-0.25);
+		pLocalPlayer->RenderInPast(6.25);
 		pLocalPlayer->Render();
 	}
 

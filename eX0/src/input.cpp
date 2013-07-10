@@ -224,7 +224,7 @@ glfwUnlockMutex(oPlayerTick);
 				// Send a Join Team Request packet
 				CPacket oJoinTeamRequest(CPacket::BOTH);
 				oJoinTeamRequest.pack("hc", 0, (u_char)27);
-				if (pLocalPlayer->pConnection != NULL && pLocalPlayer->pConnection->IsMultiPlayer() || pServer != NULL && false/*pServer->IsMultiPlayer()*/) {
+				if (pLocalPlayer->pConnection != NULL && pLocalPlayer->pConnection->IsMultiPlayer() || (pServer != NULL && false/*pServer->IsMultiPlayer()*/)) {
 					oJoinTeamRequest.pack("c", (u_char)0);		// 1st player
 				}
 				oJoinTeamRequest.pack("c", (u_char)0);		// Red team
@@ -294,7 +294,7 @@ glfwUnlockMutex(oPlayerTick);
 				// Send a Join Team Request packet
 				CPacket oJoinTeamRequest(CPacket::BOTH);
 				oJoinTeamRequest.pack("hc", 0, (u_char)27);
-				if (pLocalPlayer->pConnection != NULL && pLocalPlayer->pConnection->IsMultiPlayer() || pServer != NULL && false/*pServer->IsMultiPlayer()*/) {
+				if (pLocalPlayer->pConnection != NULL && pLocalPlayer->pConnection->IsMultiPlayer() || (pServer != NULL && false/*pServer->IsMultiPlayer()*/)) {
 					oJoinTeamRequest.pack("c", (u_char)0);		// 1st player
 				}
 				oJoinTeamRequest.pack("c", (u_char)1);		// Blue team
@@ -311,7 +311,7 @@ glfwUnlockMutex(oPlayerTick);
 				// Send a Join Team Request packet
 				CPacket oJoinTeamRequest(CPacket::BOTH);
 				oJoinTeamRequest.pack("hc", 0, (u_char)27);
-				if (pLocalPlayer->pConnection != NULL && pLocalPlayer->pConnection->IsMultiPlayer() || pServer != NULL && false/*pServer->IsMultiPlayer()*/) {
+				if (pLocalPlayer->pConnection != NULL && pLocalPlayer->pConnection->IsMultiPlayer() || (pServer != NULL && false/*pServer->IsMultiPlayer()*/)) {
 					oJoinTeamRequest.pack("c", (u_char)0);		// 1st player
 				}
 				oJoinTeamRequest.pack("c", (u_char)2);		// Spectator team
@@ -331,12 +331,15 @@ glfwUnlockMutex(oPlayerTick);
 glfwLockMutex(oPlayerTick);
 				int nBotNumber = pLocalPlayer->pConnection->GetPlayerCount();
 				CPlayer * pTestPlayer = new CPlayer();
-				std::string sName = "Test Mimic " + itos(nBotNumber);
-				pTestPlayer->SetName(sName);
-				if ((nBotNumber % 10) < 8)
+				if ((nBotNumber % 10) < 8) {
+					std::string sName = "Test Bot " + itos(nBotNumber);
+					pTestPlayer->SetName(sName);
 					pTestPlayer->m_pController = new AiController(*pTestPlayer);
-				else
+				} else {
+					std::string sName = "Test Mimic " + itos(nBotNumber);
+					pTestPlayer->SetName(sName);
 					pTestPlayer->m_pController = new HidController(*pTestPlayer);
+				}
 				pTestPlayer->m_pStateAuther = new LocalStateAuther(*pTestPlayer);
 				//(new LocalClientConnection())->SetPlayer(pTestPlayer);
 				//pTestPlayer->pConnection->SetJoinStatus(IN_GAME);

@@ -10,7 +10,9 @@
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4018 4056 4100 4127 4146 4514 4663 4710 4711 4786 4800)
+#if _MSC_VER < 1700
 #define for		if (false) ; else for
+#endif // _MSC_VER < 1700
 #if _MSC_VER >= 1200
 #pragma warning(push, 1)
 #endif // _MSC_VER >= 1200

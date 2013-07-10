@@ -1,5 +1,6 @@
 People to give thanks to in the end (newest at the top):
 
+-Ankit for trying out the game (eventually) over internet, and giving me praise.
 -GLIntercept for helping spot an OpenGL-related leak, due to closing window before cleaning up the GL context.
 -Alex Samartzev for some early movement play testing.
 -Piotr for first testing the UDP mp version.

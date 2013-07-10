@@ -79,7 +79,7 @@ public:
 	void PushStateHistory(AuthState_st oAuthState);
 	void Position(SequencedState_st oSequencedState);
 	void Position(float fX, float fY, float fZ, u_char cLastCommandSequenceNumber);
-	//float GetVelocity();
+	float GetVelocity();
 	void Rotate(float fAmount);
 	void SetZ(float fValue);
 	float GetZ();

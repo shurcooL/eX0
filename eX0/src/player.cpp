@@ -413,7 +413,7 @@ void CPlayer::CalcTrajs(State_st & oState)
 		oState.fVelX = (20.0f / g_cCommandRate) * Math::Sin((float)m_oCommand.cMoveDirection * 0.785398f + m_oCommand.fZ) * (TOP_SPEED - m_oCommand.bStealth * 1.5f);
 		oState.fVelY = (20.0f / g_cCommandRate) * Math::Cos((float)m_oCommand.cMoveDirection * 0.785398f + m_oCommand.fZ) * (TOP_SPEED - m_oCommand.bStealth * 1.5f);
 	}
-#else
+#elif 0
 	// DEBUG - this is STILL not finished, need to redo properly
 	// need to do linear acceleration and deceleration
 	if (m_oCommand.cMoveDirection == -1)
@@ -443,6 +443,32 @@ void CPlayer::CalcTrajs(State_st & oState)
 		}
 	}
 	else printf("WARNING: Invalid nMoveDirection = %d!\n", m_oCommand.cMoveDirection);
+#else
+	Vector2 TargetVel(Vector2::ZERO);
+
+	if (m_oCommand.cMoveDirection == -1)
+	{
+		/// TargetVel.x = 0.0f;
+		/// TargetVel.y = 0.0f;
+	}
+	else if (m_oCommand.cMoveDirection >= 0 && m_oCommand.cMoveDirection < 8)
+	{
+		TargetVel.x = (20.0f / g_cCommandRate) * Math::Sin((float)m_oCommand.cMoveDirection * 0.785398f + m_oCommand.fZ) * (TOP_SPEED - m_oCommand.bStealth * 2.25f);
+		TargetVel.y = (20.0f / g_cCommandRate) * Math::Cos((float)m_oCommand.cMoveDirection * 0.785398f + m_oCommand.fZ) * (TOP_SPEED - m_oCommand.bStealth * 2.25f);
+	}
+	else printf("WARNING: Invalid nMoveDirection = %d!\n", m_oCommand.cMoveDirection);
+
+	Vector2 CurrentVel(oState.fVelX, oState.fVelY);
+	Vector2 Delta(TargetVel - CurrentVel);
+	float DeltaLength = Delta.Unitize();
+
+	float Move1 = DeltaLength * DeltaLength * 0.03f;
+	float Move2 = std::min(0.2f, DeltaLength);
+
+	CurrentVel += Delta * std::max(Move1, Move2);
+
+	oState.fVelX = CurrentVel.x;
+	oState.fVelY = CurrentVel.y;
 #endif
 
 	// Update the player positions
@@ -628,16 +654,16 @@ void CPlayer::Position(float fX, float fY, float fZ, u_char cLastCommandSequence
 	Position(oSequencedState);
 }
 
-/*float CPlayer::GetVelocity()
+float CPlayer::GetVelocity()
 {
 	// is the player dead?
-	/*if (fHealth <= 0.0f) return 0.0f;
+	if (fHealth <= 0.0f) return 0.0f;
 
-	//return (fVelX || fVelY) ? 3.5f - iIsStealth * 2.0f : 0.0f;
-	return Math::Sqrt(fVelX * fVelX + fVelY * fVelY);* /
-	eX0_assert(false, "CPlayer::GetVelocity() is not implemented");
-	return 123;
-}*/
+	auto State = GetStateInPast(0, &g_pGameSession->LogicTimer());
+	auto State0 = GetStateInPast(1.0 / g_cCommandRate, &g_pGameSession->LogicTimer());
+	Vector2 Velocity(State.fX - State0.fX, State.fY - State0.fY);
+	return Velocity.Length();
+}
 
 void CPlayer::Rotate(float fAmount)
 {
@@ -654,8 +680,8 @@ void CPlayer::SetZ(float fValue)
 float CPlayer::GetZ()
 {
 	// DEBUG - yet another hack.. replace it with some proper network-syncronyzed view bobbing
-	//return fZ + Math::Sin(glfwGetTime() * 7.5) * GetVelocity() * 0.005;
-	return fZ;
+	return fZ + Math::Sin(glfwGetTime() * 10.0f) * GetVelocity() * GetVelocity() / 3.5f * 0.0075f;
+	//return fZ;
 }
 
 //void CPlayer::SetLastLatency(u_short nLastLatency) { eX0_assert(pConnection == NULL || dynamic_cast<RemoteClientConnection *>(pConnection), "called CPlayer::SetLastLatency(u_short) when pConnection != NULL"); m_nLastLatency = nLastLatency; }
@@ -1214,6 +1240,7 @@ DumpStateHistory(oStateHistory);
 	return oStateInPast;
 }
 
+#if 0
 State_st CPlayer::GetStateInPast(double dTimeAgo, GameTimer * pTimer)
 {
 if (dTimeAgo < -0.001) printf("dTimeAgo=%f is negative, weird? ", dTimeAgo);
@@ -1223,6 +1250,154 @@ if (dTimeAgo < -0.001) printf("dTimeAgo=%f is negative, weird? ", dTimeAgo);
 
 	return GetStateAtTime(dCurrentTime - dTimeAgo);
 }
+#else
+State_st CPlayer::GetStateInPast(double dTimeAgo, GameTimer * pTimer)
+{
+if (dTimeAgo < -0.001) printf("dTimeAgo=%f is negative, weird? ", dTimeAgo);
+	double dCurrentTime;
+	if (nullptr == pTimer) dCurrentTime = g_pGameSession->MainTimer().GetTime();
+	else dCurrentTime = pTimer->GetTime();
+	
+	double dTime = dCurrentTime - dTimeAgo;
+	
+	eX0_assert(dTime >= 0, "dTime can only be >= 0");
+
+	if (IsDead()) {
+		return m_oDeadState;
+	}
+
+	State_st oStateInPast;
+
+	if (oStateHistory.size() == 0) {
+		oStateInPast.fX = 0;
+		oStateInPast.fY = 0;
+		oStateInPast.fZ = 0;
+		eX0_assert(false, "something's wrong, cuz oStateHistory.size() is == 0!");
+	} else if (oStateHistory.size() == 1) {
+		oStateInPast = oStateHistory.front().oState.oState;
+	} else {
+		double dCurrentTimepoint = dTime / (256.0 / g_cCommandRate);
+		dCurrentTimepoint -= static_cast<uint32>(dCurrentTimepoint);
+		dCurrentTimepoint *= 256;
+eX0_assert(dCurrentTimepoint >= 0, "dCurrentTimepoint >= 0");
+eX0_assert(dCurrentTimepoint < 256, "dCurrentTimepoint < 256");
+		uint8 cCurrentTimepoint = static_cast<uint8>(dCurrentTimepoint);
+		//printf("dCurrentTimepoint = %f, cCurrentTimepoint = %d\n", dCurrentTimepoint, cCurrentTimepoint);
+		/*double dTicks = dCurrentTimepoint - cCurrentTimepoint;
+eX0_assert(dTicks >= 0, "dTicks >= 0");
+eX0_assert(dTicks < 1, "dTicks < 1");*/
+		double dTickTime = 1.0 / g_cCommandRate;
+		//int		nTicksAgo = (int)floor(dTimeAgo * g_cCommandRate - fTicks * g_cCommandRate) + 1 + (u_char)(g_cCurrentCommandSequenceNumber - g_pGameSession->cRenderCurrentCommandSequenceNumberTEST);
+		//int		nTicksAgo = static_cast<int>(dTimeAgo * g_cCommandRate - dTicks + 1);
+/*if(dTimeAgo * g_c >>> dTicks)
+then nTicksAgo = 123;
+if(dTimeAgo * g_c > dTicks)
+then nTicksAgo = 1;
+if(dTimeAgo * g_c == dTicks)
+then nTicksAgo = 1;
+else if(dTimeAgo * g_c < dTicks)
+then nTicksAgo = 0;*/
+		//char	cLastKnownTickAgo = (char)(cCurrentTimepoint + 1 - oStateHistory.front().oState.cSequenceNumber);
+if (glfwGetKey('I') == GLFW_PRESS){
+DumpStateHistory(oStateHistory);
+}
+//static int c = 30;
+//if(GetTeam() == 0 && c-- > 0)DumpStateHistory(oStateHistory);
+		std::list<AuthState_st>::iterator oHistoryTo = oStateHistory.begin();
+		std::list<AuthState_st>::iterator oHistoryFrom = oStateHistory.begin(); ++oHistoryFrom;
+		//if ((char)((u_char)floorf(fHistoryPoint) - oStateHistory.front().cSequenceNumber) >= 5)
+		//if (cLastKnownTickAgo > nTicksAgo)
+		// TODO: Any way to fix/improve the if cast<char>() > 0 or <= 0) thing?
+		if (static_cast<char>(cCurrentTimepoint - oStateHistory.front().oState.cSequenceNumber) >= 0)
+		// Extrapolate into the future
+		{
+			if (static_cast<char>(cCurrentTimepoint - oStateHistory.front().oState.cSequenceNumber) > 1)
+				printf("future %f %d\n", dCurrentTimepoint, oStateHistory.front().oState.cSequenceNumber);
+
+			State_st oStateTo = oHistoryTo->oState.oState;
+			State_st oStateFrom = oHistoryFrom->oState.oState;
+			uint8 cHistoryTickTime = static_cast<uint8>(oHistoryTo->oState.cSequenceNumber - oHistoryFrom->oState.cSequenceNumber);
+
+			double dHistoryTicks = dCurrentTimepoint - oHistoryFrom->oState.cSequenceNumber;
+			if (dHistoryTicks < 0) dHistoryTicks += 256;
+			if (dHistoryTicks > (cHistoryTickTime + kfMaxExtrapolate / dTickTime)) {
+				// Max forward extrapolation time
+				dHistoryTicks = cHistoryTickTime + kfMaxExtrapolate / dTickTime;
+
+				printf("Exceeding max EXTERP time (player %d).\n", iID);
+				printf("cur state = %d; last known state = %d\n", g_pGameSession->GlobalStateSequenceNumberTEST, oStateHistory.front().oState.cSequenceNumber);
+			}
+
+			oStateInPast.fX = oStateFrom.fX + (oStateTo.fX - oStateFrom.fX) * (float)dHistoryTicks / cHistoryTickTime;
+			oStateInPast.fY = oStateFrom.fY + (oStateTo.fY - oStateFrom.fY) * (float)dHistoryTicks / cHistoryTickTime;
+
+			float fDiffZ = oStateTo.fZ - oStateFrom.fZ;
+			if (fDiffZ >= Math::PI) fDiffZ -= Math::TWO_PI;
+			if (fDiffZ < -Math::PI) fDiffZ += Math::TWO_PI;
+			if (dHistoryTicks > 1.0) dHistoryTicks = std::sqrt(dHistoryTicks);
+			oStateInPast.fZ = oStateFrom.fZ + fDiffZ * (float)dHistoryTicks / cHistoryTickTime;
+		}
+		/*else if ((char)((u_char)floorf(fHistoryPoint) - oStateHistory.back().cSequenceNumber) < 0)
+		// DEBUG: Need a better way to figure out if outside history range (for > 256 values
+		// Way in the past, not enough history to interpolate
+		{
+			fHistoryX = oStateHistory.back().oState.fX;
+			fHistoryY = oStateHistory.back().oState.fY;
+			fHistoryZ = oStateHistory.back().oState.fZ;
+		}*/
+		else
+		// Use the known history to interpolate
+		{
+			while (oHistoryFrom != oStateHistory.end() &&
+				//(char)((u_char)floorf(fHistoryPoint) - oHistoryFrom->oState.cSequenceNumber) < 0) {
+				//nTicksAgo >= (cPeriodLength = (u_char)(oHistoryTo->oState.cSequenceNumber - oHistoryFrom->oState.cSequenceNumber)))
+				static_cast<char>(oHistoryFrom->oState.cSequenceNumber - cCurrentTimepoint) > 0)
+			{
+				++oHistoryTo;
+				++oHistoryFrom;
+			}
+
+			if (oHistoryFrom == oStateHistory.end()) {
+				oStateInPast.fX = oStateHistory.back().oState.oState.fX;
+				oStateInPast.fY = oStateHistory.back().oState.oState.fY;
+				oStateInPast.fZ = oStateHistory.back().oState.oState.fZ;
+			} else {
+				eX0_assert(oHistoryFrom->oState.cSequenceNumber != oHistoryTo->oState.cSequenceNumber, "dup!");
+				if (oHistoryFrom->oState.cSequenceNumber < oHistoryTo->oState.cSequenceNumber)
+				{
+					/*eX0_assert(oHistoryFrom->oState.cSequenceNumber <= fHistoryPoint
+						&& fHistoryPoint <= oHistoryTo->oState.cSequenceNumber,
+						"not in seq");*/
+					if (!(oHistoryFrom->oState.cSequenceNumber <= dCurrentTimepoint
+						&& dCurrentTimepoint <= oHistoryTo->oState.cSequenceNumber))
+					printf("%d <= %f <= %d\n", oHistoryFrom->oState.cSequenceNumber,
+											   dCurrentTimepoint,
+											   oHistoryTo->oState.cSequenceNumber);
+				}
+
+				State_st oStateTo = oHistoryTo->oState.oState;
+				State_st oStateFrom = oHistoryFrom->oState.oState;
+				uint8 cHistoryTickTime = static_cast<uint8>(oHistoryTo->oState.cSequenceNumber - oHistoryFrom->oState.cSequenceNumber);
+
+				double dHistoryTicks = dCurrentTimepoint - oHistoryFrom->oState.cSequenceNumber;
+				if (dHistoryTicks < 0) dHistoryTicks += 256;
+				if (!(dHistoryTicks <= cHistoryTickTime))
+					printf("dHistoryTicks not in range: %f\n", dHistoryTicks / cHistoryTickTime);
+
+				oStateInPast.fX = oStateFrom.fX + (oStateTo.fX - oStateFrom.fX) * (float)dHistoryTicks / cHistoryTickTime;
+				oStateInPast.fY = oStateFrom.fY + (oStateTo.fY - oStateFrom.fY) * (float)dHistoryTicks / cHistoryTickTime;
+
+				float fDiffZ = oStateTo.fZ - oStateFrom.fZ;
+				if (fDiffZ >= Math::PI) fDiffZ -= Math::TWO_PI;
+				if (fDiffZ < -Math::PI) fDiffZ += Math::TWO_PI;
+				oStateInPast.fZ = oStateFrom.fZ + fDiffZ * (float)dHistoryTicks / cHistoryTickTime;
+			}
+		}
+	}
+
+	return oStateInPast;
+}
+#endif
 
 void CPlayer::RenderInPast(double dTimeAgo)
 {

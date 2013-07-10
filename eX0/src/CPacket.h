@@ -24,16 +24,16 @@ public:
 	void CompleteTpcPacketSize();
 	void ConvertToReadOnly();
 
-	u_int pack(char *format, ...);
-	void unpack(char *format, ...);
+	u_int pack(const char * format, ...);
+	void unpack(const char * format, ...);
 	long long pack754(long double f, u_int bits, u_int expbits);
 	long double unpack754(long long i, u_int bits, u_int expbits);
-	void packi16(u_char *buf, u_int i);
-	void packi32(u_char *buf, u_long i);
-	void packi64(u_char *buf, u_int64 i);
-	u_int unpacki16(u_char *buf);
-	u_long unpacki32(u_char *buf);
-	u_int64 unpacki64(u_char *buf);
+	void packi16(u_char * buf, u_int i);
+	void packi32(u_char * buf, u_long i);
+	void packi64(u_char * buf, u_int64 i);
+	u_int unpacki16(u_char * buf);
+	u_long unpacki32(u_char * buf);
+	u_int64 unpacki64(u_char * buf);
 
 	void Print() const;
 
@@ -41,10 +41,10 @@ private:
 	CPacket(const CPacket &);
 	CPacket & operator =(const CPacket &);
 
-	u_char		*m_pBuffer;
+	u_char		* m_pBuffer;
 	u_int		m_nSize;
 	bool		m_bOwnBuffer;
-	u_char		*m_pBufferPosition;
+	u_char		* m_pBufferPosition;
 	enum PacketType { WRITE_ONLY, READ_ONLY }	m_nPacketType;
 	SendMode	m_nSendMode;
 };

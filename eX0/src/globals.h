@@ -25,6 +25,7 @@ p = pointer
 #include <windows.h>	// standard header for ms windows applications
 #endif // WIN32
 
+#include <iostream>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -64,6 +65,7 @@ class ThroughputMonitor;
 
 struct Command_st;
 struct WpnCommand_st;
+struct AuthState_st;
 
 /////////////////////
 // custom includes //
@@ -78,6 +80,7 @@ using namespace POLYBOOLEAN;
 #include "Mgc/MgcIntr2DLinLin.h"
 #include "Mgc/MgcDist2DVecLin.h"
 using namespace Mgc;
+#include "main.h"
 #include "IndexedCircularBuffer.h"
 #include "Thread.h"
 #include "ThreadSafeQueue.h"
@@ -103,7 +106,6 @@ using namespace Mgc;
 #include "LocalStateAuther.h"
 #include "NetworkStateAuther.h"
 #include "player.h"
-#include "main.h"
 //#include "RemoteAuthPlayer.h"
 #include "Network.h"
 #include "GameServer.h"
