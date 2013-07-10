@@ -27,7 +27,7 @@ CTimedEventScheduler::CTimedEventScheduler()
 	m_oSchedulerThread = glfwCreateThread(&CTimedEventScheduler::SchedulerThread, this);
 
 	if (m_oSchedulerThread >= 0)
-		printf("Scheduler thread created.\n");
+		printf("Scheduler thread (tid = %d) created.\n", m_oSchedulerThread);
 	else
 		printf("Couldn't create the scheduler thread.\n");
 }
@@ -50,7 +50,7 @@ CTimedEventScheduler::~CTimedEventScheduler()
 	printf("CTimedEventScheduler() ~Destructor done.\n");
 }
 
-void GLFWCALL CTimedEventScheduler::SchedulerThread(void *pArgument)
+void GLFWCALL CTimedEventScheduler::SchedulerThread(void * pArgument)
 {
 	CTimedEventScheduler *pScheduler = (CTimedEventScheduler *)pArgument;
 

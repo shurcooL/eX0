@@ -12,11 +12,12 @@ p = pointer
 #ifndef __globals_H__		// if we haven't done this where this file can see it, then...
 #define __globals_H__		// all header files included
 
+#include "../../shared/GlobalSettings.h"
+
 ///////////////////////
 // standard includes //
 ///////////////////////
 
-#define NOMINMAX
 #include "../../shared/NetworkIncludes.h"
 
 #ifdef WIN32
@@ -46,10 +47,10 @@ p = pointer
 // standard other //
 ////////////////////
 using namespace std;	// so that we can use string class
-#pragma warning(once : 4018 4244 4305 4996)
+//#pragma warning(once : 4018 4244 4305 4996)
+#pragma warning(disable : 4351)		// Array initializer
 
 // Classes
-class CClient;
 class CPlayer;
 class CPacket;
 class CTimedEvent;
@@ -70,6 +71,7 @@ using namespace POLYBOOLEAN;
 #include "Mgc/MgcDist2DVecLin.h"
 using namespace Mgc;
 #include "IndexedCircularBuffer.h"
+#include "../../shared/ThreadSafeQueue.h"
 #include "../../shared/math.h"
 #include "../../shared/col_hand.h"
 #include "input.h"
@@ -80,12 +82,16 @@ using namespace Mgc;
 #include "../../shared/particle.h"
 #include "../../shared/weapon.h"
 #include "../../shared/player.h"
+#include "LCtrlRAuthPlayer.h"
+#include "RCtrlRAuthPlayer.h"
 #include "../../shared/Network.h"
+#include "../../shared/HashMatcher.h"
+#include "../../shared/NetworkConnection.h"
+#include "ServerConnection.h"
 #include "../../shared/CPacket.h"
 #include "../../shared/CTimedEvent.h"
 #include "../../shared/CTimedEventScheduler.h"
 #include "OGLTextureManager/TextureManager.h"
-#include "../../shared/HashMatcher.h"
 #include "../../shared/MovingAverage.h"
 
 
@@ -121,10 +127,11 @@ extern int			nChatMode;
 extern string		sChatString;
 extern CHudMessageQueue		*pChatMessages;
 
-extern int			nPlayerCount;
-extern int			iLocalPlayerID;
+extern u_int		nPlayerCount;
+extern u_int		iLocalPlayerID;
+extern CPlayer *	pLocalPlayer;
 extern string		sLocalPlayerName;
-extern CPlayer		*oPlayers[32];
+//extern CPlayer		*oPlayers[32];
 //extern float		fPlayerTickTime;
 
 extern int			iCameraType;
@@ -150,9 +157,7 @@ extern CTimedEventScheduler	*pTimedEventScheduler;
 
 extern GLUquadricObj	*oQuadricObj;
 
-extern SOCKET			nServerTcpSocket;
-extern SOCKET			nServerUdpSocket;
-extern volatile int		nJoinStatus;
+extern ServerConnection * pServer;
 
 extern GLFWthread		oNetworkThread;
 extern volatile bool	bNetworkThreadRun;

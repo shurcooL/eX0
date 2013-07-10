@@ -12,18 +12,23 @@ double		dFpsBaseTime = 0;
 double		dFpsTimePassed = 0;
 string		sFpsString = (string)"eX0";
 
+int			nGlobalExitCode = 0;
+
 void eX0_assert(bool expression, string message)
 {
-	if (!expression)
+	if (!expression) {
 		printf("\nAssertion FAILED: '%s'\n\n", message.c_str());
+		//abort();
+	}
 }
 
 // initialization
-bool Init(int argc, char *argv[])
+bool Init(int, char **)
 {
 	// init glfw
 	if (!glfwInit())
 		return false;
+	printf("Main thread tid = %d.\n", glfwGetThreadID());
 
 	// Initialize components
 	if (!GameDataLoad()) {				// load game data
@@ -31,7 +36,8 @@ bool Init(int argc, char *argv[])
 		return false;
 	}
 	WeaponInitSpecs();
-	nPlayerCount = 8; PlayerInit();		// Initialize the players
+	//nPlayerCount = 8; PlayerInit();		// Initialize the players
+	nPlayerCount = 8;					// Set the max player limit for this server
 	if (!NetworkInit()) {				// Initialize the networking
 		printf("Couldn't initialize the networking.\n");
 		return false;
@@ -55,7 +61,8 @@ void Deinit()
 	delete pTimedEventScheduler; pTimedEventScheduler = NULL;
 	ServerDeinit();
 	NetworkDeinit();					// Shutdown the networking component
-	nPlayerCount = 0; PlayerInit();		// Delete all players
+	//nPlayerCount = 0; PlayerInit();		// Delete all players
+	CPlayer::RemoveAll();				// Delete all players
 	GameDataUnload();					// unload game data
 
 	// terminate glfw
@@ -72,21 +79,23 @@ void SyncRandSeed(void)
 
 void Terminate(int nExitCode)
 {
-	if (nExitCode != 0) {
+	if (nGlobalExitCode == 0) nGlobalExitCode = nExitCode;
+
+	if (nExitCode != 0 && glfwGetThreadID() == 0) {
 		// deinit
 		Deinit();
 
 		// DEBUG: Print out the memory usage stats
 		//m_dumpMemoryReport();
 
-		exit(nExitCode);
+		exit(nGlobalExitCode);
 	} else {
 		if (bKeepRunning) bKeepRunning = false;
 		else Terminate(10);
 	}
 }
 
-void PrintHi(void *p)
+void PrintHi(void *)
 {
 	//printf("%30.20f\n", glfwGetTime());
 	printf("===================== %f\n", glfwGetTime());
@@ -123,8 +132,26 @@ int main(int argc, char *argv[])
 	signal(SIGHUP, &signal_handler);
 #endif
 
+
+
+	/*new CPlayer();
+	new CPlayer();
+	CPlayer * p1 = new RCtrlLAuthPlayer();
+	new CPlayer();
+	delete p1;
+	new CPlayer();
+
+
+	CPlayer::RemoveAll();
+
+return 0;*/
+
+
+
+
+
 	// Print the version and date/time built
-	printf("eX0ds v0.0 - Built on %s at %s.\n\n", __DATE__, __TIME__);
+	printf("%s\n\n", EX0_BUILD_STRING);
 
 	// DEBUG: Set the level name through the 1st command line param
 	if (argc >= 2)
@@ -166,12 +193,19 @@ int main(int argc, char *argv[])
 			nFpsFrames = 0;
 		}
 
-		glfwSleep(0.01);
+glfwLockMutex(oPlayerTick);
+		for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+			if (PlayerGet(nPlayer) != NULL)
+				dynamic_cast<RCtrlLAuthPlayer *>(PlayerGet(nPlayer))->ProcessInputCmdTEST();
+		}
+glfwUnlockMutex(oPlayerTick);
+
+		glfwSleep(0.051);
 	}
 
 	// Clean up and exit nicely
 	Deinit();
 
-	printf("Returning 0 from main(). :)\n");
+	printf("Returning %d from main(). %s\n", nGlobalExitCode, nGlobalExitCode == 0 ? ":)" : ">_<");
 	return 0;
 }

@@ -94,12 +94,12 @@ bool ServerCreateThread()
 	bServerThreadRun = true;
 	oServerThread = glfwCreateThread(&ServerThread, NULL);
 
-	printf("Server thread created.\n");
+	printf("Server thread (tid = %d) created.\n", oServerThread);
 
 	return (oServerThread >= 0);
 }
 
-void GLFWCALL ServerThread(void *pArg)
+void GLFWCALL ServerThread(void *)
 {
 	struct sockaddr_in remoteaddr; // incoming client address
 	int fdmax;		// maximum file descriptor number, for Linux select()
@@ -143,6 +143,7 @@ void GLFWCALL ServerThread(void *pArg)
 				// handle new connections
 				if (i == listener)
 				{
+double t1 = glfwGetTime();
 					addrlen = sizeof(remoteaddr);
 					if ((newfd = accept(listener, (struct sockaddr *)&remoteaddr,
 														&addrlen)) == INVALID_SOCKET) {
@@ -150,9 +151,11 @@ void GLFWCALL ServerThread(void *pArg)
 					} else {
 						FD_SET(newfd, &master); // add to master set
 						oActiveSockets.push_back(newfd);
-						fdmax = __max((int)newfd, fdmax);		// keep track of the maximum
+						fdmax = std::max<int>((int)newfd, fdmax);		// keep track of the maximum
 
-						new CClient(newfd);
+glfwLockMutex(oPlayerTick);
+						new ClientConnection(newfd);
+glfwUnlockMutex(oPlayerTick);
 
 						printf("eX0ds: new connection from %s:%d on socket %d\n",
 							inet_ntoa(remoteaddr.sin_addr), ntohs(remoteaddr.sin_port), (int)newfd);
@@ -163,6 +166,7 @@ void GLFWCALL ServerThread(void *pArg)
 							Terminate(1);
 						}
 					}
+printf("processed accept()              in %.5lf ms\n", (glfwGetTime() - t1) * 1000);
 				}
 				// Handle UDP data from a client
 				else if (i == nUdpSocket)
@@ -176,14 +180,14 @@ void GLFWCALL ServerThread(void *pArg)
 						// Got a UDP packet
 						//printf("Got a UDP %d byte packet from %s:%d!\n", nbytes,
 						//	inet_ntoa(oSenderAddr.sin_addr), ntohs(oSenderAddr.sin_port));
-						CClient * pClient;
+						ClientConnection * pConnection;
 
 						if (nbytes <= 0 || nbytes > MAX_UDP_PACKET_SIZE)
 							printf("Got a UDP packet of improper size (%d bytes), discarding.\n", nbytes);
-						else if ((pClient = ClientGetFromAddress(oSenderAddr)) == NULL)
+						else if ((pConnection = ClientConnection::GetFromUdpAddress(oSenderAddr)) == NULL)
 						{
 							// Check for the special case of UDP Handshake packet
-							bool bUdpHandshakePacket = NetworkProcessUdpHandshakePacket(cUdpBuffer, nbytes, oSenderAddr);
+							bool bUdpHandshakePacket = NetworkProcessUdpHandshakePacket(cUdpBuffer, static_cast<u_short>(nbytes), oSenderAddr, nUdpSocket);
 
 							if (!bUdpHandshakePacket)
 								printf("Got a non-handshake UDP packet from unknown sender (%s:%d), discarding.\n",
@@ -191,7 +195,7 @@ void GLFWCALL ServerThread(void *pArg)
 						} else {
 							// Process the received UDP packet
 							CPacket oPacket(cUdpBuffer, nbytes);
-							if (!NetworkProcessUdpPacket(oPacket, pClient)) {
+							if (!NetworkProcessUdpPacket(oPacket, pConnection)) {
 								printf("Couldn't process a UDP packet (type %d):\n  ", cUdpBuffer[0]);
 								oPacket.Print();
 							}
@@ -200,51 +204,53 @@ void GLFWCALL ServerThread(void *pArg)
 				}
 				// Handle TCP data from a client
 				else {
-					CClient * pClient = ClientGetFromSocket(i);
+					ClientConnection * pConnection = ClientConnection::GetFromTcpSocket(i);
 
-					nbytes = recv(i, reinterpret_cast<char *>(pClient->oTcpPacketBuffer.cTcpPacketBuffer) + pClient->oTcpPacketBuffer.nCurrentPacketSize,
-															  sizeof(pClient->oTcpPacketBuffer.cTcpPacketBuffer) - pClient->oTcpPacketBuffer.nCurrentPacketSize,
+					nbytes = recv(i, reinterpret_cast<char *>(pConnection->oTcpPacketBuffer.cTcpPacketBuffer) + pConnection->oTcpPacketBuffer.nCurrentPacketSize,
+															  sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer) - pConnection->oTcpPacketBuffer.nCurrentPacketSize,
 															  0);
 
 					// Recv returned 0 or less than 0
 					if (nbytes <= 0)
 					{
-						if (pClient == NULL) {
+						if (pConnection == NULL) {
 							printf("Error: Got an error/disconnect on a non-existing client socket (%d).\n", i);
 						} else
 						{
 							// got error or connection closed by client
 							if (nbytes == 0) {
-								if (pClient->GetJoinStatus() >= ACCEPTED) {
+								if (pConnection->GetJoinStatus() >= ACCEPTED) {
 									// connection closed
-									printf("Player #%d (name '%s') has left the game (gracefully).\n", pClient->GetPlayerID(),
-										pClient->GetPlayer()->GetName().c_str());
+									printf("Player #%d (name '%s') has left the game (gracefully).\n", pConnection->GetPlayerID(),
+										pConnection->GetPlayer()->GetName().c_str());
 								} else {
 									printf("eX0ds: socket %d hung up nicely (was not a player)\n", (int)i);
 								}
 							} else {
 								NetworkPrintError("recv");
 
-								if (pClient->GetJoinStatus() >= ACCEPTED) {
+								if (pConnection->GetJoinStatus() >= ACCEPTED) {
 									// connection closed
-									printf("Player #%d (name '%s') has left the game (connection terminated).\n", pClient->GetPlayerID(),
-										pClient->GetPlayer()->GetName().c_str());
+									printf("Player #%d (name '%s') has left the game (connection terminated).\n", pConnection->GetPlayerID(),
+										pConnection->GetPlayer()->GetName().c_str());
 								} else {
 									printf("eX0ds: socket %d terminated hard (error), was not a player\n", (int)i);
 								}
 							}
 
-							if (pClient->GetJoinStatus() >= PUBLIC_CLIENT) {
+							if (pConnection->GetJoinStatus() >= PUBLIC_CLIENT) {
 								// Send a Player Left Server to all the other clients
 								CPacket oPlayerLeftServerPacket;
 								oPlayerLeftServerPacket.pack("hc", 0, (u_char)26);
-								oPlayerLeftServerPacket.pack("c", (u_char)pClient->GetPlayerID());
+								oPlayerLeftServerPacket.pack("c", (u_char)pConnection->GetPlayerID());
 								oPlayerLeftServerPacket.CompleteTpcPacketSize();
-								oPlayerLeftServerPacket.BroadcastTcpExcept(pClient, PUBLIC_CLIENT);
+								ClientConnection::BroadcastTcpExcept(oPlayerLeftServerPacket, pConnection, PUBLIC_CLIENT);
 							}
 
 							// Remove the player, if he's already connected
-							delete pClient; pClient = NULL;
+glfwLockMutex(oPlayerTick);
+							delete pConnection; pConnection = NULL;
+glfwUnlockMutex(oPlayerTick);
 							FD_CLR(i, &master); // remove from master set
 							it1 = oActiveSockets.erase(it1);
 							bGoToNextIt = false;
@@ -256,50 +262,50 @@ void GLFWCALL ServerThread(void *pArg)
 						// we got some TCP data from a client, process it
 						//printf("Got %d bytes from client #%d\n", nbytes, (int)i);
 
-						if (pClient == NULL)
+						if (pConnection == NULL)
 							printf("Got a TCP packet from non-existing client socket (%d), discarding.\n", i);
 						else {
-							pClient->oTcpPacketBuffer.nCurrentPacketSize += nbytes;
-							eX0_assert(pClient->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pClient->oTcpPacketBuffer.cTcpPacketBuffer), "pClient->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pClient->oTcpPacketBuffer.cTcpPacketBuffer)");
+							pConnection->oTcpPacketBuffer.nCurrentPacketSize += static_cast<u_short>(nbytes);
+							eX0_assert(pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer), "pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer)");
 							// Check if received enough to check the packet size
 							u_short snRealPacketSize = MAX_TCP_PACKET_SIZE;
-							if (pClient->oTcpPacketBuffer.nCurrentPacketSize >= 2)
-								snRealPacketSize = 3 + ntohs(*reinterpret_cast<u_short *>(pClient->oTcpPacketBuffer.cTcpPacketBuffer));
+							if (pConnection->oTcpPacketBuffer.nCurrentPacketSize >= 2)
+								snRealPacketSize = 3 + ntohs(*reinterpret_cast<u_short *>(pConnection->oTcpPacketBuffer.cTcpPacketBuffer));
 							if (snRealPacketSize > MAX_TCP_PACKET_SIZE) {		// Make sure the packet is not larger than allowed
 								printf("Got a TCP packet that's larger than allowed.\n");
 								snRealPacketSize = MAX_TCP_PACKET_SIZE;
 							}
 							// Received an entire packet
-							while (pClient->oTcpPacketBuffer.nCurrentPacketSize >= snRealPacketSize)
+							while (pConnection->oTcpPacketBuffer.nCurrentPacketSize >= snRealPacketSize)
 							{
 								// Process it
-								CPacket oPacket(pClient->oTcpPacketBuffer.cTcpPacketBuffer, snRealPacketSize);
-								if (!NetworkProcessTcpPacket(oPacket, pClient)) {
-									printf("Couldn't process a TCP packet (type %d):\n  ", *reinterpret_cast<u_char *>(pClient->oTcpPacketBuffer.cTcpPacketBuffer + 2));
+								CPacket oPacket(pConnection->oTcpPacketBuffer.cTcpPacketBuffer, snRealPacketSize);
+								if (!NetworkProcessTcpPacket(oPacket, pConnection)) {
+									printf("Couldn't process a TCP packet (type %d):\n  ", *reinterpret_cast<u_char *>(pConnection->oTcpPacketBuffer.cTcpPacketBuffer + 2));
 									oPacket.Print();
 								}
 
-								//memmove(buf, buf + snRealPacketSize, sizeof(buf) - snRealPacketSize);
-								//snCurrentPacketSize -= snRealPacketSize;
-								pClient->oTcpPacketBuffer.nCurrentPacketSize -= snRealPacketSize;
-								eX0_assert(pClient->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pClient->oTcpPacketBuffer.cTcpPacketBuffer) - snRealPacketSize, "pClient->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pClient->oTcpPacketBuffer.cTcpPacketBuffer) - snRealPacketSize");
-								memmove(pClient->oTcpPacketBuffer.cTcpPacketBuffer, pClient->oTcpPacketBuffer.cTcpPacketBuffer + snRealPacketSize, pClient->oTcpPacketBuffer.nCurrentPacketSize);
-
-								if (pClient->oTcpPacketBuffer.nCurrentPacketSize >= 2)
-									snRealPacketSize = 3 + ntohs(*reinterpret_cast<u_short *>(pClient->oTcpPacketBuffer.cTcpPacketBuffer));
-								else snRealPacketSize = MAX_TCP_PACKET_SIZE;
-								if (snRealPacketSize > MAX_TCP_PACKET_SIZE) {		// Make sure the packet is not larger than allowed
-									printf("Got a TCP packet that's larger than allowed.\n");
-									snRealPacketSize = MAX_TCP_PACKET_SIZE;
-								}
-
 								// Check if we've disconnected the client after processing his TCP packet, and drop the socket if so
-								if (pClient == NULL) {
-									printf("pClient == NULL; dropping socket.\n");
+								if (pConnection == NULL) {
+									printf("pConnection == NULL; dropping socket.\n");
 									FD_CLR(i, &master); // remove from master set
 									it1 = oActiveSockets.erase(it1);
 									bGoToNextIt = false;
 									break;
+								}
+
+								//memmove(buf, buf + snRealPacketSize, sizeof(buf) - snRealPacketSize);
+								//snCurrentPacketSize -= snRealPacketSize;
+								pConnection->oTcpPacketBuffer.nCurrentPacketSize -= snRealPacketSize;
+								eX0_assert(pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer) - snRealPacketSize, "pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer) - snRealPacketSize");
+								memmove(pConnection->oTcpPacketBuffer.cTcpPacketBuffer, pConnection->oTcpPacketBuffer.cTcpPacketBuffer + snRealPacketSize, pConnection->oTcpPacketBuffer.nCurrentPacketSize);
+
+								if (pConnection->oTcpPacketBuffer.nCurrentPacketSize >= 2)
+									snRealPacketSize = 3 + ntohs(*reinterpret_cast<u_short *>(pConnection->oTcpPacketBuffer.cTcpPacketBuffer));
+								else snRealPacketSize = MAX_TCP_PACKET_SIZE;
+								if (snRealPacketSize > MAX_TCP_PACKET_SIZE) {		// Make sure the packet is not larger than allowed
+									printf("Got a TCP packet that's larger than allowed.\n");
+									snRealPacketSize = MAX_TCP_PACKET_SIZE;
 								}
 							}
 						}
@@ -321,7 +327,7 @@ void GLFWCALL ServerThread(void *pArg)
 	oServerThread = -1;
 }
 
-void ServerBroadcastPingPacket(void *p)
+void ServerBroadcastPingPacket(void *)
 {
 	glfwLockMutex(oPlayerTick);
 
@@ -332,11 +338,11 @@ void ServerBroadcastPingPacket(void *p)
 	memcpy(oPingData.cPingData, (void *)&fPingData, 4);
 	for (int nPingDataByte = 0; nPingDataByte < 4; ++nPingDataByte)
 		oPingPacket.pack("c", oPingData.cPingData[nPingDataByte]);
-	for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+	for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 	{
-		if (PlayerGet(nPlayer)->pClient != NULL && PlayerGet(nPlayer)->pClient->GetJoinStatus() == IN_GAME)
+		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME)
 		{
-			oPingPacket.pack("h", PlayerGet(nPlayer)->pClient->GetLastLatency());
+			oPingPacket.pack("h", PlayerGet(nPlayer)->pConnection->GetLastLatency());
 		} else
 		{
 			oPingPacket.pack("h", (u_short)0);
@@ -345,15 +351,15 @@ void ServerBroadcastPingPacket(void *p)
 
 	glfwUnlockMutex(oPlayerTick);
 
-	for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+	for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 	{
 		// Broadcast the packet to all players that are IN_GAME
-		if (PlayerGet(nPlayer)->pClient != NULL && PlayerGet(nPlayer)->pClient->GetJoinStatus() == IN_GAME)
+		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME)
 		{
 			// TODO: Need a mutex to protect PingSentTimes
-			PlayerGet(nPlayer)->pClient->GetPingSentTimes().push(oPingData, glfwGetTime());
+			PlayerGet(nPlayer)->pConnection->GetPingSentTimes().push(oPingData, glfwGetTime());
 
-			oPingPacket.SendUdp(PlayerGet(nPlayer)->pClient);
+			PlayerGet(nPlayer)->pConnection->SendUdp(oPingPacket);
 		}
 	}
 }
@@ -396,7 +402,7 @@ void ServerDeinit()
 	ServerShutdownThread();
 
 	// Close the connection to all clients
-	ClientDeinit();
+	ClientConnection::CloseAll();
 
 	ServerDestroyThread();
 

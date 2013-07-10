@@ -112,8 +112,6 @@ double MovingAverage::LowerQuartile() const
 		while (nLowerHalfMedianIndex-- > 1) ++it1;
 		return (*it1 + *(++it1)) * 0.5;
 	}
-
-	return 0;
 }
 
 double MovingAverage::WeightedMovingAverage() const

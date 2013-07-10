@@ -1,12 +1,13 @@
 #include "globals.h"
 
-SOCKET			nServerTcpSocket = INVALID_SOCKET;
-SOCKET			nServerUdpSocket = INVALID_SOCKET;
-struct sockaddr_in	oLocalUdpAddress;		// Get the local UDP port
+ServerConnection *	pServer = NULL;
+//SOCKET			nServerTcpSocket = INVALID_SOCKET;
+//SOCKET			nServerUdpSocket = INVALID_SOCKET;
+sockaddr_in	oLocalUdpAddress;		// Get the local UDP port
 socklen_t			nLocalUdpAddressLength = sizeof(oLocalUdpAddress);
-struct sockaddr_in	oServerAddress;
-volatile int	nJoinStatus = DISCONNECTED;
-u_char			cSignature[SIGNATURE_SIZE];
+//sockaddr_in	oServerAddress;
+//volatile int	nJoinStatus = DISCONNECTED;
+//u_char			cSignature[SIGNATURE_SIZE];
 u_int			nSendUdpHandshakePacketEventId = 0;
 
 GLFWthread		oNetworkThread = -1;
@@ -113,7 +114,7 @@ int sendudp(SOCKET s, const char *buf, int len, int flags, const sockaddr *to, i
 	return nResult;
 }
 
-void SendTimeRequestPacket(void *p)
+void SendTimeRequestPacket(void *)
 {
 	static u_int nTrpSent = 0;
 
@@ -122,77 +123,30 @@ void SendTimeRequestPacket(void *p)
 	oTimeRequestPacket.pack("cc", (u_char)105, cNextTimeRequestSequenceNumber);
 	oSentTimeRequestPacketTimes.at(cNextTimeRequestSequenceNumber) = glfwGetTime();
 	++cNextTimeRequestSequenceNumber;
-	oTimeRequestPacket.SendUdp(UDP_CONNECTED);
+	pServer->SendUdp(oTimeRequestPacket, UDP_CONNECTED);
 
 	//printf("Sent TRqP #%d at %.5lf ms\n", ++nTrpSent, glfwGetTime() * 1000);
 }
 
 // Connect to a server
-bool NetworkConnect(char *szHost, int nPort)
+bool NetworkConnect(const char * szHostname, u_short nPort)
 {
-	struct hostent *he;
-
-	if ((he = gethostbyname(szHost)) == NULL) {		// get the host info
-		NetworkPrintError("gethostbyname");		// herror
-		Terminate(1);
+	pServer = new ServerConnection();
+	if (!pServer->Connect(szHostname, nPort)) {
+		return false;
 	}
-
-	if ((nServerTcpSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET) {
-	    NetworkPrintError("socket");
-	    Terminate(1);
-	}
-	if ((nServerUdpSocket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
-	    NetworkPrintError("socket");
-	    Terminate(1);
-	}
-
-	/* This is the default behaviour already (graceful shutdown, don't linger)
-	struct linger oLinger;
-	oLinger.l_onoff = 0;
-	oLinger.l_linger = 0;
-	if (setsockopt(nServerTcpSocket, SOL_SOCKET, SO_LINGER, (char *)&oLinger, sizeof(oLinger)) == SOCKET_ERROR) {
-		NetworkPrintError("setsockopt");
-		Terminate(1);
-	}*/
-	// Disable the Nagle algorithm for send coalescing
-	int nNoDelay = 1;
-	if (setsockopt(nServerTcpSocket, IPPROTO_TCP, TCP_NODELAY, (char *)&nNoDelay, sizeof(nNoDelay)) == SOCKET_ERROR) {
-		NetworkPrintError("setsockopt");
-		Terminate(1);
-	}
-
-	oServerAddress.sin_family = AF_INET;
-	oServerAddress.sin_addr = *((struct in_addr *)he->h_addr);
-	oServerAddress.sin_port = htons(nPort);
-	memset(oServerAddress.sin_zero, 0, sizeof(oServerAddress.sin_zero));
-
-	printf("Connecting to %s.\n", szHost);
-	if (connect(nServerTcpSocket, (struct sockaddr *)&oServerAddress, sizeof(oServerAddress)) == SOCKET_ERROR) {
-	    NetworkPrintError("connect");
-	    Terminate(1);
-	}
-	struct sockaddr_in	oLocalTcpAddress;
-	socklen_t			nLocalTcpAddressLength = sizeof(oLocalTcpAddress);
-	if (getsockname(nServerTcpSocket, (struct sockaddr *)&oLocalTcpAddress, &nLocalTcpAddressLength) == SOCKET_ERROR) {
-		NetworkPrintError("getsockname");
-		Terminate(1);
-	}
-	// Successfully connected (TCP) to the server
-	nJoinStatus = TCP_CONNECTED;
-	printf("Established a TCP connection (local port %d), attempting to join the game.\n", ntohs(oLocalTcpAddress.sin_port));
 
 	// Create the networking thread
 	NetworkCreateThread();
 
 	// Create and send a Join Server Request packet
+	pServer->GenerateSignature();
 	CPacket oJoinServerRequestPacket;
 	oJoinServerRequestPacket.pack("hchs", 0, (u_char)1, 1, "somerandompass01");
-	double dSignature = glfwGetTime();
-	memcpy(cSignature, (void *)&dSignature, SIGNATURE_SIZE);
-	for (int nSignatureByte = 0; nSignatureByte < SIGNATURE_SIZE; ++nSignatureByte)
-		oJoinServerRequestPacket.pack("c", cSignature[nSignatureByte]);
+	for (int nSignatureByte = 0; nSignatureByte < NetworkConnection::m_knSignatureSize; ++nSignatureByte)
+		oJoinServerRequestPacket.pack("c", pServer->GetSignature()[nSignatureByte]);
 	oJoinServerRequestPacket.CompleteTpcPacketSize();
-	oJoinServerRequestPacket.SendTcp(TCP_CONNECTED);
+	pServer->SendTcp(oJoinServerRequestPacket, TCP_CONNECTED);
 
 	return true;
 }
@@ -202,12 +156,12 @@ bool NetworkCreateThread()
 	bNetworkThreadRun = true;
 	oNetworkThread = glfwCreateThread(&NetworkThread, NULL);
 
-	printf("Network thread created.\n");
+	printf("Network thread (tid = %d) created.\n", oNetworkThread);
 
 	return (oNetworkThread >= 0);
 }
 
-void GLFWCALL NetworkThread(void *pArgument)
+void GLFWCALL NetworkThread(void *)
 {
 	int fdmax;
 	fd_set master;   // master file descriptor list
@@ -223,10 +177,10 @@ void GLFWCALL NetworkThread(void *pArgument)
 	FD_ZERO(&read_fds);
 
 	// Add the sockets to select on
-	FD_SET(nServerTcpSocket, &master);
-	FD_SET(nServerUdpSocket, &master);
+	FD_SET(pServer->GetTcpSocket(), &master);
+	FD_SET(pServer->GetUdpSocket(), &master);
 
-	fdmax = std::max<int>((int)nServerTcpSocket, (int)nServerUdpSocket);
+	fdmax = std::max<int>((int)pServer->GetTcpSocket(), (int)pServer->GetUdpSocket());
 
 	while (bNetworkThreadRun)
 	{
@@ -240,10 +194,10 @@ void GLFWCALL NetworkThread(void *pArgument)
 			break;
 		}
 		// have TCP data
-		else if (FD_ISSET(nServerTcpSocket, &read_fds))
+		else if (FD_ISSET(pServer->GetTcpSocket(), &read_fds))
 		{
 			// got error or connection closed by server
-			if ((nbytes = recv(nServerTcpSocket, reinterpret_cast<char *>(buf) + snCurrentPacketSize, sizeof(buf) - snCurrentPacketSize, 0)) <= 0) {
+			if ((nbytes = recv(pServer->GetTcpSocket(), reinterpret_cast<char *>(buf) + snCurrentPacketSize, sizeof(buf) - snCurrentPacketSize, 0)) <= 0) {
 				if (nbytes == 0) {
 					// Connection closed gracefully by the server
 					printf("Connection closed gracefully by the server.\n");
@@ -252,13 +206,13 @@ void GLFWCALL NetworkThread(void *pArgument)
 					printf("Lost connection to the server.\n");
 				}
 				bNetworkThreadRun = false;
-				nJoinStatus = DISCONNECTED;
+				pServer->SetJoinStatus(DISCONNECTED);
 				iGameState = 1;
 			// we got some data from a client, process it
 			} else {
 				//printf("Got %d bytes from server\n", nbytes);
 
-				snCurrentPacketSize += nbytes;
+				snCurrentPacketSize += static_cast<u_short>(nbytes);
 				eX0_assert(snCurrentPacketSize <= sizeof(buf), "snCurrentPacketSize <= sizeof(buf)");
 				// Check if received enough to check the packet size
 				u_short snRealPacketSize = MAX_TCP_PACKET_SIZE;
@@ -299,10 +253,10 @@ void GLFWCALL NetworkThread(void *pArgument)
 			break;
 		}
 		// have UDP data
-		else if (FD_ISSET(nServerUdpSocket, &read_fds))
+		else if (FD_ISSET(pServer->GetUdpSocket(), &read_fds))
 		{
 			// handle UDP data from the server
-			if ((nbytes = recv(nServerUdpSocket, reinterpret_cast<char *>(cUdpBuffer), sizeof(cUdpBuffer), 0)) == SOCKET_ERROR)
+			if ((nbytes = recv(pServer->GetUdpSocket(), reinterpret_cast<char *>(cUdpBuffer), sizeof(cUdpBuffer), 0)) == SOCKET_ERROR)
 			{
 				// Error
 				NetworkPrintError("recv");
@@ -343,37 +297,41 @@ fTempFloat = static_cast<float>(glfwGetTime());
 	// Join Server Accept
 	case 2:
 		// Check if we have already been accepted by the server
-		if (nJoinStatus >= ACCEPTED) {
+		if (pServer->GetJoinStatus() >= ACCEPTED) {
 			printf("Error: Already accepted, but received another Join Server Accept packet.\n");
 			return false;
 		}
 
 		if (nDataSize != 2) return false;		// Check packet size
 		else {
-			char cLocalPlayerID;
-			char cPlayerCount;
-			oPacket.unpack("cc", &cLocalPlayerID, (char *)&cPlayerCount);
+			u_char cLocalPlayerId;
+			u_char cPlayerCount;
+			oPacket.unpack("cc", &cLocalPlayerId, (char *)&cPlayerCount);
 
-			iLocalPlayerID = (int)cLocalPlayerID;
+			iLocalPlayerID = (int)cLocalPlayerId;
 			nPlayerCount = (int)cPlayerCount;
-			PlayerInit();
+
+			//PlayerInit();
+			pLocalPlayer = new LCtrlRAuthPlayer(static_cast<u_int>(cLocalPlayerId));
+
 			// TODO: Player name (and other local settings?) needs to be assigned, validated (and corrected if needed) in a better way
-			PlayerGet(iLocalPlayerID)->bConnected = true;
-			PlayerGet(iLocalPlayerID)->SetName(sLocalPlayerName);
+			pLocalPlayer->SetName(sLocalPlayerName);
+
 			// Got successfully accepted in game by the server
-			nJoinStatus = ACCEPTED;
+			pServer->SetJoinStatus(ACCEPTED);
 			printf("Got accepted in game: local player id = %d, player count = %d\n", iLocalPlayerID, nPlayerCount);
 
-			// Create the UDP connection
-			if (connect(nServerUdpSocket, (struct sockaddr *)&oServerAddress, sizeof(oServerAddress)) == SOCKET_ERROR) {
+			// Bind the UDP socket to the server
+			// This will have to be done in ServerConnection, if at all... Gotta think if it's worth having two different SendUdp()s
+			/*if (connect(pServer->GetUdpSocket(), (const sockaddr *)&pServer->GetUdpAddress(), sizeof(pServer->GetUdpAddress())) == SOCKET_ERROR) {
 				NetworkPrintError("connect");
 				Terminate(1);
 			}
-			if (getsockname(nServerUdpSocket, (struct sockaddr *)&oLocalUdpAddress, &nLocalUdpAddressLength) == SOCKET_ERROR) {
+			if (getsockname(pServer->GetUdpSocket(), (sockaddr *)&oLocalUdpAddress, &nLocalUdpAddressLength) == SOCKET_ERROR) {
 				NetworkPrintError("getsockname");
 				Terminate(1);
 			}
-			printf("Created a pending UDP connection to server on port %d.\n", ntohs(oLocalUdpAddress.sin_port));
+			printf("Created a pending UDP connection to server on port %d.\n", ntohs(oLocalUdpAddress.sin_port));*/
 
 			// Send UDP packet with the same signature to initiate the UDP handshake
 			// Add timed event (Retransmit UdpHandshake packet every 100 milliseconds)
@@ -385,7 +343,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 	// Join Game Refuse
 	case 3:
 		// Check if we have already joined the game
-		if (nJoinStatus >= IN_GAME) {
+		if (pServer->GetJoinStatus() >= IN_GAME) {
 			printf("Error: Already in game, but received a Join Game Refuse packet.\n");
 			return false;
 		}
@@ -398,14 +356,14 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			printf("Got refused with reason %d.\n", (int)cRefuseReason);
 
 			bNetworkThreadRun = false;
-			nJoinStatus = DISCONNECTED;		// Server connection status is fully unconnected
+			pServer->SetJoinStatus(DISCONNECTED);		// Server connection status is fully unconnected
 			iGameState = 1;
 		}
 		break;
 	// UDP Connection Established
 	case 5:
 		// Check if we have been accepted by the server
-		if (nJoinStatus < ACCEPTED) {
+		if (pServer->GetJoinStatus() < ACCEPTED) {
 			printf("Error: Not yet accepted by the server.\n");
 			return false;
 		}
@@ -413,7 +371,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 		if (nDataSize != 0) return false;		// Check packet size
 		else {
 			// The UDP connection with the server is fully established
-			nJoinStatus = UDP_CONNECTED;
+			pServer->SetJoinStatus(UDP_CONNECTED);
 			printf("Established a UDP connection with the server.\n");
 
 			// Stop sending UDP handshake packets
@@ -427,20 +385,20 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			// Send a Local Player Info packet
 			CPacket oLocalPlayerInfoPacket;
 			oLocalPlayerInfoPacket.pack("hc", 0, (u_char)30);
-			oLocalPlayerInfoPacket.pack("c", (u_char)PlayerGet(iLocalPlayerID)->GetName().length());
-			oLocalPlayerInfoPacket.pack("t", &PlayerGet(iLocalPlayerID)->GetName());
+			oLocalPlayerInfoPacket.pack("c", (u_char)pLocalPlayer->GetName().length());
+			oLocalPlayerInfoPacket.pack("t", &pLocalPlayer->GetName());
 			oLocalPlayerInfoPacket.pack("cc", cCommandRate, cUpdateRate);
 			oLocalPlayerInfoPacket.CompleteTpcPacketSize();
-			oLocalPlayerInfoPacket.SendTcp(UDP_CONNECTED);
+			pServer->SendTcp(oLocalPlayerInfoPacket, UDP_CONNECTED);
 
 			// We should be a Public client by now
-			nJoinStatus = PUBLIC_CLIENT;
+			pServer->SetJoinStatus(PUBLIC_CLIENT);
 		}
 		break;
 	// Enter Game Permission
 	case 6:
 		// Check if we have fully joined the server
-		if (nJoinStatus < PUBLIC_CLIENT) {
+		if (pServer->GetJoinStatus() < PUBLIC_CLIENT) {
 			printf("Error: Not yet fully joined the server.\n");
 			return false;
 		}
@@ -461,7 +419,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 	// Broadcast Text Message
 	case 11:
 		// Check if we have entered the game
-		if (nJoinStatus < IN_GAME) {
+		if (pServer->GetJoinStatus() < IN_GAME) {
 			printf("Error: Not yet entered the game.\n");
 			return false;
 		}
@@ -481,7 +439,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 	// Load Level
 	case 20:
 		// Check if we have fully joined the server
-		if (nJoinStatus < PUBLIC_CLIENT) {
+		if (pServer->GetJoinStatus() < PUBLIC_CLIENT) {
 			printf("Error: Not yet fully joined the server.\n");
 			return false;
 		}
@@ -499,10 +457,10 @@ fTempFloat = static_cast<float>(glfwGetTime());
 	// Current Players Info
 	case 21:
 		// Check if we have fully joined the server
-		if (nJoinStatus < PUBLIC_CLIENT) {
+		if (pServer->GetJoinStatus() < PUBLIC_CLIENT) {
 			printf("Error: Not yet fully joined the server.\n");
 			return false;
-		} else if (nJoinStatus >= IN_GAME) {
+		} else if (pServer->GetJoinStatus() >= IN_GAME) {
 			printf("Error: Already entered the game, but received a Current Players Info packet.\n");
 			return false;
 		}
@@ -516,13 +474,17 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			float fX, fY, fZ;
 
 			int nActivePlayers = 0;
-			for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 			{
 				oPacket.unpack("c", &cNameLength);
 				if (cNameLength > 0) {
 					// Active in-game player
 					oPacket.unpack("etc", (int)cNameLength, &sName, &cTeam);
-					PlayerGet(nPlayer)->bConnected = true;
+
+					if (nPlayer != iLocalPlayerID) {
+						new RCtrlRAuthPlayer(nPlayer);
+					}
+
 					PlayerGet(nPlayer)->SetName(sName);
 					PlayerGet(nPlayer)->SetTeam((int)cTeam);
 					if (cTeam != 2)
@@ -551,9 +513,6 @@ fTempFloat = static_cast<float>(glfwGetTime());
 					}
 
 					++nActivePlayers;
-				} else {
-					// Inactive player slot
-					PlayerGet(nPlayer)->bConnected = false;
 				}
 			}
 
@@ -563,67 +522,81 @@ fTempFloat = static_cast<float>(glfwGetTime());
 	// Player Joined Server
 	case 25:
 		// Check if we have fully joined the server
-		if (nJoinStatus < PUBLIC_CLIENT) {
+		if (pServer->GetJoinStatus() < PUBLIC_CLIENT) {
 			printf("Error: Not yet fully joined the server.\n");
 			return false;
 		}
 
 		if (nDataSize < 3) return false;		// Check packet size
 		else {
-			u_char cPlayerID;
+glfwLockMutex(oPlayerTick);
+
+			u_char cPlayerId;
 			u_char cNameLength;
 			string sName;
-			oPacket.unpack("cc", &cPlayerID, &cNameLength);
+			oPacket.unpack("cc", &cPlayerId, &cNameLength);
 			oPacket.unpack("et", (int)cNameLength, &sName);
-			if (cPlayerID == iLocalPlayerID)
+			if (cPlayerId == iLocalPlayerID)
 				printf("Got a Player Joined Server packet, with the local player ID %d.", iLocalPlayerID);
-			if (PlayerGet(cPlayerID)->bConnected == true)
-				printf("Got a Player Joined Server packet, but player %d was already in game.\n", cPlayerID);
-			PlayerGet(cPlayerID)->bConnected = true;
-			PlayerGet(cPlayerID)->SetName(sName);
-			PlayerGet(cPlayerID)->SetTeam(2);
+
+			if (PlayerGet(cPlayerId) != NULL) {
+				printf("Got a Player Joined Server packet, but player %d was already in game.\n", cPlayerId);
+				return false;
+			}
+
+			new RCtrlRAuthPlayer(cPlayerId);
+
+			PlayerGet(cPlayerId)->SetName(sName);
+			PlayerGet(cPlayerId)->SetTeam(2);
 
 			// Set the other player tick time
-			PlayerGet(cPlayerID)->fTickTime = 1.0f / cCommandRate;
+			PlayerGet(cPlayerId)->fTickTime = 1.0f / cCommandRate;
 
-			printf("Player #%d (name '%s') is connecting (in Info Exchange)...\n", cPlayerID, sName.c_str());
+			printf("Player #%d (name '%s') is connecting (in Info Exchange)...\n", cPlayerId, sName.c_str());
 			// This is a kinda a lie, he's still connecting, in Info Exchange part; should display this when server gets Entered Game Notification (7) packet
-			pChatMessages->AddMessage(PlayerGet(cPlayerID)->GetName() + " is entering game.");
+			pChatMessages->AddMessage(PlayerGet(cPlayerId)->GetName() + " is entering game.");
 
-			// Send an ACK packet
-			// TODO
+			// TODO: Send an ACK packet
+
+glfwUnlockMutex(oPlayerTick);
 		}
 		break;
 	// Player Left Server
 	case 26:
 		// Check if we have fully joined the server
-		if (nJoinStatus < PUBLIC_CLIENT) {
+		if (pServer->GetJoinStatus() < PUBLIC_CLIENT) {
 			printf("Error: Not yet fully joined the server.\n");
 			return false;
 		}
 
 		if (nDataSize != 1) return false;		// Check packet size
 		else {
+glfwLockMutex(oPlayerTick);
+
 			u_char cPlayerID;
 			oPacket.unpack("c", &cPlayerID);
 
 			if (cPlayerID == iLocalPlayerID)
 				printf("Got a Player Left Server packet, with the local player ID %d.", iLocalPlayerID);
-			if (PlayerGet(cPlayerID)->bConnected == false)
+			if (PlayerGet(cPlayerID) == NULL) {
 				printf("Got a Player Left Server packet, but player %d was not in game.\n", cPlayerID);
-			PlayerGet((int)cPlayerID)->bConnected = false;
+				return false;
+			}
 
 			printf("Player #%d (name '%s') has left the game.\n", cPlayerID, PlayerGet(cPlayerID)->GetName().c_str());
 			pChatMessages->AddMessage(PlayerGet((int)cPlayerID)->GetName() + " left the game.");
 
-			// Send an ACK packet
-			// TODO
+			delete PlayerGet((int)cPlayerID);
+
+			// TODO: Send an ACK packet
+
+glfwUnlockMutex(oPlayerTick);
 		}
 		break;
 	// Player Joined Team
 	case 28:
 		// Check if we have fully joined the server
-		if (nJoinStatus < PUBLIC_CLIENT) {
+		if (pServer->GetJoinStatus() < PUBLIC_CLIENT) {
 			printf("Error: Not yet fully joined the server.\n");
 			return false;
 		}
@@ -638,9 +611,9 @@ glfwLockMutex(oPlayerTick);
 			float fX, fY, fZ;
 			oPacket.unpack("cc", &cPlayerID, &cTeam);
 
-			eX0_assert(nJoinStatus >= IN_GAME || cPlayerID != iLocalPlayerID, "We should be IN_GAME if we receive a Player Joined Team packet about us.");
+			eX0_assert(pServer->GetJoinStatus() >= IN_GAME || cPlayerID != iLocalPlayerID, "We should be IN_GAME if we receive a Player Joined Team packet about us.");
 
-			if (PlayerGet(cPlayerID)->bConnected == false) printf("Got a Player Joined Team packet, but player %d was not connected.\n", cPlayerID);
+			if (PlayerGet(cPlayerID) == NULL) { printf("Got a Player Joined Team packet, but player %d was not connected.\n", cPlayerID); return false; }
 			PlayerGet(cPlayerID)->SetTeam(cTeam);
 			if (PlayerGet(cPlayerID)->GetTeam() != 2)
 			{
@@ -685,20 +658,20 @@ void NetworkJoinGame()
 	d -= floor(d);
 	d *= 256.0;
 	cCurrentCommandSequenceNumber = (u_char)d;
-	PlayerGet(iLocalPlayerID)->dNextTickTime = ceil(glfwGetTime() / (1.0 / cCommandRate)) * (1.0 / cCommandRate);
+	pLocalPlayer->dNextTickTime = ceil(glfwGetTime() / (1.0 / cCommandRate)) * (1.0 / cCommandRate);
 	printf("abc: %f, %d\n", d, cCurrentCommandSequenceNumber);
 	d -= floor(d);
-	printf("tick %% = %f, nextTickAt = %.10lf\n", d*100, PlayerGet(iLocalPlayerID)->dNextTickTime);
-	printf("%.8lf sec: NxtTk=%.15lf, NxtTk/12.8=%.15lf\n", glfwGetTime(), PlayerGet(iLocalPlayerID)->dNextTickTime, PlayerGet(iLocalPlayerID)->dNextTickTime / (256.0 / cCommandRate));
-	PlayerGet(iLocalPlayerID)->fTicks = (float)(d * PlayerGet(iLocalPlayerID)->fTickTime);
+	printf("tick %% = %f, nextTickAt = %.10lf\n", d*100, pLocalPlayer->dNextTickTime);
+	printf("%.8lf sec: NxtTk=%.15lf, NxtTk/12.8=%.15lf\n", glfwGetTime(), pLocalPlayer->dNextTickTime, pLocalPlayer->dNextTickTime / (256.0 / cCommandRate));
+	pLocalPlayer->fTicks = (float)(d * pLocalPlayer->fTickTime);
 
-	nJoinStatus = IN_GAME;
+	pServer->SetJoinStatus(IN_GAME);
 
 	// Send an Entered Game Notification packet
 	CPacket oEnteredGameNotificationPacket;
 	oEnteredGameNotificationPacket.pack("hc", 0, (u_char)7);
 	oEnteredGameNotificationPacket.CompleteTpcPacketSize();
-	oEnteredGameNotificationPacket.SendTcp();
+	pServer->SendTcp(oEnteredGameNotificationPacket);
 
 	// Start the game
 	printf("Entered the game.\n");
@@ -707,7 +680,7 @@ void NetworkJoinGame()
 	bSelectTeamReady = true;
 }
 
-void PrintHi(void *p)
+void PrintHi(void *)
 {
 	//printf("%30.20f\n", glfwGetTime());
 	printf("===================== %f\n", glfwGetTime());
@@ -723,7 +696,7 @@ bool NetworkProcessUdpPacket(CPacket & oPacket)
 	// Time Response Packet
 	case 106:
 		// Check if we have established a UDP connection to the server
-		if (nJoinStatus < UDP_CONNECTED) {
+		if (pServer->GetJoinStatus() < UDP_CONNECTED) {
 			printf("Error: Not yet UDP connected to the server.\n");
 			return false;
 		}
@@ -774,12 +747,12 @@ bool NetworkProcessUdpPacket(CPacket & oPacket)
 	// Server Update Packet
 	case 2:
 		// Check if we have entered the game
-		if (nJoinStatus < IN_GAME) {
+		if (pServer->GetJoinStatus() < IN_GAME) {
 			printf("Error: Not yet entered the game.\n");
 			return false;
 		}
 		/*// Check if we have established a UDP connection to the server
-		if (nJoinStatus < UDP_CONNECTED) {
+		if (pServer->GetJoinStatus() < UDP_CONNECTED) {
 			printf("Error: Not yet UDP connected to the server.\n");
 			return false;
 		}*/
@@ -806,7 +779,7 @@ glfwLockMutex(oPlayerTick);
 				}
 				cLastUpdateSequenceNumber = cUpdateSequenceNumber;
 
-				for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+				for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 				{
 					oPacket.unpack("c", &cPlayerInfo);
 					if (cPlayerInfo == 1 && PlayerGet(nPlayer)->GetTeam() != 2) {
@@ -816,145 +789,25 @@ glfwLockMutex(oPlayerTick);
 
 						bool bNewerCommand = (cLastCommandSequenceNumber != PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber);
 						if (bNewerCommand) {
-							PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
-
-							// Add the new state to player's state history
 							SequencedState_t oSequencedState;
-							oSequencedState.cSequenceNumber = PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber;
+							oSequencedState.cSequenceNumber = cLastCommandSequenceNumber;
 							oSequencedState.oState.fX = fX;
 							oSequencedState.oState.fY = fY;
 							oSequencedState.oState.fZ = fZ;
-							PlayerGet(nPlayer)->PushStateHistory(oSequencedState);
-						}
 
-						if (nPlayer == iLocalPlayerID && bNewerCommand)
-						{
-							if (cCurrentCommandSequenceNumber == PlayerGet(iLocalPlayerID)->cLastAckedCommandSequenceNumber)
-							{
-								Vector2 oServerPosition(fX, fY);
-								//Vector2 oClientPrediction(oUnconfirmedMoves.front().oState.fX, oUnconfirmedMoves.front().oState.fY);
-								Vector2 oClientPrediction(PlayerGet(iLocalPlayerID)->GetX(), PlayerGet(iLocalPlayerID)->GetY());
-								// If the client prediction differs from the server's value by more than a treshold amount, snap to server's value
-								if ((oServerPosition - oClientPrediction).SquaredLength() > 0.001f)
-									printf("Snapping-A to server's position (%f difference):\n  server = (%.4f, %.4f), client = (%.4f, %.4f)\n", (oServerPosition - oClientPrediction).Length(),
-										oServerPosition.x, oServerPosition.y, oClientPrediction.x, oClientPrediction.y);
-
-								// DEBUG: Should make sure the player can't see other players
-								// through walls, if he accidentally gets warped through a wall
-								PlayerGet(iLocalPlayerID)->SetX(fX);
-								PlayerGet(iLocalPlayerID)->SetY(fY);
-
-								// All moves have been confirmed now
-								oUnconfirmedMoves.clear();
-							}
-							else if ((char)(cCurrentCommandSequenceNumber - PlayerGet(iLocalPlayerID)->cLastAckedCommandSequenceNumber) > 0)
-							{
-								string str = (string)"inputs empty; " + itos(cCurrentCommandSequenceNumber) + ", " + itos(PlayerGet(iLocalPlayerID)->cLastAckedCommandSequenceNumber);
-								//eX0_assert(!oLocallyPredictedInputs.empty(), str);
-								eX0_assert(!oUnconfirmedMoves.empty(), str);
-
-								// Discard all the locally predicted inputs that got deprecated by this server update
-								// TODO: There's a faster way to get rid of all old useless packets at once
-								while (!oUnconfirmedMoves.empty()) {
-									if ((char)(PlayerGet(iLocalPlayerID)->cLastAckedCommandSequenceNumber - oUnconfirmedMoves.begin()) > 0)
-									{
-										// This is an outdated predicted input, the server's update supercedes it, thus it's dropped
-										oUnconfirmedMoves.pop();
-									} else
-										break;
-								}
-
-								Vector2 oServerPosition(fX, fY);
-								Vector2 oClientPrediction(oUnconfirmedMoves.front().oState.fX, oUnconfirmedMoves.front().oState.fY);
-								// If the client prediction differs from the server's value by more than a treshold amount, snap to server's value
-								if ((oServerPosition - oClientPrediction).SquaredLength() > 0.001f)
-								{
-									printf("Snapping-B to server's position (%f difference).\n", (oServerPosition - oClientPrediction).Length());
-
-									// DEBUG: Figure out why I have this here, I'm not sure if it's correct or its purpose
-									oUnconfirmedMoves.pop();
-
-									// DEBUG: Should make sure the player can't see other players
-									// through walls, if he accidents gets warped through a wall
-									PlayerGet(iLocalPlayerID)->SetX(fX);
-									PlayerGet(iLocalPlayerID)->SetY(fY);
-
-									eX0_assert((char)(oUnconfirmedMoves.begin() - PlayerGet(iLocalPlayerID)->cLastAckedCommandSequenceNumber) > 0, "outdated input being used");
-
-									// Run the simulation for all locally predicted inputs after this server update
-									float fOriginalOldX = PlayerGet(iLocalPlayerID)->GetOldX();
-									float fOriginalOldY = PlayerGet(iLocalPlayerID)->GetOldY();
-									float fOriginalZ = PlayerGet(iLocalPlayerID)->GetZ();
-									Input_t oInput;
-									for (u_char it1 = oUnconfirmedMoves.begin(); it1 != oUnconfirmedMoves.end(); ++it1)
-									{
-										oInput = oUnconfirmedMoves[it1].oInput;
-
-										// Set inputs
-										PlayerGet(iLocalPlayerID)->MoveDirection(oInput.cMoveDirection);
-										PlayerGet(iLocalPlayerID)->SetStealth(oInput.cStealth != 0);
-										PlayerGet(iLocalPlayerID)->SetZ(oInput.fZ);
-
-										// Run a tick
-										PlayerGet(iLocalPlayerID)->CalcTrajs();
-										PlayerGet(iLocalPlayerID)->CalcColResp();
-									}
-									PlayerGet(iLocalPlayerID)->SetOldX(fOriginalOldX);
-									PlayerGet(iLocalPlayerID)->SetOldY(fOriginalOldY);
-									PlayerGet(iLocalPlayerID)->SetZ(fOriginalZ);
-								}
-							} else {
-								eX0_assert(false, "WTF - server is ahead of client?? confirmed command from the future lol\n");
-							}
-
-							// Drop the moves that have been confirmed now
-							// TODO: There's a faster way to get rid of all old useless packets at once
-							while (!oUnconfirmedMoves.empty())
-							{
-								if ((char)(PlayerGet(iLocalPlayerID)->cLastAckedCommandSequenceNumber - oUnconfirmedMoves.begin()) >= 0)
-								{
-									oUnconfirmedMoves.pop();
-								} else
-									break;
-							}
-						}
-						else if (nPlayer != iLocalPlayerID && bNewerCommand)
-						{
-							/*PlayerGet(nPlayer)->Position(fX, fY);
-							PlayerGet(nPlayer)->SetZ(fZ);*/
-
-							/*PlayerGet(nPlayer)->SetOldX(PlayerGet(nPlayer)->GetIntX());
-							PlayerGet(nPlayer)->SetOldY(PlayerGet(nPlayer)->GetIntY());
-							PlayerGet(nPlayer)->SetX(fX);
-							PlayerGet(nPlayer)->SetY(fY);
-							PlayerGet(nPlayer)->SetZ(fZ);
-							PlayerGet(nPlayer)->SetVelX(fVelX);
-							PlayerGet(nPlayer)->SetVelY(fVelY);
-							PlayerGet(nPlayer)->fTicks = 0.0f;*/
-
-							/*PlayerGet(nPlayer)->SetOldX(PlayerGet(nPlayer)->GetIntX());
-							PlayerGet(nPlayer)->SetOldY(PlayerGet(nPlayer)->GetIntY());
-							PlayerGet(nPlayer)->SetX(fX + fVelX);
-							PlayerGet(nPlayer)->SetY(fY + fVelY);
-							PlayerGet(nPlayer)->fOldZ = PlayerGet(nPlayer)->GetZ();
-							PlayerGet(nPlayer)->SetZ(fZ);
-							PlayerGet(nPlayer)->SetVelX(fVelX);
-							PlayerGet(nPlayer)->SetVelY(fVelY);
-							PlayerGet(nPlayer)->fTicks = 0.0f;
-							PlayerGet(nPlayer)->fUpdateTicks = 0.0f;
-
-							PlayerGet(nPlayer)->CalcColResp();*/
+							eX0_assert(PlayerGet(nPlayer)->m_oAuthUpdatesTEST.push(oSequencedState), "m_oAuthUpdatesTEST.push(oSequencedState) failed, missed latest update!\n");
+							//printf("pushed %d\n", cLastCommandSequenceNumber);
 						}
 					}
 				}
 			}
-		}
 
 glfwUnlockMutex(oPlayerTick);
+		}
 		break;
 	// Ping Packet
 	case 10:
-		if (nJoinStatus < IN_GAME) {
+		if (pServer->GetJoinStatus() < IN_GAME) {
 			printf("Error: Not yet entered the game.\n");
 			return false;
 		}
@@ -970,16 +823,16 @@ glfwUnlockMutex(oPlayerTick);
 			// Respond immediately with a Pong packet
 			CPacket oPongPacket;
 			oPongPacket.pack("ccccc", (u_char)11, oPingData.cPingData[0], oPingData.cPingData[1], oPingData.cPingData[2], oPingData.cPingData[3]);
-			oPongPacket.SendUdp();
+			pServer->SendUdp(oPongPacket);
 
 			// Update the last latency for all players
-			for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 			{
 				u_short nLastLatency;
 
 				oPacket.unpack("h", &nLastLatency);
 
-				if (PlayerGet(nPlayer)->bConnected && nPlayer != iLocalPlayerID) {
+				if (PlayerGet(nPlayer) != NULL && nPlayer != iLocalPlayerID) {
 					PlayerGet(nPlayer)->SetLastLatency(nLastLatency);
 				}
 			}
@@ -987,7 +840,7 @@ glfwUnlockMutex(oPlayerTick);
 		break;
 	// Pung Packet
 	case 12:
-		if (nJoinStatus < IN_GAME) {
+		if (pServer->GetJoinStatus() < IN_GAME) {
 			printf("Error: Not yet entered the game.\n");
 			return false;
 		}
@@ -1001,16 +854,12 @@ glfwUnlockMutex(oPlayerTick);
 			oPacket.unpack("ccccd", &oPingData.cPingData[0], &oPingData.cPingData[1], &oPingData.cPingData[2], &oPingData.cPingData[3], &dServerTime);
 
 			// Get the time sent of the matching Pong packet
-			if (!oPongSentTimes.MatchAndRemoveAfter(oPingData)) {
-				printf("Error: We never got a ping packet with this oPingData, but got a pung packet! Doesn't make sense.");
-				return false;
-			} else
-			{
-				double dLocalTimeAtPongSend = oPongSentTimes.GetLastMatchedValue();
+			try {
+				double dLocalTimeAtPongSend = oPongSentTimes.MatchAndRemoveAfter(oPingData);
 
 				// Calculate own latency and update it on the scoreboard
 				double dLatency = dLocalTimeAtPungReceive - dLocalTimeAtPongSend;
-				PlayerGet(iLocalPlayerID)->SetLastLatency(static_cast<u_short>(ceil(dLatency * 10000)));
+				pLocalPlayer->SetLastLatency(static_cast<u_short>(ceil(dLatency * 10000)));
 				oRecentLatency.push(dLatency, dLocalTimeAtPongSend);
 				//printf("\nOwn latency is %.5lf ms. LwrQrtl = %.5lf ms\n", dLatency * 1000, oRecentLatency.LowerQuartile() * 1000);
 
@@ -1031,6 +880,9 @@ glfwUnlockMutex(oPlayerTick);
 						printf("Performed time adjustment by %.5lf ms.\n", dAverageTimeDifference * 1000);
 					}
 				} //else printf("Time diff %.5lf ms (l-r)\n", ((dLocalTimeAtPongSend + dLocalTimeAtPungReceive) * 0.5 - dServerTime) * 1000);
+			} catch (...) {
+				printf("Error: We never got a ping packet with this oPingData, but got a pung packet! Doesn't make sense.");
+				return false;
 			}
 		}
 		break;
@@ -1043,16 +895,16 @@ glfwUnlockMutex(oPlayerTick);
 	return true;
 }
 
-void NetworkSendUdpHandshakePacket(void *pArgument)
+void NetworkSendUdpHandshakePacket(void *)
 {
 	printf("Sending a UDP Handshake packet...\n");
 
 	// Send UDP packet with the same signature to initiate the UDP handshake
 	CPacket oUdpHandshakePacket;
 	oUdpHandshakePacket.pack("c", (u_char)100);
-	for (int nSignatureByte = 0; nSignatureByte < SIGNATURE_SIZE; ++nSignatureByte)
-		oUdpHandshakePacket.pack("c", cSignature[nSignatureByte]);
-	oUdpHandshakePacket.SendUdp(ACCEPTED);
+	for (int nSignatureByte = 0; nSignatureByte < NetworkConnection::m_knSignatureSize; ++nSignatureByte)
+		oUdpHandshakePacket.pack("c", pServer->GetSignature()[nSignatureByte]);
+	pServer->SendUdp(oUdpHandshakePacket, ACCEPTED);
 }
 
 void NetworkShutdownThread()
@@ -1062,10 +914,10 @@ void NetworkShutdownThread()
 		bNetworkThreadRun = false;
 
 		// DEBUG: A hack to send ourselves an empty UDP packet in order to get out of select()
-		sendto(nServerUdpSocket, NULL, 0, 0, (struct sockaddr *)&oLocalUdpAddress, nLocalUdpAddressLength);
+		sendto(pServer->GetUdpSocket(), NULL, 0, 0, (sockaddr *)&oLocalUdpAddress, nLocalUdpAddressLength);
 
-		shutdown(nServerTcpSocket, SD_BOTH);
-		shutdown(nServerUdpSocket, SD_BOTH);
+		shutdown(pServer->GetTcpSocket(), SD_BOTH);
+		shutdown(pServer->GetUdpSocket(), SD_BOTH);
 	}
 }
 
@@ -1087,8 +939,12 @@ void NetworkDeinit()
 	NetworkShutdownThread();
 	NetworkDestroyThread();
 
-	NetworkCloseSocket(nServerTcpSocket);
-	NetworkCloseSocket(nServerUdpSocket);
+	if (pServer != NULL) {
+		delete pServer;
+		pServer = NULL;
+	}
+	//NetworkCloseSocket(pServer->GetTcpSocket());
+	//NetworkCloseSocket(pServer->GetUdpSocket());
 
 #ifdef WIN32
 	WSACleanup();

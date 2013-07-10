@@ -44,8 +44,8 @@ class ObjStorageClass
 		BLK *	next;
 	};
 
-	BLK *	m_Blocks;
 	ELEM *	m_FreeList;
+	BLK *	m_Blocks;
 
 	void * GetFree(bool bClear)
 	{

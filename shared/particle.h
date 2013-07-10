@@ -18,7 +18,7 @@ struct Particle_t
 	float		fLife;
 	float		fDieAt;
 	int			iWillHit;
-	int			iOwnerID;
+	u_int		iOwnerID;
 };
 
 class CParticle

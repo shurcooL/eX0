@@ -108,7 +108,6 @@ void CParticle::CollisionHandling(int iParticle)
 	Vector2		oVector, oNormal;
 	Segment2	oSegment1;
 	Segment2	oSegment2;
-	int			iLoop1, iLoop2;
 	int			iQuantity;
 	Real		oParams[2];
 
@@ -120,8 +119,9 @@ void CParticle::CollisionHandling(int iParticle)
 		oSegment1.Origin() = oParticles[iParticle].oPosition;
 		oSegment1.Direction() = oParticles[iParticle].oVelocity;
 
-		for (iLoop1 = 0; iLoop1 < oPolyLevel.num_contours; iLoop1++)
+		for (int iLoop1 = 0; iLoop1 < oPolyLevel.num_contours; iLoop1++)
 		{
+			int iLoop2;
 			for (iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
 			{
 				oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
@@ -169,13 +169,13 @@ void CParticle::CollisionHandling(int iParticle)
 		oSegment1.Origin() = oParticles[iParticle].oPosition;
 		oSegment1.Direction() = oParticles[iParticle].oVelocity;
 
-		for (iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
+		for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 		{
 			// a bullet can't hit his owner
 #ifdef EX0_CLIENT
-			if (!PlayerGet(iLoop1)->bConnected || iLoop1 == oParticles[iParticle].iOwnerID
+			if (PlayerGet(iLoop1) == NULL|| iLoop1 == oParticles[iParticle].iOwnerID
 #else
-			if (PlayerGet(iLoop1)->pClient == NULL || iLoop1 == oParticles[iParticle].iOwnerID
+			if (PlayerGet(iLoop1)->pConnection == NULL || iLoop1 == oParticles[iParticle].iOwnerID
 #endif
 				|| PlayerGet(iLoop1)->IsDead())
 				continue;
@@ -205,8 +205,9 @@ void CParticle::CollisionHandling(int iParticle)
 		oSegment1.Origin() = oParticles[iParticle].oPosition;
 		oSegment1.Direction() = oParticles[iParticle].oVelocity;
 
-		for (iLoop1 = 0; iLoop1 < oPolyLevel.num_contours; iLoop1++)
+		for (int iLoop1 = 0; iLoop1 < oPolyLevel.num_contours; iLoop1++)
 		{
+			int iLoop2;
 			for (iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
 			{
 				oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
@@ -268,12 +269,12 @@ void CParticle::CollisionHandling(int iParticle)
 		oSegment1.Origin() = oParticles[iParticle].oPosition;
 		oSegment1.Direction() = oParticles[iParticle].oVelocity;
 
-		for (iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
+		for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 		{
 #ifdef EX0_CLIENT
-			if (!PlayerGet(iLoop1)->bConnected || iLoop1 == oParticles[iParticle].iOwnerID
+			if (PlayerGet(iLoop1) == NULL|| iLoop1 == oParticles[iParticle].iOwnerID
 #else
-			if (PlayerGet(iLoop1)->pClient == NULL || iLoop1 == oParticles[iParticle].iOwnerID
+			if (PlayerGet(iLoop1)->pConnection == NULL || iLoop1 == oParticles[iParticle].iOwnerID
 #endif
 				|| PlayerGet(iLoop1)->IsDead())
 				continue;
@@ -324,9 +325,9 @@ void CParticle::Tick()
 					oParticles[iLoop1].fDieAt < (1 + oParticles[iLoop1].fLife / dTimePassed)) )		// Hit something before life ended
 			{
 				// give damage to whoever
-				if (oParticles[iLoop1].iWillHit != -1)
-					{PlayerGet(oParticles[iLoop1].iWillHit)->GiveHealth(-oParticles[iLoop1].fMaxDamage);
-				printf("%i hit %i for %f dmg\n", oParticles[iLoop1].iOwnerID, oParticles[iLoop1].iWillHit, oParticles[iLoop1].fMaxDamage);
+				if (oParticles[iLoop1].iWillHit != -1) {
+					PlayerGet(oParticles[iLoop1].iWillHit)->GiveHealth(-oParticles[iLoop1].fMaxDamage);
+					printf("%i hit %i for %f dmg\n", oParticles[iLoop1].iOwnerID, oParticles[iLoop1].iWillHit, oParticles[iLoop1].fMaxDamage);
 				}
 				//else printf("%i missed\n", oParticles[iLoop1].iOwnerID);
 
@@ -340,14 +341,14 @@ void CParticle::Tick()
 			{
 				// Splash dmg
 				if (oParticles[iLoop1].iWhatType == 2) {
-					for (int iLoop2 = 0; iLoop2 < nPlayerCount; iLoop2++)
+					for (u_int iLoop2 = 0; iLoop2 < nPlayerCount; iLoop2++)
 					{
 						// a bullet can't hit his owner
 						// but a bouncy one can
 #ifdef EX0_CLIENT
-						if (!PlayerGet(iLoop2)->bConnected/* || iLoop2 == oParticles[iLoop1].iOwnerID*/
+						if (PlayerGet(iLoop2) == NULL/* || iLoop2 == oParticles[iLoop1].iOwnerID*/
 #else
-						if (PlayerGet(iLoop2)->pClient == NULL/* || iLoop2 == oParticles[iLoop1].iOwnerID*/
+						if (PlayerGet(iLoop2)->pConnection == NULL/* || iLoop2 == oParticles[iLoop1].iOwnerID*/
 #endif
 						  || PlayerGet(iLoop2)->IsDead())
 							continue;

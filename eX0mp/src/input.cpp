@@ -89,74 +89,71 @@ void InputKeyHold()
 	// Don't use the keyboard input when typing a message
 	if (nChatMode) return;
 
-	if (!iGameState)
+	// set stealth
+	if (glfwGetKey(GLFW_KEY_LSHIFT) || glfwGetKey(GLFW_KEY_RSHIFT))
 	{
-		// set stealth
-		if (glfwGetKey(GLFW_KEY_LSHIFT) || glfwGetKey(GLFW_KEY_RSHIFT))
+		pLocalPlayer->SetStealth(true);
+	}
+	else
+	{
+		pLocalPlayer->SetStealth(false);
+	}
+
+	// Rotate left/right using arrow keys
+	if (glfwGetKey(GLFW_KEY_LEFT) && !glfwGetKey(GLFW_KEY_RIGHT))
+		pLocalPlayer->Rotate((float)dTimePassed * -1.5f);
+	else if (glfwGetKey(GLFW_KEY_RIGHT) && !glfwGetKey(GLFW_KEY_LEFT))
+		pLocalPlayer->Rotate((float)dTimePassed * 1.5f);
+
+	if (glfwGetKey('A') && !glfwGetKey('D'))
+	{
+		if ((glfwGetKey('W') && !glfwGetKey('S'))
+			|| (glfwGetKey(GLFW_KEY_UP) && !glfwGetKey(GLFW_KEY_DOWN)))
 		{
-			oPlayers[iLocalPlayerID]->SetStealth(true);
+			pLocalPlayer->MoveDirection(7);
+		}
+		else if ((glfwGetKey('S') && !glfwGetKey('W'))
+				|| (glfwGetKey(GLFW_KEY_DOWN) && !glfwGetKey(GLFW_KEY_UP)))
+		{
+			pLocalPlayer->MoveDirection(5);
 		}
 		else
 		{
-			oPlayers[iLocalPlayerID]->SetStealth(false);
+			pLocalPlayer->MoveDirection(6);
 		}
-
-		// Rotate left/right using arrow keys
-		if (glfwGetKey(GLFW_KEY_LEFT) && !glfwGetKey(GLFW_KEY_RIGHT))
-			oPlayers[iLocalPlayerID]->Rotate((float)dTimePassed * -1.5f);
-		else if (glfwGetKey(GLFW_KEY_RIGHT) && !glfwGetKey(GLFW_KEY_LEFT))
-			oPlayers[iLocalPlayerID]->Rotate((float)dTimePassed * 1.5f);
-
-		if (glfwGetKey('A') && !glfwGetKey('D'))
+	}
+	else if (glfwGetKey('D') && !glfwGetKey('A'))
+	{
+		if ((glfwGetKey('W') && !glfwGetKey('S'))
+			|| (glfwGetKey(GLFW_KEY_UP) && !glfwGetKey(GLFW_KEY_DOWN)))
 		{
-			if ((glfwGetKey('W') && !glfwGetKey('S'))
-				|| (glfwGetKey(GLFW_KEY_UP) && !glfwGetKey(GLFW_KEY_DOWN)))
-			{
-				oPlayers[iLocalPlayerID]->MoveDirection(7);
-			}
-			else if ((glfwGetKey('S') && !glfwGetKey('W'))
-					|| (glfwGetKey(GLFW_KEY_DOWN) && !glfwGetKey(GLFW_KEY_UP)))
-			{
-				oPlayers[iLocalPlayerID]->MoveDirection(5);
-			}
-			else
-			{
-				oPlayers[iLocalPlayerID]->MoveDirection(6);
-			}
+			pLocalPlayer->MoveDirection(1);
 		}
-		else if (glfwGetKey('D') && !glfwGetKey('A'))
+		else if ((glfwGetKey('S') && !glfwGetKey('W'))
+				|| (glfwGetKey(GLFW_KEY_DOWN) && !glfwGetKey(GLFW_KEY_UP)))
 		{
-			if ((glfwGetKey('W') && !glfwGetKey('S'))
-				|| (glfwGetKey(GLFW_KEY_UP) && !glfwGetKey(GLFW_KEY_DOWN)))
-			{
-				oPlayers[iLocalPlayerID]->MoveDirection(1);
-			}
-			else if ((glfwGetKey('S') && !glfwGetKey('W'))
-					|| (glfwGetKey(GLFW_KEY_DOWN) && !glfwGetKey(GLFW_KEY_UP)))
-			{
-				oPlayers[iLocalPlayerID]->MoveDirection(3);
-			}
-			else
-			{
-				oPlayers[iLocalPlayerID]->MoveDirection(2);
-			}
+			pLocalPlayer->MoveDirection(3);
 		}
 		else
 		{
-			if ((glfwGetKey('W') && !glfwGetKey('S'))
-				|| (glfwGetKey(GLFW_KEY_UP) && !glfwGetKey(GLFW_KEY_DOWN)))
-			{
-				oPlayers[iLocalPlayerID]->MoveDirection(0);
-			}
-			else if ((glfwGetKey('S') && !glfwGetKey('W'))
-					|| (glfwGetKey(GLFW_KEY_DOWN) && !glfwGetKey(GLFW_KEY_UP)))
-			{
-				oPlayers[iLocalPlayerID]->MoveDirection(4);
-			}
-			else
-			{
-				oPlayers[iLocalPlayerID]->MoveDirection(-1);
-			}
+			pLocalPlayer->MoveDirection(2);
+		}
+	}
+	else
+	{
+		if ((glfwGetKey('W') && !glfwGetKey('S'))
+			|| (glfwGetKey(GLFW_KEY_UP) && !glfwGetKey(GLFW_KEY_DOWN)))
+		{
+			pLocalPlayer->MoveDirection(0);
+		}
+		else if ((glfwGetKey('S') && !glfwGetKey('W'))
+				|| (glfwGetKey(GLFW_KEY_DOWN) && !glfwGetKey(GLFW_KEY_UP)))
+		{
+			pLocalPlayer->MoveDirection(4);
+		}
+		else
+		{
+			pLocalPlayer->MoveDirection(-1);
 		}
 	}
 }
@@ -178,7 +175,7 @@ void InputProcessKey(int iKey, int iAction)
 					CPacket oSendMessagePacket;
 					oSendMessagePacket.pack("hct", 0, (u_char)10, &sChatString);
 					oSendMessagePacket.CompleteTpcPacketSize();
-					oSendMessagePacket.SendTcp();
+					pServer->SendTcp(oSendMessagePacket);
 				}
 				break;
 			// Escape key
@@ -211,15 +208,15 @@ void InputProcessKey(int iKey, int iAction)
 			break;
 		// 'r' - reload
 		case 'R':
-			oPlayers[iLocalPlayerID]->Reload();
+			if (iGameState == 0) pLocalPlayer->Reload();
 			break;
 		// 'b' - buy clips
 		case 'B':
-			oPlayers[iLocalPlayerID]->BuyClip();
+			if (iGameState == 0) pLocalPlayer->BuyClip();
 			break;
 		// 'v' - change camera view
 		case 'V':
-			iCameraType = (++iCameraType) % 2;
+			iCameraType = (iCameraType + 1) % 2;
 
 			// Reset the mask
 			OglUtilsSetMaskingMode(RENDER_TO_MASK_MODE);
@@ -236,14 +233,18 @@ void InputProcessKey(int iKey, int iAction)
 			break;
 		// DEBUG: Insta-Knife
 		case 'F':
-			if (!oPlayers[iLocalPlayerID]->IsDead()) {
-				for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1) {
-					if (iLoop1 == iLocalPlayerID) continue;
-					if (pow((oPlayers[iLocalPlayerID]->GetIntX() + Math::Sin(oPlayers[iLocalPlayerID]->GetZ()) * PLAYER_WIDTH) - oPlayers[iLoop1]->GetIntX(), 2)
-					  + pow((oPlayers[iLocalPlayerID]->GetIntY() + Math::Cos(oPlayers[iLocalPlayerID]->GetZ()) * PLAYER_WIDTH) - oPlayers[iLoop1]->GetIntY(), 2)
-					  <= PLAYER_HALF_WIDTH_SQR)
-						oPlayers[iLoop1]->GiveHealth(-100);
+			if (iGameState == 0) {
+glfwLockMutex(oPlayerTick);
+				if (!pLocalPlayer->IsDead()) {
+					for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1) {
+						if (PlayerGet(iLoop1) == NULL || iLoop1 == iLocalPlayerID) continue;
+						if (pow((pLocalPlayer->GetIntX() + Math::Sin(pLocalPlayer->GetZ()) * PLAYER_WIDTH) - PlayerGet(iLoop1)->GetIntX(), 2)
+						  + pow((pLocalPlayer->GetIntY() + Math::Cos(pLocalPlayer->GetZ()) * PLAYER_WIDTH) - PlayerGet(iLoop1)->GetIntY(), 2)
+						  <= PLAYER_HALF_WIDTH_SQR)
+							PlayerGet(iLoop1)->GiveHealth(-150);
+					}
 				}
+glfwUnlockMutex(oPlayerTick);
 			}
 			break;
 		// DEBUG: Toggle the wireframe mode
@@ -279,39 +280,39 @@ void InputProcessKey(int iKey, int iAction)
 			}
 			break;
 		case '1':
-			if (bSelectTeamDisplay && bSelectTeamReady && PlayerGet(iLocalPlayerID)->GetTeam() != 0 && iGameState == 0) {
+			if (bSelectTeamDisplay && bSelectTeamReady && pLocalPlayer->GetTeam() != 0 && iGameState == 0) {
 				bSelectTeamDisplay = bSelectTeamReady = false;
-				PlayerGet(iLocalPlayerID)->GiveHealth(-150.0f);
+				pLocalPlayer->GiveHealth(-150);
 
 				// Send a Join Team Request packet
 				CPacket oJoinTeamRequest;
 				oJoinTeamRequest.pack("hcc", 0, (u_char)27, (u_char)0);
 				oJoinTeamRequest.CompleteTpcPacketSize();
-				oJoinTeamRequest.SendTcp();
+				pServer->SendTcp(oJoinTeamRequest);
 			}
 			break;
 		case '2':
-			if (bSelectTeamDisplay && bSelectTeamReady && PlayerGet(iLocalPlayerID)->GetTeam() != 1 && iGameState == 0) {
+			if (bSelectTeamDisplay && bSelectTeamReady && pLocalPlayer->GetTeam() != 1 && iGameState == 0) {
 				bSelectTeamDisplay = bSelectTeamReady = false;
-				PlayerGet(iLocalPlayerID)->GiveHealth(-150.0f);
+				pLocalPlayer->GiveHealth(-150);
 
 				// Send a Join Team Request packet
 				CPacket oJoinTeamRequest;
 				oJoinTeamRequest.pack("hcc", 0, (u_char)27, (u_char)1);
 				oJoinTeamRequest.CompleteTpcPacketSize();
-				oJoinTeamRequest.SendTcp();
+				pServer->SendTcp(oJoinTeamRequest);
 			}
 			break;
 		case '3':
-			if (bSelectTeamDisplay && bSelectTeamReady && PlayerGet(iLocalPlayerID)->GetTeam() != 2 && iGameState == 0) {
+			if (bSelectTeamDisplay && bSelectTeamReady && pLocalPlayer->GetTeam() != 2 && iGameState == 0) {
 				bSelectTeamDisplay = bSelectTeamReady = false;
-				PlayerGet(iLocalPlayerID)->GiveHealth(-150.0f);
+				pLocalPlayer->GiveHealth(-150);
 
 				// Send a Join Team Request packet
 				CPacket oJoinTeamRequest;
 				oJoinTeamRequest.pack("hcc", 0, (u_char)27, (u_char)2);
 				oJoinTeamRequest.CompleteTpcPacketSize();
-				oJoinTeamRequest.SendTcp();
+				pServer->SendTcp(oJoinTeamRequest);
 			}
 			break;
 		case '0':
@@ -358,19 +359,15 @@ void InputMouseMoved()
 {
 	InputFilteredMouseMoved();
 
-	if (!iGameState)
-	// if we're actally in game
-	{
-		/*oPlayers[iLocalPlayerID]->fAimingDistance -= fFilteredMouseMovedY * fMouseSensitivity * 2;
-		if (oPlayers[iLocalPlayerID]->fAimingDistance > 500.0)
-			oPlayers[iLocalPlayerID]->fAimingDistance = 500.0;
-		if (oPlayers[iLocalPlayerID]->fAimingDistance < 25.0)
-			oPlayers[iLocalPlayerID]->fAimingDistance = 25.0;*/
+	/*pLocalPlayer->fAimingDistance -= fFilteredMouseMovedY * fMouseSensitivity * 2;
+	if (pLocalPlayer->fAimingDistance > 500.0)
+		pLocalPlayer->fAimingDistance = 500.0;
+	if (pLocalPlayer->fAimingDistance < 25.0)
+		pLocalPlayer->fAimingDistance = 25.0;*/
 
-		oPlayers[iLocalPlayerID]->Rotate(fFilteredMouseMovedX * fMouseSensitivity / 100.0f
-			* (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? 0.5f : 1.0f));
-			//* 200.0 / oPlayers[iLocalPlayerID]->fAimingDistance);
-	}
+	pLocalPlayer->Rotate(fFilteredMouseMovedX * fMouseSensitivity / 100.0f
+		* (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? 0.5f : 1.0f));
+		//* 200.0 / pLocalPlayer->fAimingDistance);
 }
 
 // calculate the filtered mouse moved vars
@@ -395,7 +392,7 @@ void InputMouseHold()
 	if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	// left mouse button is held down
 	{
-		oPlayers[iLocalPlayerID]->Fire();
+		pLocalPlayer->Fire();
 	}
 	else
 	// left mouse button is NOT held down
@@ -429,13 +426,12 @@ void GLFWCALL InputProcessMouse(int iButton, int iAction)
 	{
 		switch (iButton) {
 		case GLFW_MOUSE_BUTTON_LEFT:
-			//if (iGameState == 0) oPlayers[iLocalPlayerID]->Fire();
+			//if (iGameState == 0) pLocalPlayer->Fire();
 			break;
 		case GLFW_MOUSE_BUTTON_RIGHT:
 			break;
 		case GLFW_MOUSE_BUTTON_MIDDLE:
-			if (iGameState == 0) oPlayers[iLocalPlayerID]->iSelWeapon =
-				((oPlayers[iLocalPlayerID]->iSelWeapon == 3) ? 2 : 3);
+			if (iGameState == 0) pLocalPlayer->iSelWeapon = ((pLocalPlayer->iSelWeapon == 3) ? 2 : 3);
 			break;
 		default:
 			break;

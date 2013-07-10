@@ -8,30 +8,33 @@ public:
 	IndexedCircularBuffer();
 	~IndexedCircularBuffer();
 
-	bool push(T & oItem, Tp nPosition);
+	bool push(T & oElement, Tp nPosition);
 	void pop();
 
 	T & operator [](Tp nPosition);
 
-	Tp begin();
-	Tp end();
+	Tp begin() const;
+	Tp end() const;
 
 	T & front();
 	T & back();
 
-	bool empty();
-	//bool full();
-	u_int size();
+	bool empty() const;
+	bool full() const;
+	u_int size() const;
 
 	void clear();
 
 private:
-	T		*m_pBuffer;
+	IndexedCircularBuffer(const IndexedCircularBuffer &);
+	IndexedCircularBuffer & operator =(const IndexedCircularBuffer &);
+
 	const u_int		m_knBufferSize;
+	T		*m_pBuffer;
 	Tp		m_nBufferHead;
 	Tp		m_nBufferTail;
 
-	u_int capacity();
+	u_int capacity() const;
 };
 
 #include "IndexedCircularBuffer.cpp"

@@ -8,7 +8,6 @@
 #define		PLAYER_HALF_WIDTH_SQR	60.0f
 #define		PLAYER_COL_DET_TOLERANCE 0.005f
 
-#ifdef EX0_CLIENT
 typedef struct {
 	float	fX;
 	float	fY;
@@ -17,9 +16,32 @@ typedef struct {
 	//float	fVelY;
 } State_t;
 
-typedef struct {
+typedef struct SequencedState_st {
 	State_t	oState;
 	u_char	cSequenceNumber;
+
+	/*SequencedState_st() {
+		oState.fX = 0;
+		oState.fY = 0;
+		oState.fZ = 0;
+		cSequenceNumber = 0;
+	}
+
+	SequencedState_st(const volatile SequencedState_st & oOther) {
+		oState.fX = oOther.oState.fX;
+		oState.fY = oOther.oState.fY;
+		oState.fZ = oOther.oState.fZ;
+		cSequenceNumber = oOther.cSequenceNumber;
+	}
+
+	volatile SequencedState_st & operator =(const volatile SequencedState_st & oOther) volatile {
+		oState.fX = oOther.oState.fX;
+		oState.fY = oOther.oState.fY;
+		oState.fZ = oOther.oState.fZ;
+		cSequenceNumber = oOther.cSequenceNumber;
+
+		return *this;
+	}*/
 } SequencedState_t;
 
 typedef struct {
@@ -32,13 +54,13 @@ typedef struct {
 	Input_t	oInput;
 	State_t	oState;
 } Move_t;
-#endif // EX0_CLIENT
 
 class CPlayer
 {
 public:
 	CPlayer();
-	~CPlayer();
+	CPlayer(u_int nPlayerId);
+	virtual ~CPlayer();
 
 	void MoveDirection(int nDirection);
 	void Rotate(float fAmount);
@@ -54,7 +76,7 @@ public:
 	float GetOldX();
 	float GetOldY();
 #ifdef EX0_CLIENT
-	void PushStateHistory(SequencedState_t &oSequencedState);
+	void PushStateHistory(SequencedState_t & oSequencedState);
 #endif
 	void SetX(float fValue);
 	void SetY(float fValue);
@@ -92,28 +114,30 @@ public:
 	void SetName(string & sNewName);
 #ifdef EX0_CLIENT
 	void RespawnReset();
-	short unsigned int GetLastLatency();
-	void SetLastLatency(short unsigned int nLastLatency);
+	void SetLastLatency(u_short nLastLatency);
+	u_short GetLastLatency() const;
 #endif
+	void ProcessAuthUpdateTEST();
 
-	int			iID;
+	u_int		iID;
 	bool		bEmptyClicked;
 	int			iSelWeapon;
 	float		fAimingDistance;
 	float		fTicks;
 #ifdef EX0_CLIENT
 	double		dNextTickTime;
+	ThreadSafeQueue<SequencedState_t, 3>		m_oAuthUpdatesTEST;
 #endif
 	float		fTickTime;
 	float		fOldZ;
 
 #ifdef EX0_CLIENT
-	bool		bConnected;
-	//u_char		cCurrentCommandSequenceNumber;
 	u_char		cLastAckedCommandSequenceNumber;
 #else
-	CClient		*pClient;
+	ClientConnection * pConnection;
 #endif
+
+	static void RemoveAll();
 
 private:
 	float		fX, fY;
@@ -132,21 +156,26 @@ private:
 	list<SequencedState_t>		oStateHistory;		// The front has the latest entries
 	State_t						oOnlyKnownState;
 
-	unsigned short int	m_nLastLatency;
+	u_short		m_nLastLatency;
 	u_char		cCurrentCommandSeriesNumber;
 
 	State_t GetStateInPast(float fTimeAgo);
 #endif
+
+	static vector<CPlayer *>		m_oPlayers;
+
+	static void Add(CPlayer * pPlayer);
+	static void Add(CPlayer * pPlayer, u_int nPlayerId);
+	static u_int NextFreePlayerId();
+	static void Remove(CPlayer * pPlayer);
+
+	friend CPlayer * PlayerGet(u_int nPlayerId);
+	friend void RenderPlayers();
 };
 
-// allocate memory for all the players
-void PlayerInit();
-
 // Returns a player
-CPlayer * PlayerGet(int nPlayerID);
+//CPlayer * PlayerGet(int nPlayerID);
 
 void PlayerTick();
-
-int PlayerGetFreePlayerID();
 
 #endif // __Player_H__

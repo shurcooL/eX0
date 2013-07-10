@@ -53,7 +53,7 @@ public:
 
 private:
 	int		iWhatWeapon;
-	int		iOwnerID;
+	u_int	iOwnerID;
 	int		iClips;
 	int		iClipAmmo;
 	bool	bReloading;

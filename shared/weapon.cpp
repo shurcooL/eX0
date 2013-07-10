@@ -9,10 +9,10 @@ WeaponSpec_t	oWeaponSpecs[3];
 
 // implementation of the player class
 CWeapon::CWeapon()
-	: m_oMuzzleFlashState(READY),
-	  bReloading(false),
+	: bReloading(false),
 	  bReloadRequested(false),
-	  dTimer(0.0)
+	  dTimer(0.0),
+	  m_oMuzzleFlashState(READY)
 {}
 
 CWeapon::~CWeapon()
@@ -123,6 +123,17 @@ void CWeapon::Reload()
 void CWeapon::Render()
 {
 #ifdef EX0_CLIENT
+	// Draw the gun
+	if (iOwnerID == iLocalPlayerID) OglUtilsSetMaskingMode(NO_MASKING_MODE);
+	u_int nGunLength = iWhatWeapon == 1 ? 10 : 8;
+	glBegin(GL_QUADS);
+		glVertex2i(-1, 3 + nGunLength);
+		glVertex2i(-1, 3 - nGunLength > 8 ? 1 : 0);
+		glVertex2i(1, 3 - nGunLength > 8 ? 1 : 0);
+		glVertex2i(1, 3 + nGunLength);
+	glEnd();
+	if (iOwnerID == iLocalPlayerID) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
+
 	// Render the Muzzle Flash
 	if (m_oMuzzleFlashState == VISIBLE)
 	{
@@ -134,10 +145,10 @@ void CWeapon::Render()
 		int nVariation = rand() % 6;
 		glColor4d(0.9, 1, 0.75, 0.9);
 		glBegin(GL_QUADS);
-			glTexCoord2d(0.5 * (nVariation%2+1), (256.0-(nVariation/2+1)*85) / 256); glVertex2d( 42.5 * 0.75, 118 * 0.75);
-			glTexCoord2d(0.5 * (nVariation%2+1), (256.0-(nVariation/2)*85) / 256); glVertex2d(-42.5 * 0.75, 118 * 0.75);
-			glTexCoord2d(0.5 * (nVariation%2), (256.0-(nVariation/2)*85) / 256); glVertex2d(-42.5 * 0.75, -10 * 0.75);
-			glTexCoord2d(0.5 * (nVariation%2), (256.0-(nVariation/2+1)*85) / 256); glVertex2d( 42.5 * 0.75, -10 * 0.75);
+			glTexCoord2d(0.5 * (nVariation%2+1), (256.0-(nVariation/2+1)*85) / 256); glVertex2d( 42.5 * 0.75, 121 * 0.75);
+			glTexCoord2d(0.5 * (nVariation%2+1), (256.0-(nVariation/2)*85) / 256); glVertex2d(-42.5 * 0.75, 121 * 0.75);
+			glTexCoord2d(0.5 * (nVariation%2), (256.0-(nVariation/2)*85) / 256); glVertex2d(-42.5 * 0.75, -7 * 0.75);
+			glTexCoord2d(0.5 * (nVariation%2), (256.0-(nVariation/2+1)*85) / 256); glVertex2d( 42.5 * 0.75, -7 * 0.75);
 		glEnd();
 
 		glDisable(GL_TEXTURE_2D);

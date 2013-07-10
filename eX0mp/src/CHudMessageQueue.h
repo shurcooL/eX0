@@ -22,7 +22,7 @@ private:
 	GLFWmutex		m_oMessageMutex;
 
 	static const float	m_kfMessageTimeoutThreshold;
-	static const int	m_knHorizontalDistance = 15;
+	static const int	m_knHorizontalDistance;
 };
 
 #endif // __CHudMessageQueue_H__

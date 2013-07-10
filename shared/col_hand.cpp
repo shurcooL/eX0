@@ -297,8 +297,8 @@ Vector2 ColHandTrace(Ray2 oRay)
 // returns whether a point is inside a bbox or not
 inline bool ColHandIsPointInsideBBox(float fX, float fY, float fStartX, float fStartY, float fEndX, float fEndY)
 {
-	return !(fX < __min(fStartX, fEndX) || fX > __max(fStartX, fEndX)
-		 || fY < __min(fStartY, fEndY) || fY > __max(fStartY, fEndY));
+	return !(fX < std::min<float>(fStartX, fEndX) || fX > std::max<float>(fStartX, fEndX)
+		  || fY < std::min<float>(fStartY, fEndY) || fY > std::max<float>(fStartY, fEndY));
 }
 
 // returns whether a segment is close to a point

@@ -48,7 +48,7 @@
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
-				WarningLevel="3"
+				WarningLevel="4"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -123,7 +123,7 @@
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
-				WarningLevel="3"
+				WarningLevel="4"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -177,11 +177,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\src\CClient.cpp"
+				RelativePath=".\src\ClientConnection.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\CClient.h"
+				RelativePath=".\src\ClientConnection.h"
 				>
 			</File>
 			<File
@@ -226,6 +226,10 @@
 			</File>
 			<File
 				RelativePath=".\src\globals.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\GlobalSettings.h"
 				>
 			</File>
 			<File
@@ -277,6 +281,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\NetworkConnection.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\NetworkConnection.h"
+				>
+			</File>
+			<File
 				RelativePath="..\shared\NetworkIncludes.h"
 				>
 			</File>
@@ -294,6 +306,14 @@
 			</File>
 			<File
 				RelativePath="..\shared\player.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\RCtrlLAuthPlayer.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\RCtrlLAuthPlayer.h"
 				>
 			</File>
 			<File
@@ -326,6 +346,22 @@
 				<File
 					RelativePath=".\src\gpc\gpc.c"
 					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							WarningLevel="3"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							WarningLevel="3"
+						/>
+					</FileConfiguration>
 				</File>
 				<File
 					RelativePath=".\src\gpc\gpc.h"

@@ -9,12 +9,13 @@ public:
 	~HashMatcher();
 
 	void push(Th oHash, T oValue);
-	bool MatchAndRemoveAfter(Th oHash);
-	T GetLastMatchedValue() const;
+	T MatchAndRemoveAfter(Th oHash);
 
 private:
+	HashMatcher(const HashMatcher &);
+	HashMatcher & operator =(const HashMatcher &);
+
 	list<pair<Th, T> >	m_oData;
-	T					m_oLastMatchedValue;
 	const u_int			m_knMaxSize;
 };
 

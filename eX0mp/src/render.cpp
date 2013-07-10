@@ -101,24 +101,24 @@ void RenderHUD(void)
 	glColor3f(1, 1, 1);
 	OglUtilsPrint(320, 0, 0, true, (char *)sFpsString.c_str());
 
-	if (PlayerGet(iLocalPlayerID)->GetTeam() != 2 && bSelectTeamReady)
+	if (pLocalPlayer->GetTeam() != 2 && bSelectTeamReady)
 	{
-		if (oPlayers[iLocalPlayerID]->IsReloading() && !oPlayers[iLocalPlayerID]->IsDead())
+		if (pLocalPlayer->IsReloading() && !pLocalPlayer->IsDead())
 		{
 			OglUtilsPrint(0, 408, 0, false, "reloading!");
 		}
-		if (oPlayers[iLocalPlayerID]->GetHealth() <= 40.0)
+		if (pLocalPlayer->GetHealth() <= 40.0)
 			glColor3d(0.9, 0.1, 0.1);
-		else if (oPlayers[iLocalPlayerID]->GetHealth() <= 75.0)
+		else if (pLocalPlayer->GetHealth() <= 75.0)
 			glColor3d(0.9, 0.5, 0.1);
 		else
 			glColor3d(1, 1, 1);
-		sTempString = (string)"health: " + itos((int)ceil(oPlayers[iLocalPlayerID]->GetHealth()));
+		sTempString = (string)"health: " + itos((int)ceil(pLocalPlayer->GetHealth()));
 		OglUtilsPrint(0, 426, 0, false, (char *)sTempString.c_str());
 		glColor3f(1, 1, 1);
-		sTempString = (string)"ammo: " + itos(oPlayers[iLocalPlayerID]->GetSelClipAmmo());
+		sTempString = (string)"ammo: " + itos(pLocalPlayer->GetSelClipAmmo());
 		OglUtilsPrint(0, 444, 0, false, (char *)sTempString.c_str());
-		sTempString = (string)"clips: " + itos(oPlayers[iLocalPlayerID]->GetSelClips());
+		sTempString = (string)"clips: " + itos(pLocalPlayer->GetSelClips());
 		OglUtilsPrint(0, 462, 0, false, (char *)sTempString.c_str());
 	}
 
@@ -137,11 +137,11 @@ void RenderHUD(void)
 	{
 		glColor3d(0.2, 0.95, 0.2);
 		OglUtilsPrint(0, 250 + 15 * 0, 0, false, "Choose your team:");
-		glColor3d(0.2, PlayerGet(iLocalPlayerID)->GetTeam() != 0 ? 0.95 : 0.3, 0.2);
+		glColor3d(0.2, pLocalPlayer->GetTeam() != 0 ? 0.95 : 0.3, 0.2);
 		OglUtilsPrint(0, 250 + 15 * 1, 0, false, "1. Red");
-		glColor3d(0.2, PlayerGet(iLocalPlayerID)->GetTeam() != 1 ? 0.95 : 0.3, 0.2);
+		glColor3d(0.2, pLocalPlayer->GetTeam() != 1 ? 0.95 : 0.3, 0.2);
 		OglUtilsPrint(0, 250 + 15 * 2, 0, false, "2. Blue");
-		glColor3d(0.2, PlayerGet(iLocalPlayerID)->GetTeam() != 2 ? 0.95 : 0.3, 0.2);
+		glColor3d(0.2, pLocalPlayer->GetTeam() != 2 ? 0.95 : 0.3, 0.2);
 		OglUtilsPrint(0, 250 + 15 * 3, 0, false, "3. Spectator");
 		glColor3d(0.2, 0.95, 0.2);
 		OglUtilsPrint(0, 250 + 15 * 4, 0, false, "0. Cancel");
@@ -170,28 +170,28 @@ void RenderHUD(void)
 		//OglUtilsSetMaskingMode(NO_MASKING_MODE);
 		glColor3f(1, 1, 1);
 
-		sTempString = "x: " + ftos(PlayerGet(iLocalPlayerID)->GetIntX());
+		sTempString = "x: " + ftos(pLocalPlayer->GetIntX());
 		glLoadIdentity();
 		OglUtilsPrint(0, 35, 0, false, (char *)sTempString.c_str());
-		sTempString = "y: " + ftos(PlayerGet(iLocalPlayerID)->GetIntY());
+		sTempString = "y: " + ftos(pLocalPlayer->GetIntY());
 		glLoadIdentity();
 		OglUtilsPrint(0, 45, 0, false, (char *)sTempString.c_str());
-		sTempString = "z: " + ftos(PlayerGet(iLocalPlayerID)->GetZ());
+		sTempString = "z: " + ftos(pLocalPlayer->GetZ());
 		glLoadIdentity();
 		OglUtilsPrint(0, 55, 0, false, (char *)sTempString.c_str());
-		sTempString = "velocity: " + ftos(PlayerGet(iLocalPlayerID)->GetVelocity());
+		sTempString = "velocity: " + ftos(pLocalPlayer->GetVelocity());
 		glLoadIdentity();
 		OglUtilsPrint(150, 35, 0, false, (char *)sTempString.c_str());
 
-		for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
+		for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
 		{
-			if (PlayerGet(iLoop1)->bConnected) {
+			if (PlayerGet(iLoop1) != NULL) {
 				glLoadIdentity();
-				sTempString = (string)"pl#" + itos(iLoop1) + " name: '" + oPlayers[iLoop1]->GetName()
-					+ "' hp: " + itos((int)oPlayers[iLoop1]->GetHealth())
-					+ " lat: " + ftos(oPlayers[iLoop1]->GetLastLatency() * 0.1f)
-					//+ " ccsn: " + itos(oPlayers[iLoop1]->cCurrentCommandSequenceNumber)
-					+ " lacsn: " + itos(oPlayers[iLoop1]->cLastAckedCommandSequenceNumber);
+				sTempString = (string)"pl#" + itos(iLoop1) + " name: '" + PlayerGet(iLoop1)->GetName()
+					+ "' hp: " + itos((int)PlayerGet(iLoop1)->GetHealth())
+					+ " lat: " + ftos(PlayerGet(iLoop1)->GetLastLatency() * 0.1f)
+					//+ " ccsn: " + itos(PlayerGet(iLoop1)->cCurrentCommandSequenceNumber)
+					+ " lacsn: " + itos(PlayerGet(iLoop1)->cLastAckedCommandSequenceNumber);
 				OglUtilsPrint(0, 70 + iLoop1 * 10, 0, false, (char *)sTempString.c_str());
 			}
 		}
@@ -201,7 +201,7 @@ void RenderHUD(void)
 		OglUtilsPrint(0, 70 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
 		/*sTempString = "fTempFloat: " + ftos(fTempFloat);
 		glLoadIdentity();
-		OglUtilsPrint(0, 85 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());*/
+		OglUtilsPrint(0, 80 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());*/
 
 		// Networking info
 		sTempString = "cCurrentCommandSequenceNumber = " + itos(cCurrentCommandSequenceNumber);
@@ -226,25 +226,27 @@ void RenderHUD(void)
 // render all players
 void RenderPlayers()
 {
-glfwLockMutex(oPlayerTick);
-
 	// Render other players
-	for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
+	/*for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
 	{
 		if (iLoop1 != iLocalPlayerID && PlayerGet(iLoop1)->bConnected
 			&& PlayerGet(iLoop1)->GetTeam() != 2) {
 			PlayerGet(iLoop1)->RenderInPast(kfInterpolate);
 			PlayerGet(iLoop1)->RenderInPast(0);
 		}
+	}*/
+	for (vector<CPlayer *>::iterator it1 = CPlayer::m_oPlayers.begin(); it1 < CPlayer::m_oPlayers.end(); ++it1) {
+		if (*it1 != NULL && *it1 != pLocalPlayer && (*it1)->GetTeam() != 2) {
+			(*it1)->RenderInPast(kfInterpolate);
+			(*it1)->RenderInPast(0);
+		}
 	}
 
 	// Render the local player
-	if (PlayerGet(iLocalPlayerID)->GetTeam() != 2) {
-		PlayerGet(iLocalPlayerID)->RenderInPast(kfInterpolate);
-		PlayerGet(iLocalPlayerID)->Render();
+	if (pLocalPlayer->GetTeam() != 2) {
+		pLocalPlayer->RenderInPast(kfInterpolate);
+		pLocalPlayer->Render();
 	}
-
-glfwUnlockMutex(oPlayerTick);
 }
 
 // render all particles
@@ -263,14 +265,14 @@ void RenderOffsetCamera(bool bLocalPlayerReferenceFrame)
 {
 	glLoadIdentity();
 
-	if (PlayerGet(iLocalPlayerID)->GetTeam() == 2) {
+	if (pLocalPlayer->GetTeam() == 2) {
 		glTranslatef(0, 0, -680);
 	} else
 	{
 		// Camera view
 		if (iCameraType == 0) {
 			glTranslatef(0, -250, -680);
-			//glTranslatef(0, glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? -250 - oPlayers[iLocalPlayerID]->fAimingDistance : -250,
+			//glTranslatef(0, glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? -250 - pLocalPlayer->fAimingDistance : -250,
 			//				glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? -680 : -680);
 			//glTranslatef(0, -500, -1360);
 		} else if (iCameraType == 1) {
@@ -284,11 +286,11 @@ void RenderOffsetCamera(bool bLocalPlayerReferenceFrame)
 
 		// Translate to a reference frame (either global, or local to the local player)
 		if (!bLocalPlayerReferenceFrame) {
-			glRotatef((oPlayers[iLocalPlayerID]->GetZ() * Math::RAD_TO_DEG), 0, 0, 1);
-			glTranslatef(-(oPlayers[iLocalPlayerID]->GetIntX()), -(oPlayers[iLocalPlayerID]->GetIntY()), 0);
-			/*State_t oState = PlayerGet(iLocalPlayerID)->GetStateInPast(kfInterpolate);
+			glRotatef((pLocalPlayer->GetZ() * Math::RAD_TO_DEG), 0, 0, 1);
+			glTranslatef(-(pLocalPlayer->GetIntX()), -(pLocalPlayer->GetIntY()), 0);
+			/*State_t oState = pLocalPlayer->GetStateInPast(kfInterpolate);
 			//glRotatef(oState.fZ * Math::RAD_TO_DEG, 0, 0, 1);
-			glRotatef((oPlayers[iLocalPlayerID]->GetZ() * Math::RAD_TO_DEG), 0, 0, 1);
+			glRotatef((pLocalPlayer->GetZ() * Math::RAD_TO_DEG), 0, 0, 1);
 			glTranslatef(-oState.fX, -oState.fY, 0);*/
 		}
 	}
@@ -354,7 +356,7 @@ void RenderCreateFOVMask()
 		glVertex2i(0, 0);
 		glVertex2i(1250, 1000);
 	glEnd();
-	gluDisk(oQuadricObj, 0, 8, 12, 1);
+	gluPartialDisk(oQuadricObj, 0, 8, 12, 1, 30.0, 300.0);
 
 	// Now clip away from the full view what's blocked by the walls
 	OglUtilsSetMaskValue(0);
@@ -370,15 +372,15 @@ void RenderCreateFOVMask()
 
 				oRay.Origin().x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
 				oRay.Origin().y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
-				oRay.Direction().x = (float)oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
-				oRay.Direction().y = (float)oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
+				oRay.Direction().x = (float)oRay.Origin().x - pLocalPlayer->GetIntX();
+				oRay.Direction().y = (float)oRay.Origin().y - pLocalPlayer->GetIntY();
 				oVector = MathProjectRay(oRay, 500);
 				glVertex2f(oVector.x, oVector.y);
 
 				oRay.Origin().x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2].x;
 				oRay.Origin().y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2].y;
-				oRay.Direction().x = (float)oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
-				oRay.Direction().y = (float)oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
+				oRay.Direction().x = (float)oRay.Origin().x - pLocalPlayer->GetIntX();
+				oRay.Direction().y = (float)oRay.Origin().y - pLocalPlayer->GetIntY();
 				oVector = MathProjectRay(oRay, 500);
 				glVertex2f(oVector.x, oVector.y);
 
@@ -390,15 +392,15 @@ void RenderCreateFOVMask()
 
 			oRay.Origin().x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
 			oRay.Origin().y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
-			oRay.Direction().x = (float)oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
-			oRay.Direction().y = (float)oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
+			oRay.Direction().x = (float)oRay.Origin().x - pLocalPlayer->GetIntX();
+			oRay.Direction().y = (float)oRay.Origin().y - pLocalPlayer->GetIntY();
 			oVector = MathProjectRay(oRay, 500);
 			glVertex2f(oVector.x, oVector.y);
 
 			oRay.Origin().x = (float)oPolyLevel.contour[iLoop1].vertex[0].x;
 			oRay.Origin().y = (float)oPolyLevel.contour[iLoop1].vertex[0].y;
-			oRay.Direction().x = (float)oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
-			oRay.Direction().y = (float)oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
+			oRay.Direction().x = (float)oRay.Origin().x - pLocalPlayer->GetIntX();
+			oRay.Direction().y = (float)oRay.Origin().y - pLocalPlayer->GetIntY();
 			oVector = MathProjectRay(oRay, 500);
 			glVertex2f(oVector.x, oVector.y);
 
@@ -412,7 +414,7 @@ void RenderSmokeFOVMask(Mgc::Vector2 oSmokePosition, float fSmokeRadius)
 	const float		fSmokeMaskLength = 750;
 	const int		nSubdivisions = 4;
 
-	Mgc::Vector2 oPlayerPosition(oPlayers[iLocalPlayerID]->GetIntX(), oPlayers[iLocalPlayerID]->GetIntY());
+	Mgc::Vector2 oPlayerPosition(pLocalPlayer->GetIntX(), pLocalPlayer->GetIntY());
 	Mgc::Vector2 oDirection = (oSmokePosition - oPlayerPosition);
 	float fDistance = oDirection.Unitize();
 	float fAngleToPlayer = Math::ATan2(-oDirection.y, -oDirection.x);

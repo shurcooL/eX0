@@ -23,19 +23,11 @@
 #	include <signal.h>
 
 	typedef int SOCKET;
-	typedef unsigned long long u_int64;
 
 #	define INVALID_SOCKET	(-1)
 #	define SOCKET_ERROR		(-1)
 
 #	define SD_BOTH			SHUT_RDWR
-
-#	ifndef __max
-#	define __max(a, b)		(((a) > (b)) ? (a) : (b))
-#	endif
-#	ifndef __min
-#	define __min(a, b)		(((a) < (b)) ? (a) : (b))
-#	endif
 #endif
 
 #endif // __NetworkIncludes_H__

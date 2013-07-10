@@ -21,16 +21,20 @@ double			dBaseTime = 0;
 int				iFpsFrames = 0;
 double			dFpsBaseTime = 0;
 double			dFpsTimePassed = 0;
-string			sFpsString = (string)"eX0";
+string			sFpsString = string(EX0_BUILD_STRING);
 
-string			sTempString = (string)"";
+string			sTempString = string();
 float			fTempFloat = 0;
 int				iTempInt = 0;
 
+int				nGlobalExitCode = 0;
+
 void eX0_assert(bool expression, string message)
 {
-	if (!expression)
+	if (!expression) {
 		printf("\nAssertion FAILED: '%s'\n\n", message.c_str());
+		//abort();
+	}
 }
 
 bool CloseBadWindow()
@@ -40,19 +44,20 @@ bool CloseBadWindow()
 }
 
 // initialization
-bool Init(int argc, char *argv[])
+bool Init(int, char *[])
 {
 	// init glfw
 	if (!glfwInit()) {
 		printf("Couldn't init GLFW...\n");
 		return false;
 	}
+	printf("Main thread tid = %d.\n", glfwGetThreadID());
 
 	// let the use choose whether to run in fullscreen mode
 	bFullscreen = false;
 	//if (argc >= 2 && strcmp(argv[1], "--fullscreen") == 0) bFullscreen = true;
 #ifdef WIN32
-	//bFullscreen = MessageBox(NULL, "would you like to run in fullscreen mode?", "eX0", MB_YESNO | MB_ICONQUESTION) == IDYES;
+	//bFullscreen = MessageBox(NULL, "would you like to run in fullscreen mode?", EX0_BUILD_STRING, MB_YESNO | MB_ICONQUESTION) == IDYES;
 #endif
 
 	// create the window
@@ -92,7 +97,7 @@ bool Init(int argc, char *argv[])
 	}
 	//glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
 	glfwSetWindowPos(oDesktopMode.Width - 650, oDesktopMode.Height / 2 - 240);
-	glfwSetWindowTitle(((string)"eX0 v0.0 (Built on " + __DATE__ + " at " + __TIME__ + ")").c_str());	// set the window title
+	glfwSetWindowTitle(EX0_BUILD_STRING);	// set the window title
 	glfwSwapInterval(1);		// Turn V-Sync on
 
 	// init OpenGL
@@ -142,7 +147,8 @@ void Deinit()
 	// sub-deinit
 	delete pTimedEventScheduler; pTimedEventScheduler = NULL;
 	NetworkDeinit();					// Shutdown the networking component
-	nPlayerCount = 0; PlayerInit();		// delete all players
+	//nPlayerCount = 0; PlayerInit();		// delete all players
+	CPlayer::RemoveAll();				// Delete all players
 	delete pChatMessages; pChatMessages = NULL;
 	GameDataUnload();					// unload game data
 	OglUtilsDeinitGL();					// Deinit OpenGL stuff
@@ -162,7 +168,7 @@ void GLFWCALL ResizeWindow(int iWidth, int iHeight)
 	printf("ResizeWindow to %dx%d.\n", iWidth, iHeight);
 	if ((iWidth * iHeight != 0) && (iWidth != 640 || iHeight != 480)) {
 #ifdef WIN32
-		MessageBox(NULL, "Refusing to run in non-native resolution (for now).", "eX0", MB_OK);
+		MessageBox(NULL, "Refusing to run in non-native resolution (for now).", EX0_BUILD_STRING, MB_OK);
 #else
 		printf("Refusing to run in non-native resolution (for now).\n");
 #endif
@@ -180,7 +186,7 @@ void SetGlfwCallbacks()
 }
 
 // Restarts the game
-void RestartGame()
+/*void RestartGame()
 {
 	// Reset the players
 	//PlayerInit();
@@ -192,19 +198,19 @@ void RestartGame()
 	//oPlayers[0]->Position(125, 50);
 	//oPlayers[0]->Position(20, 262);
 	//oPlayers[0]->SetZ(0.8f);
-	for (int nLoop1 = 0; nLoop1 < nPlayerCount; ++nLoop1) {
+	for (u_int nLoop1 = 0; nLoop1 < nPlayerCount; ++nLoop1) {
 		float x, y;
 		do {
 			x = static_cast<float>(rand() % 2000 - 1000);
 			y = static_cast<float>(rand() % 2000 - 1000);
 		} while (ColHandIsPointInside((int)x, (int)y) || !ColHandCheckPlayerPos(&x, &y));
-		oPlayers[nLoop1]->Position(x, y, 0);
-		oPlayers[nLoop1]->SetZ(0.001f * (rand() % 1000) * Math::TWO_PI);
-		oPlayers[nLoop1]->SetTeam(iLocalPlayerID == nLoop1 ? 0 : 1);
+		PlayerGet(nLoop1)->Position(x, y, 0);
+		PlayerGet(nLoop1)->SetZ(0.001f * (rand() % 1000) * Math::TWO_PI);
+		PlayerGet(nLoop1)->SetTeam(iLocalPlayerID == nLoop1 ? 0 : 1);
 	}
 
 	printf("Game restarted. ============================\n");
-}
+}*/
 
 // syncronizes random seed with all clients
 void SyncRandSeed(void)
@@ -217,14 +223,16 @@ void SyncRandSeed(void)
 // quits
 void Terminate(int nExitCode)
 {
-	if (nExitCode != 0) {
+	if (nGlobalExitCode == 0) nGlobalExitCode = nExitCode;
+
+	if (nExitCode != 0 && glfwGetThreadID() == 0) {
 		// deinit
 		Deinit();
 
 		// DEBUG: Print out the memory usage stats
 		//m_dumpMemoryReport();
 
-		exit(nExitCode);
+		exit(nGlobalExitCode);
 	} else {
 		if (glfwGetWindowParam(GLFW_OPENED)) glfwCloseWindow();
 		else Terminate(10);
@@ -261,7 +269,6 @@ int main(int argc, char *argv[])
 	signal(SIGINT, &signal_handler);
 	signal(SIGHUP, &signal_handler);
 #endif
-
 
 
 	/*multimap<int, int> myset;
@@ -307,19 +314,46 @@ int main(int argc, char *argv[])
 	avg.Print();
 
 	printf("%.5lf\n", avg.WeightedMovingAverage());
-	printf("%d\n", avg.Signum());
+	printf("%d\n", avg.Signum());*/
 
 
-return 0;*/
+	/*try {
+		new CPlayer();
+		new CPlayer(3);
+		new CPlayer(40);
+		printf("no excptn\n");
+	} catch (int e) {
+		printf("meh caught int %d\n", e);
+	} catch (std::exception e) {
+		printf("meh caught std::exception '%s'\n", e.what());
+	}
+	printf("safe end\n");*/
+
+	/*ThreadSafeQueue<int, 3> q1;
+	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());
+	int i1 = 1; printf("push retval=%d\n", q1.push(i1));
+	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());
+	int i2 = 2; printf("push retval=%d\n", q1.push(i2));
+	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());
+	int i3 = 3; printf("push retval=%d\n", q1.push(i3));
+	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());
+	int i4 = 4; printf("push retval=%d\n", q1.push(i4));
+	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());
+	int i = -1; q1.pop(i); printf("poped %d\n", i);
+	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());
+	printf("push retval=%d\n", q1.push(i4));
+	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());*/
+
+//return 0;
 
 
 	// Print the version and date/time built
-	printf("eX0 v0.0 - Built on %s at %s.\n\n", __DATE__, __TIME__);
+	printf("%s\n\n", EX0_BUILD_STRING);
 
 	// initialize
 	if (!Init(argc, argv))
 		Terminate(1);
-
+glfwDisable(GLFW_SYSTEM_KEYS);
 	// DEBUG - This is a hack - we only need to position the players here... But I called RestartGame() to do that
 	//RestartGame();
 
@@ -359,7 +393,7 @@ return 0;*/
 		dFpsTimePassed = dCurTime - dFpsBaseTime;
 		if (dFpsTimePassed >= 0.75)
 		{
-			sFpsString = (string)"eX0 - " + ftos(iFpsFrames / (float)dFpsTimePassed) + " fps";
+			sFpsString = string(EX0_BUILD_STRING) + " - " + ftos(iFpsFrames / (float)dFpsTimePassed) + " fps";
 			//glfwSetWindowTitle(sTempString.c_str());
 			dFpsBaseTime = dCurTime;
 			iFpsFrames = 0;
@@ -381,14 +415,14 @@ return 0;*/
 			InputMouseHold();
 
 			// player tick
-			if (bPaused) { fTempFloat = (float)dTimePassed; dTimePassed = 0.00001; }
-			//PlayerTick();
 glfwLockMutex(oPlayerTick);
-			if (PlayerGet(iLocalPlayerID)->GetTeam() != 2 && !PlayerGet(iLocalPlayerID)->IsDead()) {
-				PlayerGet(iLocalPlayerID)->Tick();
+			if (bPaused) { fTempFloat = (float)dTimePassed; dTimePassed = 0.00001; }
+			if (pLocalPlayer->GetTeam() != 2 && !pLocalPlayer->IsDead()) {
+				pLocalPlayer->Tick();
 			} else {
-				PlayerGet(iLocalPlayerID)->FakeTick();
+				pLocalPlayer->FakeTick();
 			}
+			PlayerTick();
 glfwUnlockMutex(oPlayerTick);
 
 			// particle engine tick
@@ -409,13 +443,13 @@ glfwUnlockMutex(oPlayerTick);
 			OglUtilsSetMaskingMode(WITH_MASKING_MODE);
 
 			// render all players
-//glfwLockMutex(oPlayerTick);
-			//PlayerGet(iLocalPlayerID)->RenderInPast(2 * oPlayers[iLocalPlayerID]->GetZ());
-			//PlayerGet(iLocalPlayerID)->RenderInPast(Math::TWO_PI - 2 * oPlayers[iLocalPlayerID]->GetZ());
+glfwLockMutex(oPlayerTick);
+			//pLocalPlayer->RenderInPast(2 * pLocalPlayer->GetZ());
+			//pLocalPlayer->RenderInPast(Math::TWO_PI - 2 * pLocalPlayer->GetZ());
 			//for (int i = 1; i <= 100; i += 1) PlayerGet(0/*iLocalPlayerID*/)->RenderInPast(i * 0.1f);
-			//PlayerGet(iLocalPlayerID)->RenderInPast(kfInterpolate);
-//glfwUnlockMutex(oPlayerTick);
+			//pLocalPlayer->RenderInPast(kfInterpolate);
 			RenderPlayers();
+glfwUnlockMutex(oPlayerTick);
 
 			// render all particles
 			RenderParticles();
@@ -424,7 +458,9 @@ glfwUnlockMutex(oPlayerTick);
 			OglUtilsSetMaskingMode(NO_MASKING_MODE);
 
 			// render HUD
+glfwLockMutex(oPlayerTick);
 			RenderHUD();
+glfwUnlockMutex(oPlayerTick);
 		}
 		else
 		// in menus
@@ -448,6 +484,6 @@ glfwUnlockMutex(oPlayerTick);
 	// Clean up and exit nicely
 	Deinit();
 
-	printf("Returning 0 from main(). :)\n");
+	printf("Returning %d from main(). %s\n", nGlobalExitCode, nGlobalExitCode == 0 ? ":)" : ">_<");
 	return 0;
 }

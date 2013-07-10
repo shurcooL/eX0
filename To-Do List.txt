@@ -14,3 +14,5 @@ eX0 To-Do List (highest priority on top)
 -Add a time out for non-ACCEPTED connected sockets, i.e. to get rid of connected non-clients.
 -Add a way for server to kick TCP-timed-out clients, perhaps have select() check for errors. Also, clients should send keep-alive TCP packets every now and then.
 //-FIX: Rethink the Terminate()->exit() technique for quitting, as it may leave memory on the stack unfreed. Normal termination should always return from main(), do not use exit() if everything is ok.
+//-TODO: Make use of throw for one of my classes... HashMatcher, I think. Use try/throw/catch instead of returning null on error, and using another procedure to Get the value in case of no error. Same with Connection class, make it throw if passed nTcpSocket is INVALID_SOCKET. Done with HashMatcher, but need to think about the NetworkConnection classes. Nah, leave 'em as is and throw only when neccessary, use return values otherwise. Done.
+-FIX: A potential deadlock in killing TimedEventScheduler thread on unusual shutdown (when ~ClientConnection() happens, it calls RemoveEventById, and at the same time main thread Deinit() calls ~TimedEventScheduler().

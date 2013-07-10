@@ -82,13 +82,13 @@ int CTextureManager::LoadTexture (const char *szFilename, int nTextureID) {
 
 	int nWidth = 0, nHeight = 0, nBPP = 0;
 	UBYTE *pData = 0;
-	
+
 	// Determine the type and actually load the file
 	// ===========================================================================================
 	char szCapFilename [80];
 	int nLen = strlen (szFilename);
 	for (int c = 0; c <= nLen; c++)	// <= to include the NULL as well
-		szCapFilename [c] = toupper (szFilename [c]);
+		szCapFilename[c] = static_cast<char>(toupper(szFilename[c]));
 	
 	if (strcmp (szCapFilename + (nLen - 3), "BMP") == 0 ||
 		strcmp (szCapFilename + (nLen - 3), "TGA") == 0) {

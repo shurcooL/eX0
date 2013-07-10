@@ -5,12 +5,15 @@
 #	include "../eX0ds/src/globals.h"
 #endif // EX0_CLIENT
 
-int		nPlayerCount = 0;
-CPlayer	*oPlayers[32] = { NULL };
+u_int	nPlayerCount = 0;
+//CPlayer	*oPlayers[32] = { NULL };
 #ifdef EX0_CLIENT
-int		iLocalPlayerID = 0;
-string	sLocalPlayerName = "New Player";
+u_int		iLocalPlayerID = 0;
+CPlayer *	pLocalPlayer = NULL;
+string		sLocalPlayerName = "New Player";
 #endif
+
+vector<CPlayer *> CPlayer::m_oPlayers;
 
 //float	fPlayerTickTime;// = 0.025f;
 //float	fPlayerTickTime = 0.050f;
@@ -20,6 +23,8 @@ string	sLocalPlayerName = "New Player";
 // implementation of the player class
 CPlayer::CPlayer()
 {
+	printf("CPlayer(%p) Ctor.\n", this);
+
 	// init vars
 	fX = 0;
 	fY = 0;
@@ -44,27 +49,66 @@ CPlayer::CPlayer()
 
 	// Network related
 #ifdef EX0_CLIENT
-	bConnected = false;
 	m_nLastLatency = 0;
 	cCurrentCommandSeriesNumber = 0;
 #else
-	pClient = NULL;
+	pConnection = NULL;
 #endif
+
+	Add(this);
+
+	InitWeapons();
+}
+
+CPlayer::CPlayer(u_int nPlayerId)
+{
+	printf("CPlayer(%p) Ctor.\n", this);
+
+	// init vars
+	fX = 0;
+	fY = 0;
+	fOldX = 0;
+	fOldY = 0;
+	fVelX = 0;
+	fVelY = 0;
+	fIntX = 0;
+	fIntY = 0;
+	fZ = 0;
+	fOldZ = 0;
+	iIsStealth = 0;
+	nMoveDirection = -1;
+	iSelWeapon = 2;
+	fAimingDistance = 200.0;
+	fHealth = 100;
+	sName = "Unnamed Player";
+	m_nTeam = 0;
+	bEmptyClicked = true;
+	fTicks = 0;
+	fTickTime = 0;
+
+	// Network related
+#ifdef EX0_CLIENT
+	m_nLastLatency = 0;
+	cCurrentCommandSeriesNumber = 0;
+#else
+	pConnection = NULL;
+#endif
+
+	Add(this, nPlayerId);
+
+	InitWeapons();
 }
 
 CPlayer::~CPlayer()
 {
-	// nothing to do here yet
+	Remove(this);
+
+	printf("CPlayer(%p) ~Dtor.\n", this);
 }
 
 #ifdef EX0_CLIENT
 void CPlayer::FakeTick()
 {
-	// is the player not connected?
-	if (!bConnected) {
-		return;
-	}
-
 	fTicks = (float)(dCurTime - (dNextTickTime - 1.0 / cCommandRate));
 	while (dCurTime >= dNextTickTime)
 	{
@@ -80,7 +124,7 @@ void CPlayer::Tick()
 {
 #ifdef EX0_CLIENT
 	// is the player dead?
-	if (IsDead() || !bConnected) {
+	if (IsDead()) {
 		return;
 	}
 
@@ -136,7 +180,7 @@ void CPlayer::Tick()
 													 oUnconfirmedMoves[it1].oInput.fZ);
 				}
 				if ((rand() % 100) >= 0 || iLocalPlayerID != 0) // DEBUG: Simulate packet loss
-					oClientCommandPacket.SendUdp();
+					pServer->SendUdp(oClientCommandPacket);
 
 				// DEBUG: Keep state history for local player
 				/*if ((rand() % 100) >= 0) {
@@ -162,6 +206,157 @@ void CPlayer::Tick()
 
 	UpdateInterpolatedPos();
 #endif
+}
+
+void CPlayer::ProcessAuthUpdateTEST()
+{
+#ifdef EX0_CLIENT
+	while (!m_oAuthUpdatesTEST.empty()) {
+		//eX0_assert(m_oAuthUpdatesTEST.size() == 1, "m_oAuthUpdatesTEST.size() is != 1!!!!\n");
+
+		SequencedState_t oSequencedState;
+		m_oAuthUpdatesTEST.pop(oSequencedState);
+		//printf("popped %d\n", oSequencedState.cSequenceNumber);
+		u_int nPlayer = this->iID;
+		float fX, fY, fZ;
+
+		{//begin section from Network.cpp
+			//PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
+			PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber = oSequencedState.cSequenceNumber;
+
+			fX = oSequencedState.oState.fX;
+			fY = oSequencedState.oState.fY;
+			fZ = oSequencedState.oState.fZ;
+
+			// Add the new state to player's state history
+			/*SequencedState_t oSequencedState;
+			oSequencedState.cSequenceNumber = PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber;
+			oSequencedState.oState.fX = fX;
+			oSequencedState.oState.fY = fY;
+			oSequencedState.oState.fZ = fZ;*/
+			PlayerGet(nPlayer)->PushStateHistory(oSequencedState);
+
+			if (nPlayer == iLocalPlayerID)
+			{
+				if (cCurrentCommandSequenceNumber == pLocalPlayer->cLastAckedCommandSequenceNumber)
+				{
+					Vector2 oServerPosition(fX, fY);
+					//Vector2 oClientPrediction(oUnconfirmedMoves.front().oState.fX, oUnconfirmedMoves.front().oState.fY);
+					Vector2 oClientPrediction(pLocalPlayer->GetX(), pLocalPlayer->GetY());
+					// If the client prediction differs from the server's value by more than a treshold amount, snap to server's value
+					if ((oServerPosition - oClientPrediction).SquaredLength() > 0.001f)
+						printf("Snapping-A to server's position (%f difference):\n  server = (%.4f, %.4f), client = (%.4f, %.4f)\n", (oServerPosition - oClientPrediction).Length(),
+							oServerPosition.x, oServerPosition.y, oClientPrediction.x, oClientPrediction.y);
+
+					// DEBUG: Should make sure the player can't see other players
+					// through walls, if he accidentally gets warped through a wall
+					pLocalPlayer->SetX(fX);
+					pLocalPlayer->SetY(fY);
+
+					// All moves have been confirmed now
+					oUnconfirmedMoves.clear();
+				}
+				else if ((char)(cCurrentCommandSequenceNumber - pLocalPlayer->cLastAckedCommandSequenceNumber) > 0)
+				{
+					string str = (string)"inputs empty; " + itos(cCurrentCommandSequenceNumber) + ", " + itos(pLocalPlayer->cLastAckedCommandSequenceNumber);
+					//eX0_assert(!oLocallyPredictedInputs.empty(), str);
+					eX0_assert(!oUnconfirmedMoves.empty(), str);
+
+					// Discard all the locally predicted inputs that got deprecated by this server update
+					// TODO: There's a faster way to get rid of all old useless packets at once
+					while (!oUnconfirmedMoves.empty()) {
+						if ((char)(pLocalPlayer->cLastAckedCommandSequenceNumber - oUnconfirmedMoves.begin()) > 0)
+						{
+							// This is an outdated predicted input, the server's update supercedes it, thus it's dropped
+							oUnconfirmedMoves.pop();
+						} else
+							break;
+					}
+
+					Vector2 oServerPosition(fX, fY);
+					Vector2 oClientPrediction(oUnconfirmedMoves.front().oState.fX, oUnconfirmedMoves.front().oState.fY);
+					// If the client prediction differs from the server's value by more than a treshold amount, snap to server's value
+					if ((oServerPosition - oClientPrediction).SquaredLength() > 0.001f)
+					{
+						printf("Snapping-B to server's position (%f difference).\n", (oServerPosition - oClientPrediction).Length());
+
+						// DEBUG: Figure out why I have this here, I'm not sure if it's correct or its purpose
+						oUnconfirmedMoves.pop();
+
+						// DEBUG: Should make sure the player can't see other players
+						// through walls, if he accidents gets warped through a wall
+						pLocalPlayer->SetX(fX);
+						pLocalPlayer->SetY(fY);
+
+						eX0_assert((char)(oUnconfirmedMoves.begin() - pLocalPlayer->cLastAckedCommandSequenceNumber) > 0, "outdated input being used");
+
+						// Run the simulation for all locally predicted inputs after this server update
+						float fOriginalOldX = pLocalPlayer->GetOldX();
+						float fOriginalOldY = pLocalPlayer->GetOldY();
+						float fOriginalZ = pLocalPlayer->GetZ();
+						Input_t oInput;
+						for (u_char it1 = oUnconfirmedMoves.begin(); it1 != oUnconfirmedMoves.end(); ++it1)
+						{
+							oInput = oUnconfirmedMoves[it1].oInput;
+
+							// Set inputs
+							pLocalPlayer->MoveDirection(oInput.cMoveDirection);
+							pLocalPlayer->SetStealth(oInput.cStealth != 0);
+							pLocalPlayer->SetZ(oInput.fZ);
+
+							// Run a tick
+							pLocalPlayer->CalcTrajs();
+							pLocalPlayer->CalcColResp();
+						}
+						pLocalPlayer->SetOldX(fOriginalOldX);
+						pLocalPlayer->SetOldY(fOriginalOldY);
+						pLocalPlayer->SetZ(fOriginalZ);
+					}
+				} else {
+					printf("WTF - server is ahead of client?? confirmed command %d from the future (now %d) lol\n", pLocalPlayer->cLastAckedCommandSequenceNumber, cCurrentCommandSequenceNumber);
+				}
+
+				// Drop the moves that have been confirmed now
+				// TODO: There's a faster way to get rid of all old useless packets at once
+				while (!oUnconfirmedMoves.empty())
+				{
+					if ((char)(pLocalPlayer->cLastAckedCommandSequenceNumber - oUnconfirmedMoves.begin()) >= 0)
+					{
+						oUnconfirmedMoves.pop();
+					} else
+						break;
+				}
+			}
+			else if (nPlayer != iLocalPlayerID)
+			{
+				/*PlayerGet(nPlayer)->Position(fX, fY);
+				PlayerGet(nPlayer)->SetZ(fZ);*/
+
+				/*PlayerGet(nPlayer)->SetOldX(PlayerGet(nPlayer)->GetIntX());
+				PlayerGet(nPlayer)->SetOldY(PlayerGet(nPlayer)->GetIntY());
+				PlayerGet(nPlayer)->SetX(fX);
+				PlayerGet(nPlayer)->SetY(fY);
+				PlayerGet(nPlayer)->SetZ(fZ);
+				PlayerGet(nPlayer)->SetVelX(fVelX);
+				PlayerGet(nPlayer)->SetVelY(fVelY);
+				PlayerGet(nPlayer)->fTicks = 0.0f;*/
+
+				/*PlayerGet(nPlayer)->SetOldX(PlayerGet(nPlayer)->GetIntX());
+				PlayerGet(nPlayer)->SetOldY(PlayerGet(nPlayer)->GetIntY());
+				PlayerGet(nPlayer)->SetX(fX + fVelX);
+				PlayerGet(nPlayer)->SetY(fY + fVelY);
+				PlayerGet(nPlayer)->fOldZ = PlayerGet(nPlayer)->GetZ();
+				PlayerGet(nPlayer)->SetZ(fZ);
+				PlayerGet(nPlayer)->SetVelX(fVelX);
+				PlayerGet(nPlayer)->SetVelY(fVelY);
+				PlayerGet(nPlayer)->fTicks = 0.0f;
+				PlayerGet(nPlayer)->fUpdateTicks = 0.0f;
+
+				PlayerGet(nPlayer)->CalcColResp();*/
+			}
+		}//end section from Network.cpp
+	}
+#endif // EX0_CLIENT
 }
 
 // returns number of clips left in the selected weapon
@@ -331,7 +526,7 @@ void CPlayer::CalcColResp()
 	// is the player dead?
 	if (IsDead()) return;
 
-	int			iWhichCont, iWhichVert, iCounter = 0;
+	int			iWhichCont, iWhichVert;
 	Vector2		oVector, oClosestPoint;
 	Real		oShortestDistance;
 	//Real		oDistance;
@@ -343,22 +538,22 @@ void CPlayer::CalcColResp()
 		if (!ColHandCheckPlayerPos(&fX, &fY, &oShortestDistance, &oClosestPoint, &iWhichCont, &iWhichVert))
 		{
 			// DEBUG - player-player collision
-			/*for (int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
+			/*for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 			{
 				// dont check for collision with yourself
 				if (iLoop1 == iID)
 					continue;
 
 				// calculate the displacement
-				oVector.x = oPlayers[iID]->GetX() - oPlayers[iLoop1]->GetX();
-				oVector.y = oPlayers[iID]->GetY() - oPlayers[iLoop1]->GetY();
+				oVector.x = oPlayers[iID]->GetX() - PlayerGet(iLoop1)->GetX();
+				oVector.y = oPlayers[iID]->GetY() - PlayerGet(iLoop1)->GetY();
 				oDistance = oVector.Length();
 
 				if (oDistance < oShortestDistance)
 				{
 					oShortestDistance = oDistance;
-					oClosestPoint.x = oPlayers[iLoop1]->GetX();
-					oClosestPoint.y = oPlayers[iLoop1]->GetY();
+					oClosestPoint.x = PlayerGet(iLoop1)->GetX();
+					oClosestPoint.y = PlayerGet(iLoop1)->GetY();
 				}
 			}*/
 
@@ -376,33 +571,33 @@ void CPlayer::CalcColResp()
 	// player-player collision - only check if we're moving
 	/*if (fVelX || fVelY)
 	{
-		for (int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
+		for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 		{
 			// dont check for collision with yourself
 			if (iLoop1 == iID)
 				continue;
 
 			// calculate the displacement
-			oVector.x = oPlayers[iID]->GetX() - oPlayers[iLoop1]->GetX();
-			oVector.y = oPlayers[iID]->GetY() - oPlayers[iLoop1]->GetY();
+			oVector.x = oPlayers[iID]->GetX() - PlayerGet(iLoop1)->GetX();
+			oVector.y = oPlayers[iID]->GetY() - PlayerGet(iLoop1)->GetY();
 			oShortestDistance = oVector.Length();
 
-			if (oPlayers[iLoop1]->GetVelX() || oPlayers[iLoop1]->GetVelY())
+			if (PlayerGet(iLoop1)->GetVelX() || PlayerGet(iLoop1)->GetVelY())
 			// the other player is moving
 			{
 				if (oShortestDistance < PLAYER_WIDTH - PLAYER_COL_DET_TOLERANCE)
 				// we're colliding with the other player
 				{
-					fVelXPercentage = Math::FAbs(fVelX / (Math::FAbs(fVelX) + Math::FAbs(oPlayers[iLoop1]->GetVelX())));
-					fVelYPercentage = Math::FAbs(fVelY / (Math::FAbs(fVelY) + Math::FAbs(oPlayers[iLoop1]->GetVelY())));
+					fVelXPercentage = Math::FAbs(fVelX / (Math::FAbs(fVelX) + Math::FAbs(PlayerGet(iLoop1)->GetVelX())));
+					fVelYPercentage = Math::FAbs(fVelY / (Math::FAbs(fVelY) + Math::FAbs(PlayerGet(iLoop1)->GetVelY())));
 
 					// move us back slightly
 					oPlayers[iID]->SetX(oPlayers[iID]->GetX() + (oVector.x * PLAYER_WIDTH / oShortestDistance - oVector.x) * fVelXPercentage);
 					oPlayers[iID]->SetY(oPlayers[iID]->GetY() + (oVector.y * PLAYER_WIDTH / oShortestDistance - oVector.y) * fVelYPercentage);
 
 					// move the other player away slightly
-					oPlayers[iLoop1]->SetX(oPlayers[iLoop1]->GetX() - (oVector.x * PLAYER_WIDTH / oShortestDistance - oVector.x) * (1.0 - fVelXPercentage));
-					oPlayers[iLoop1]->SetY(oPlayers[iLoop1]->GetY() - (oVector.y * PLAYER_WIDTH / oShortestDistance - oVector.y) * (1.0 - fVelYPercentage));
+					PlayerGet(iLoop1)->SetX(PlayerGet(iLoop1)->GetX() - (oVector.x * PLAYER_WIDTH / oShortestDistance - oVector.x) * (1.0 - fVelXPercentage));
+					PlayerGet(iLoop1)->SetY(PlayerGet(iLoop1)->GetY() - (oVector.y * PLAYER_WIDTH / oShortestDistance - oVector.y) * (1.0 - fVelYPercentage));
 
 					CalcColResp();
 				}
@@ -605,22 +800,15 @@ void CPlayer::SetZ(float fValue)
 }
 
 #ifdef EX0_CLIENT
-short unsigned int CPlayer::GetLastLatency()
-{
-	return m_nLastLatency;
-}
-
-void CPlayer::SetLastLatency(short unsigned int nLastLatency)
-{
-	m_nLastLatency = nLastLatency;
-}
+void CPlayer::SetLastLatency(u_short nLastLatency) { m_nLastLatency = nLastLatency; }
+u_short CPlayer::GetLastLatency() const { return m_nLastLatency; }
 #endif
 
 void CPlayer::Render()
 {
 #ifdef EX0_CLIENT
 	// select player color
-	/*if (iID != iLocalPlayerID && !Trace(oPlayers[iLocalPlayerID]->GetIntX(), oPlayers[iLocalPlayerID]->GetIntY(), fIntX, fIntY))
+	/*if (iID != iLocalPlayerID && !Trace(pLocalPlayer->GetIntX(), pLocalPlayer->GetIntY(), fIntX, fIntY))
 		glColor3f(0.2, 0.5, 0.2);
 	else */if (IsDead())
 		glColor3f(0.1f, 0.1f, 0.1f);
@@ -635,21 +823,13 @@ void CPlayer::Render()
 	if (iID == iLocalPlayerID)
 	// local player
 	{
-		OglUtilsSetMaskingMode(NO_MASKING_MODE);
-		glLoadIdentity();
+		//OglUtilsSetMaskingMode(NO_MASKING_MODE);
 		RenderOffsetCamera(true);
-		/*glBegin(GL_LINES);
-			glVertex2i(0, 11);
-			glVertex2i(0, 3);
-		glEnd();*/
-		glBegin(GL_QUADS);
-			glVertex2i(-1, 11);
-			glVertex2i(-1, 3);
-			glVertex2i(1, 3);
-			glVertex2i(1, 11);
-		glEnd();
 		gluPartialDisk(oQuadricObj, 6, 8, 12, 1, 30.0, 300.0);
-		OglUtilsSetMaskingMode(WITH_MASKING_MODE);
+		//OglUtilsSetMaskingMode(WITH_MASKING_MODE);
+
+		// Render the weapon
+		oWeapons[iSelWeapon].Render();
 
 		// Draw the aiming-guide
 		glLineWidth(1.0);
@@ -674,45 +854,20 @@ void CPlayer::Render()
 			glVertex2i(5, fAimingDistance);
 		glEnd();*/
 
-		// Render the weapon
-		oWeapons[iSelWeapon].Render();
 
 		RenderOffsetCamera(false);
 	}
 	else
 	// not local player
 	{
-		//if (Trace(oPlayers[iLocalPlayerID]->GetIntX(), oPlayers[iLocalPlayerID]->GetIntY(), fIntX, fIntY))
+		//if (Trace(pLocalPlayer->GetIntX(), pLocalPlayer->GetIntY(), fIntX, fIntY))
 		//{
 			glPushMatrix();
+
 			RenderOffsetCamera(false);
 			glTranslatef(fIntX, fIntY, 0);
 			glRotatef(this->GetZ() * Math::RAD_TO_DEG, 0, 0, -1);
-			glBegin(GL_QUADS);
-				glVertex2i(-1, 11);
-				glVertex2i(-1, 3);
-				glVertex2i(1, 3);
-				glVertex2i(1, 11);
-			glEnd();
 			gluPartialDisk(oQuadricObj, 6, 8, 12, 1, 30.0, 300.0);
-
-		// Draw the aiming-guide
-		/*glLineWidth(1.0);
-		glEnable(GL_LINE_SMOOTH);
-		glEnable(GL_BLEND);
-		glShadeModel(GL_SMOOTH);
-		glRotatef(this->GetZ() * Math::RAD_TO_DEG, 0, 0, -1);
-		glBegin(GL_LINES);
-			glColor4f(0.1, 0.2, 0.9, 0.5);
-			glVertex2i(0, 11);
-			glColor4f(0.1, 0.2, 0.9, 0.0);
-			glVertex2i(0, 400);
-		glEnd();
-		glRotatef(this->GetZ() * Math::RAD_TO_DEG, 0, 0, 1);
-		glShadeModel(GL_FLAT);
-		glDisable(GL_BLEND);
-		glDisable(GL_LINE_SMOOTH);
-		glLineWidth(2.0);*/
 
 			// Render the weapon
 			oWeapons[iSelWeapon].Render();
@@ -743,7 +898,7 @@ void CPlayer::Render()
 }
 
 #ifdef EX0_CLIENT
-void CPlayer::PushStateHistory(SequencedState_t &oSequencedState)
+void CPlayer::PushStateHistory(SequencedState_t & oSequencedState)
 {
 	// Insert the only known state if history is empty
 	if (oStateHistory.empty()) {
@@ -820,11 +975,11 @@ State_t CPlayer::GetStateInPast(float fTimeAgo)
 		fHistoryY = oStateHistory.front().oState.fY;
 		fHistoryZ = oStateHistory.front().oState.fZ;
 	} else {
-		float	fCurrentTimepoint = (u_char)(cCurrentCommandSequenceNumber - 1) + PlayerGet(iLocalPlayerID)->fTicks / fTickTime;
+		float	fCurrentTimepoint = (u_char)(cCurrentCommandSequenceNumber - 1) + pLocalPlayer->fTicks / fTickTime;
 		float	fHistoryPoint = fCurrentTimepoint - fTimeAgo / fTickTime;
 		if (fHistoryPoint < 0) fHistoryPoint += 256;
-		int		nTicksAgo = (int)floorf(fTimeAgo / fTickTime - PlayerGet(iLocalPlayerID)->fTicks / fTickTime) + 1;
-		//int		nTicksAgo = (int)(floorf(fTimeAgo / fTickTime - PlayerGet(iLocalPlayerID)->fTicks / fTickTime) + 0.1) + 1;
+		int		nTicksAgo = (int)floorf(fTimeAgo / fTickTime - pLocalPlayer->fTicks / fTickTime) + 1;
+		//int		nTicksAgo = (int)(floorf(fTimeAgo / fTickTime - pLocalPlayer->fTicks / fTickTime) + 0.1) + 1;
 		char	cLastKnownTickAgo = (char)(cCurrentCommandSequenceNumber - oStateHistory.front().cSequenceNumber);
 		list<SequencedState_t>::iterator oHistoryTo = oStateHistory.begin();
 		list<SequencedState_t>::iterator oHistoryFrom = oStateHistory.begin(); ++oHistoryFrom;
@@ -842,9 +997,9 @@ State_t CPlayer::GetStateInPast(float fTimeAgo)
 
 			float fHistoryTicks = fHistoryPoint - oHistoryFrom->cSequenceNumber;
 			if (fHistoryTicks < 0) fHistoryTicks += 256;
-			if (fHistoryTicks > ((u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber) + PlayerGet(iLocalPlayerID)->fTicks + kfMaxExtrapolate) / fTickTime) {
+			if (fHistoryTicks > ((u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber) + pLocalPlayer->fTicks + kfMaxExtrapolate) / fTickTime) {
 				// Max forward extrapolation time
-				fHistoryTicks = ((u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber) + PlayerGet(iLocalPlayerID)->fTicks + kfMaxExtrapolate) / fTickTime;
+				fHistoryTicks = ((u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber) + pLocalPlayer->fTicks + kfMaxExtrapolate) / fTickTime;
 
 				printf("Exceeding max EXTERP time (player %d).\n", iID);
 				printf("cur state = %d; last known state = %d\n", cCurrentCommandSequenceNumber, oStateHistory.front().cSequenceNumber);
@@ -969,13 +1124,13 @@ void CPlayer::RenderInPast(float fTimeAgo)
 	RenderOffsetCamera(false);
 	glTranslatef(oState.fX, oState.fY, 0);
 	glRotatef(oState.fZ * Math::RAD_TO_DEG, 0, 0, -1);
+	gluPartialDisk(oQuadricObj, 6, 8, 12, 1, 30.0, 300.0);
 	glBegin(GL_QUADS);
 		glVertex2i(-1, 11);
 		glVertex2i(-1, 3);
 		glVertex2i(1, 3);
 		glVertex2i(1, 11);
 	glEnd();
-	gluPartialDisk(oQuadricObj, 6, 8, 12, 1, 30.0, 300.0);
 	if (iID == iLocalPlayerID) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
 	glPopMatrix();
 	if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -1007,61 +1162,83 @@ void CPlayer::SetName(string & sNewName) {
 	else sName = "Unnamed Player";
 }
 
-// allocate memory for all the players
-void PlayerInit()
+void CPlayer::Add(CPlayer * pPlayer)
 {
-	for (int iLoop1 = 0; iLoop1 < 32; iLoop1++)
-	{
-		if (oPlayers[iLoop1] != NULL) {
-			delete oPlayers[iLoop1];
-			oPlayers[iLoop1] = NULL;
-		}
+	printf("Before Add():"); for (vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+		printf(" %p", *cit1);
+	} printf("\n");
+	m_oPlayers.at(pPlayer->iID = NextFreePlayerId()) = pPlayer;
+	printf("After Add():"); for (vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+		printf(" %p", *cit1);
+	} printf("\n");
+}
 
-		if (iLoop1 < nPlayerCount)
-		{
-			oPlayers[iLoop1] = new CPlayer();
-			oPlayers[iLoop1]->iID = iLoop1;
-			oPlayers[iLoop1]->InitWeapons();
+void CPlayer::Add(CPlayer * pPlayer, u_int nPlayerId)
+{
+	printf("Before Add(int):"); for (vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+		printf(" %p", *cit1);
+	} printf("\n");
+	if (nPlayerId >= m_oPlayers.size())
+		m_oPlayers.resize(nPlayerId + 1);
+	else if (m_oPlayers.at(nPlayerId) != NULL) throw 1;
+	m_oPlayers.at(pPlayer->iID = nPlayerId) = pPlayer;
+	printf("After Add(int):"); for (vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+		printf(" %p", *cit1);
+	} printf("\n");
+}
+
+u_int CPlayer::NextFreePlayerId()
+{
+	// Look for a free slot
+	for (vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+		if (*cit1 == NULL)
+			return cit1 - m_oPlayers.begin();
+	}
+
+	// No free slots in the current array, so extend it by 1
+	m_oPlayers.push_back(NULL);
+	return m_oPlayers.size() - 1;
+}
+
+void CPlayer::Remove(CPlayer * pPlayer)
+{
+	for (vector<CPlayer *>::iterator it1 = m_oPlayers.begin(); it1 < m_oPlayers.end(); ++it1) {
+		if (*it1 == pPlayer) {
+			*it1 = NULL;
+			return;
 		}
 	}
 }
 
-// Returns a player
-CPlayer * PlayerGet(int nPlayerID)
+void CPlayer::RemoveAll()
 {
-	if (nPlayerID >= 0 &&nPlayerID < nPlayerCount) return oPlayers[nPlayerID];
-	else return NULL;
+	for (vector<CPlayer *>::iterator it1 = m_oPlayers.begin(); it1 < m_oPlayers.end(); ++it1) {
+		if (*it1 != NULL) {
+			delete *it1;
+			*it1 = NULL;
+		}
+	}
+	m_oPlayers.clear();
+}
+
+// Returns a player
+CPlayer * PlayerGet(u_int nPlayerId)
+{
+	if (nPlayerId >= CPlayer::m_oPlayers.size()) return NULL;
+	else return CPlayer::m_oPlayers.at(nPlayerId);
 }
 
 void PlayerTick()
 {
 #ifdef EX0_CLIENT
-	for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
+	for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
 	{
-		if (oPlayers[iLoop1]->bConnected)
-			oPlayers[iLoop1]->Tick();
+		if (PlayerGet(iLoop1) != NULL)
+			//PlayerGet(iLoop1)->Tick();
+			PlayerGet(iLoop1)->ProcessAuthUpdateTEST();
 	}
 
 	// update local player interpolated pos
-	//oPlayers[iLocalPlayerID]->UpdateInterpolatedPos();
+	//pLocalPlayer->UpdateInterpolatedPos();
 #endif // EX0_CLIENT
-}
-
-int PlayerGetFreePlayerID()
-{
-	for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
-	{
-#ifdef EX0_CLIENT
-		// Check if we've found a free player ID
-		if (!oPlayers[iLoop1]->bConnected)
-#else
-		// Check if we've found a free player ID
-		if (oPlayers[iLoop1]->pClient == NULL)
-#endif
-		{
-			return iLoop1;
-		}
-	}
-
-	return -1;		// No free player IDs; server is full
 }

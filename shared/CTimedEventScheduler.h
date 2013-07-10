@@ -23,7 +23,7 @@ private:
 
 	multiset<CTimedEvent>	m_oEvents;
 
-	static void GLFWCALL SchedulerThread(void *pArgument);
+	static void GLFWCALL SchedulerThread(void * pArgument);
 };
 
 #endif // __CTimedEventScheduler_H__

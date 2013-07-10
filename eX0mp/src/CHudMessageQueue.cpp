@@ -1,6 +1,7 @@
 #include "globals.h"
 
 const float CHudMessageQueue::m_kfMessageTimeoutThreshold = 0.5f;
+const int CHudMessageQueue::m_knHorizontalDistance = 15;
 
 CHudMessageQueue::CHudMessageQueue(int nTopLeftCornerX, int nTopLeftCornerY, u_int nMessageLimit, float fMessageTimeout)
 {

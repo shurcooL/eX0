@@ -12,11 +12,12 @@ p = pointer
 #ifndef __globals_H__		// if we haven't done this where this file can see it, then...
 #define __globals_H__		// all header files included
 
+#include "../../shared/GlobalSettings.h"
+
 ///////////////////////
 // standard includes //
 ///////////////////////
 
-#define NOMINMAX
 #include "../../shared/NetworkIncludes.h"
 
 #ifdef WIN32
@@ -45,14 +46,15 @@ p = pointer
 // standard other //
 ////////////////////
 using namespace std;	// so that we can use string class
-#pragma warning(once : 4018 4244 4305 4996)
+//#pragma warning(once : 4018 4244 4305 4996)
+#pragma warning(disable : 4351)
 
 // Classes
-class CClient;
 class CPlayer;
 class CPacket;
 class CTimedEvent;
 class CTimedEventScheduler;
+class ClientConnection;
 
 /////////////////////
 // custom includes //
@@ -68,6 +70,7 @@ using namespace POLYBOOLEAN;*/
 #include "Mgc/MgcIntr2DLinLin.h"
 #include "Mgc/MgcDist2DVecLin.h"
 using namespace Mgc;
+#include "../../shared/ThreadSafeQueue.h"
 #include "../../shared/math.h"
 /*#include "input.h"
 #include "render.h"
@@ -77,11 +80,13 @@ using namespace Mgc;
 #include "../../shared/particle.h"
 #include "../../shared/weapon.h"
 #include "../../shared/player.h"
+#include "../../shared/RCtrlLAuthPlayer.h"
 #include "../../shared/Network.h"
-#include "../../shared/CPacket.h"
 #include "Server.h"
 #include "../../shared/HashMatcher.h"
-#include "CClient.h"
+#include "../../shared/NetworkConnection.h"
+#include "ClientConnection.h"
+#include "../../shared/CPacket.h"
 #include "../../shared/CTimedEvent.h"
 #include "../../shared/CTimedEventScheduler.h"
 //#include "OGLTextureManager/TextureManager.h"
@@ -118,7 +123,7 @@ extern int			iMouseButtonsDown;
 extern int			nChatMode;
 extern string		sChatString;*/
 
-extern int			nPlayerCount;
+extern u_int		nPlayerCount;
 //extern float		fPlayerTickTime;
 //extern int			iLocalPlayerID;
 //extern CPlayer		*oPlayers[32];

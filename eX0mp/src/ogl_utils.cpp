@@ -254,7 +254,7 @@ void OglUtilsSetMaskValue(int nValue)
 		glVertex2i(0, 0);
 		glVertex2i(1250, 1000);
 
-		/*glVertex2i(-250, -15);
+		/ *glVertex2i(-250, -15);
 		glVertex2i(250, -15);
 		glVertex2i(750, 1000);
 		glVertex2i(-750, 1000);* /
@@ -275,15 +275,15 @@ void OglUtilsSetMaskValue(int nValue)
 
 				oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
 				oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
-				oRay.Direction().x = oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
-				oRay.Direction().y = oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
+				oRay.Direction().x = oRay.Origin().x - pLocalPlayer->GetIntX();
+				oRay.Direction().y = oRay.Origin().y - pLocalPlayer->GetIntY();
 				oVector = MathProjectRay(oRay, 500);
 				glVertex2i(oVector.x, oVector.y);
 
 				oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2].x;
 				oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2].y;
-				oRay.Direction().x = oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
-				oRay.Direction().y = oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
+				oRay.Direction().x = oRay.Origin().x - pLocalPlayer->GetIntX();
+				oRay.Direction().y = oRay.Origin().y - pLocalPlayer->GetIntY();
 				oVector = MathProjectRay(oRay, 500);
 				glVertex2i(oVector.x, oVector.y);
 
@@ -295,15 +295,15 @@ void OglUtilsSetMaskValue(int nValue)
 
 			oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
 			oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
-			oRay.Direction().x = oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
-			oRay.Direction().y = oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
+			oRay.Direction().x = oRay.Origin().x - pLocalPlayer->GetIntX();
+			oRay.Direction().y = oRay.Origin().y - pLocalPlayer->GetIntY();
 			oVector = MathProjectRay(oRay, 500);
 			glVertex2i(oVector.x, oVector.y);
 
 			oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[0].x;
 			oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[0].y;
-			oRay.Direction().x = oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
-			oRay.Direction().y = oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
+			oRay.Direction().x = oRay.Origin().x - pLocalPlayer->GetIntX();
+			oRay.Direction().y = oRay.Origin().y - pLocalPlayer->GetIntY();
 			oVector = MathProjectRay(oRay, 500);
 			glVertex2i(oVector.x, oVector.y);
 
