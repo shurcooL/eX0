@@ -143,8 +143,8 @@ void CPlayer::CalcTrajs()
 	}
 	else
 	{
-		fVelX = Math::Sin((float)nMoveDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 2.0);
-		fVelY = Math::Cos((float)nMoveDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 2.0);
+		fVelX = Math::Sin((float)nMoveDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 1.5);
+		fVelY = Math::Cos((float)nMoveDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 1.5);
 	}*/
 	// DEBUG - this is STILL not finished, need to redo properly
 	// need to do linear acceleration and deceleration
@@ -348,8 +348,8 @@ float CPlayer::GetVelY()
 float CPlayer::GetZ()
 {
 	// DEBUG - yet another hack.. replace it with some proper network-syncronyzed view bobbing
-	return fZ + Math::Sin(glfwGetTime() * 7.5) * GetVelocity() * 0.005;
-	//return fZ;
+	//return fZ + Math::Sin(glfwGetTime() * 7.5) * GetVelocity() * 0.005;
+	return fZ;
 }
 
 float CPlayer::GetVelocity()

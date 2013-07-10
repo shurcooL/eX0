@@ -94,7 +94,7 @@ void CWeapon::Fire()
 				// inaccuracy
 				// ... rotate the player
 				// DEBUG: A temporary hack for recoil
-				oPlayers[iOwnerID]->Rotate(((rand() % 1000)/1000.0f * 0.25f - 0.125) * oWeaponSpecs[iWhatWeapon].fInaccuracy);
+				//oPlayers[iOwnerID]->Rotate(((rand() % 1000)/1000.0f * 0.25f - 0.125) * oWeaponSpecs[iWhatWeapon].fInaccuracy);
 			}
 			else if (iClipAmmo <= 0)
 			{

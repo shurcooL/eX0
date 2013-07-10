@@ -1,5 +1,5 @@
 #define		PLAYER_TICK_TIME		0.045
-//#define		PLAYER_TICK_TIME		0.25
+//#define		PLAYER_TICK_TIME		0.100
 //#define		PLAYER_TICK_TIME		1.0
 #define		PLAYER_WIDTH			15.49193
 #define		PLAYER_HALF_WIDTH		7.74597
