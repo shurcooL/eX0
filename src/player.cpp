@@ -1,6 +1,6 @@
 #include "globals.h"
 
-int		iNumPlayers = 2;
+int		iNumPlayers = 10;
 int		iLocalPlayerID = 0;
 CPlayer	*oPlayers[32];
 
@@ -380,18 +380,24 @@ void CPlayer::Render()
 	else if (iTeam == 1)
 		glColor3f(0, 0, 1);
 
+	if (glfwGetKey('Q')) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	if (iID == iLocalPlayerID)
 	// local player
 	{
 		OglUtilsSetMaskingMode(NO_MASKING_MODE);
 		glLoadIdentity();
-		//glTranslatef(0, -150, -500);
 		RenderOffsetCamera(true);
-		glBegin(GL_LINES);
+		/*glBegin(GL_LINES);
 			glVertex2i(0, 11);
 			glVertex2i(0, 3);
+		glEnd();*/
+		glBegin(GL_QUADS);
+			glVertex2i(-1, 11);
+			glVertex2i(-1, 3);
+			glVertex2i(1, 3);
+			glVertex2i(1, 11);
 		glEnd();
-		gluDisk(oQuadricObj, 6, 8, 12, 1);
+		gluPartialDisk(oQuadricObj, 6, 8, 12, 1, 30.0, 300.0);
 
 		// Draw the aiming-guide
 		OglUtilsSetMaskingMode(WITH_MASKING_MODE);
@@ -417,12 +423,16 @@ void CPlayer::Render()
 	{
 		//if (Trace(oPlayers[iLocalPlayerID]->GetIntX(), oPlayers[iLocalPlayerID]->GetIntY(), fIntX, fIntY))
 		//{
-			glBegin(GL_LINES);
-				glVertex2i(fIntX + Math::Sin(fZ) * 11.0, fIntY + Math::Cos(fZ) * 11.0);
-				glVertex2i(fIntX + Math::Sin(fZ) * 3.0, fIntY + Math::Cos(fZ) * 3.0);
-			glEnd();
+			glPushMatrix();
 			glTranslatef(fIntX, fIntY, 0);
-			gluDisk(oQuadricObj, 6, 8, 12, 1);
+			glRotatef(this->GetZ() * Math::RAD_TO_DEG, 0, 0, -1);
+			glBegin(GL_QUADS);
+				glVertex2i(-1, 11);
+				glVertex2i(-1, 3);
+				glVertex2i(1, 3);
+				glVertex2i(1, 11);
+			glEnd();
+			gluPartialDisk(oQuadricObj, 6, 8, 12, 1, 30.0, 300.0);
 
 		// Draw the aiming-guide
         /*glLineWidth(1.0);
@@ -442,9 +452,10 @@ void CPlayer::Render()
 		glDisable(GL_LINE_SMOOTH);
 		glLineWidth(2.0);*/
 
-			glTranslatef(-fIntX, -fIntY, 0);
+			glPopMatrix();
 		//}
 	}
+	if (glfwGetKey('Q')) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	/*Ray2	oRay;
 	oRay.Origin().x = fIntX;
@@ -459,7 +470,7 @@ void CPlayer::Render()
 	glEnd();*/
 
 	// DEBUG some debug info
-	if (1 && iID == iLocalPlayerID)
+	if (1 && glfwGetKey(GLFW_KEY_TAB) && iID == iLocalPlayerID)
 	{
 		OglUtilsSwitchMatrix(SCREEN_SPACE_MATRIX);
 		OglUtilsSetMaskingMode(NO_MASKING_MODE);
@@ -488,7 +499,7 @@ void CPlayer::Render()
 
 		sTempString = "particle array size: " + itos(iTempInt);
 		glLoadIdentity();
-		OglUtilsPrint(0, 70, 0, false, (char*)sTempString.c_str());
+		OglUtilsPrint(0, 50 + iNumPlayers * 10, 0, false, (char*)sTempString.c_str());
 
 		OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
 		RenderOffsetCamera(false);

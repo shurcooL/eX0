@@ -12,7 +12,7 @@ void RenderStaticScene()
 
 	// fill in the ground
 	glEnable(GL_TEXTURE_2D);
-	glBindTexture (GL_TEXTURE_2D, oTextureIDs.iFloor);
+	glBindTexture(GL_TEXTURE_2D, oTextureIDs.iFloor);
 	glColor3f(0.9, 0.9, 0.9);
 	for (iLoop1 = 0; iLoop1 < oTristripLevel.num_strips; iLoop1++)
 	{
@@ -135,6 +135,9 @@ void RenderOffsetCamera(bool bLocalPlayerReferenceFrame)
 		glTranslatef(0, 0, -450);
 		glRotatef(-40, 1, 0, 0);
 		glTranslatef(0, -160, 0);
+		/*glTranslatef(0, 0, -200);
+		glRotatef(-40, 1, 0, 0);
+		glTranslatef(0, -40, 0);*/
 	}
 
 	// Translate to a reference frame (either global, or local to the local player)

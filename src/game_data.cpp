@@ -11,7 +11,7 @@ void GameDataLoad()
 	GameDataLoadTextures();
 
 	// DEBUG - temporarily just open a level right away
-	GameDataOpenLevel("levels/test1.wwl");
+	GameDataOpenLevel("levels/test3.wwl");
 	//GameDataOpenLevel("levels/test_orientation.wwl");
 }
 
@@ -59,6 +59,14 @@ void GameDataOpenLevel(char *chFileName)
 #endif
 		Terminate(1);
 	}
+
+	// DEBUG: Print info about the level, namely the tristrip vertex count
+	printf("opened level %s with %d tristrips\n", chFileName, oTristripLevel.num_strips);
+	int nTotalTriangles = 0;
+	for (int nLoop1 = 0; nLoop1 < oTristripLevel.num_strips; ++nLoop1) {
+		nTotalTriangles += oTristripLevel.strip[nLoop1].num_vertices - 2;
+	}
+	printf("total triangle count = %d\n", nTotalTriangles);
 }
 
 // close currently opened level, free memory, reset vars

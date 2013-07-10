@@ -26,13 +26,14 @@ int				iTempInt = 0;
 FILE			*oFile;
 
 // initialization
-void Init()
+void Init(int argc, char *argv[])
 {
 	// init glfw
 	glfwInit();
 
 	// let the use choose whether to run in fullscreen mode
 	bFullscreen = false;
+	if (argc >= 2 && strcmp(argv[1], "--fullscreen") == 0) bFullscreen = true;
 #ifdef WIN32
 	bFullscreen = MessageBox(NULL, "would you like to run in fullscreen mode?", "eX0", MB_YESNO | MB_ICONQUESTION) == IDYES;
 #endif
@@ -43,7 +44,7 @@ void Init()
 	if (!glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW))
 		Terminate(1);
 	glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
-	glfwSetWindowTitle("eX0");	// set the window title
+	glfwSetWindowTitle(((string)"eX0 (Built " + __DATE__")").c_str());	// set the window title
 
 	glfwSwapInterval(0);		// Turn V-Sync off
 
@@ -171,14 +172,14 @@ void RestartGame()
 }
 
 // main function
-int main(int argc, char **argv) 
+int main(int argc, char *argv[]) 
 {
 	// DEBUG vars
 	static float fTempTimer = 0;
 	static int iWhere;
 
 	// initialize
-	Init();
+	Init(argc, argv);
 
 	// DEBUG - This is a hack - we only need to position the players here... But I called RestartGame() to do that
 	RestartGame();
@@ -311,6 +312,16 @@ int main(int argc, char **argv)
 					if (ColHandIsPointInside(oPlayers[1]->GetIntX() + Math::Sin(oPlayers[1]->GetZ()) * BOT_AI_SENSOR_LENGTH, oPlayers[1]->GetIntY() + Math::Cos(oPlayers[1]->GetZ()) * BOT_AI_SENSOR_LENGTH * 2))
 						oPlayers[1]->Move(-1);
 				} else { if (glfwGetKey('Q')) oPlayers[1]->Move(0); else oPlayers[1]->Move(-1); }
+
+			// DEBUG: Make other bots shoot
+				for (int iLoop1 = 2; iLoop1 < iNumPlayers; iLoop1++) {
+					oPlayers[iLoop1]->SetTeam(1);
+					//oPlayers[iLoop1]->iSelWeapon = 3;
+					oPlayers[iLoop1]->BuyClip();
+					if (oPlayers[iLoop1]->GetSelClipAmmo() <= 0) oPlayers[iLoop1]->Reload();
+					oPlayers[iLoop1]->Fire();
+					oPlayers[iLoop1]->Rotate(0.5 * fTimePassed);
+				}
 
 			// player tick
 			PlayerTick();

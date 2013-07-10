@@ -149,6 +149,18 @@ void InputProcessKey(int iKey, int iAction)
 		case 'P':
 			bPaused = !bPaused;
 			break;
+		// DEBUG: Insta-Knife
+		case 'F':
+			if (!oPlayers[iLocalPlayerID]->IsDead()) {
+				for (int iLoop1 = 0; iLoop1 < iNumPlayers; ++iLoop1) {
+					if (iLoop1 == iLocalPlayerID) continue;
+					if (pow((oPlayers[iLocalPlayerID]->GetIntX() + Math::Sin(oPlayers[iLocalPlayerID]->GetZ()) * PLAYER_WIDTH) - oPlayers[iLoop1]->GetIntX(), 2)
+					  + pow((oPlayers[iLocalPlayerID]->GetIntY() + Math::Cos(oPlayers[iLocalPlayerID]->GetZ()) * PLAYER_WIDTH) - oPlayers[iLoop1]->GetIntY(), 2)
+					  <= PLAYER_HALF_WIDTH_SQR)
+						oPlayers[iLoop1]->GiveHealth(-100);
+				}
+			}
+			break;
 		// any other key
 		default:
 			break;
