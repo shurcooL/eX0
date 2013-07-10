@@ -1,5 +1,6 @@
 #define		PLAYER_TICK_TIME		0.045
 //#define		PLAYER_TICK_TIME		0.25
+//#define		PLAYER_TICK_TIME		1.0
 #define		PLAYER_WIDTH			15.49193
 #define		PLAYER_HALF_WIDTH		7.74597
 #define		PLAYER_WIDTH_SQR		240.0
@@ -12,7 +13,7 @@ public:
 	CPlayer();
 	~CPlayer();
 
-	void Move(int iDirection);
+	void MoveDirection(int nDirection);
 	void Rotate(float fAmount);
 	void CalcTrajs();
 	void CalcColResp();
@@ -47,6 +48,7 @@ public:
 	int			iID;
 	bool		bEmptyClicked;
 	int			iSelWeapon;
+	float		fAimingDistance;
 
 private:
 	float		fX, fY;
@@ -55,6 +57,7 @@ private:
 	float		fIntX, fIntY;
 	float		fZ;
 	int			iIsStealth;
+	int			nMoveDirection;
 	//int			iSelWeapon;
 	CWeapon		oWeapons[4];
 	float		fHealth;

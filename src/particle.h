@@ -30,7 +30,7 @@ public:
 	void AddParticle(float fX, float fY, float fVelX, float fVelY, int iWhatType, float fMaxDamage, float fLife, int iOwnerID);
 	void Reset();
 
-	enum ParticleTypes { DUMMY, BULLET, BOUNCY_BULLET, SMOKE_CLOUD };
+	enum ParticleTypes { DUMMY = 0, BULLET, BOUNCY_BULLET, SMOKE_CLOUD };
 
 private:
 	int NextAvailParticle();

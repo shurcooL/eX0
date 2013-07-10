@@ -165,6 +165,24 @@ void OglUtilsSwitchMatrix(int iWhichMatrix)
 // Select the masking mode
 void OglUtilsSetMaskingMode(int nMaskingMode)
 {
+	// DEBUG: A hack to temporary disable stencil operations (for a performance increase)
+	if (!bStencilOperations)
+	{
+		switch (nMaskingMode)
+		{
+		case NO_MASKING_MODE:
+		case WITH_MASKING_MODE:
+			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			break;
+
+		case RENDER_TO_MASK_MODE:
+			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+			break;
+		}
+
+		return;
+	}
+
 	switch (nMaskingMode)
 	{
 	case NO_MASKING_MODE:

@@ -7,8 +7,11 @@ int			iMouseMovedX[MOUSE_FILTERING_SAMPLES], iMouseMovedY[MOUSE_FILTERING_SAMPLE
 float		fFilteredMouseMovedX = 0;
 float		fFilteredMouseMovedY = 0;
 int			iMouseButtonsDown;
-float		fMouseSensivity = 0.25f;
+float		fMouseSensitivity = 0.25f;
 bool		bAutoReload = false;
+
+int			nChatMode;
+string		sChatString;
 
 // do mouse movement calcs
 void InputMouseMovCalcs()
@@ -47,6 +50,9 @@ void InputMouseMovCalcs()
 // check if a key is held down
 void InputKeyHold()
 {
+	// Don't use the keyboard input when typing a message
+	if (nChatMode) return;
+
 	if (!iGameState)
 	{
 		// set stealth
@@ -70,16 +76,16 @@ void InputKeyHold()
 			if ((glfwGetKey('W') && !glfwGetKey('S'))
 				|| (glfwGetKey(GLFW_KEY_UP) && !glfwGetKey(GLFW_KEY_DOWN)))
 			{
-				oPlayers[iLocalPlayerID]->Move(7);
+				oPlayers[iLocalPlayerID]->MoveDirection(7);
 			}
 			else if ((glfwGetKey('S') && !glfwGetKey('W'))
 					|| (glfwGetKey(GLFW_KEY_DOWN) && !glfwGetKey(GLFW_KEY_UP)))
 			{
-				oPlayers[iLocalPlayerID]->Move(5);
+				oPlayers[iLocalPlayerID]->MoveDirection(5);
 			}
 			else
 			{
-				oPlayers[iLocalPlayerID]->Move(6);
+				oPlayers[iLocalPlayerID]->MoveDirection(6);
 			}
 		}
 		else if (glfwGetKey('D') && !glfwGetKey('A'))
@@ -87,16 +93,16 @@ void InputKeyHold()
 			if ((glfwGetKey('W') && !glfwGetKey('S'))
 				|| (glfwGetKey(GLFW_KEY_UP) && !glfwGetKey(GLFW_KEY_DOWN)))
 			{
-				oPlayers[iLocalPlayerID]->Move(1);
+				oPlayers[iLocalPlayerID]->MoveDirection(1);
 			}
 			else if ((glfwGetKey('S') && !glfwGetKey('W'))
 					|| (glfwGetKey(GLFW_KEY_DOWN) && !glfwGetKey(GLFW_KEY_UP)))
 			{
-				oPlayers[iLocalPlayerID]->Move(3);
+				oPlayers[iLocalPlayerID]->MoveDirection(3);
 			}
 			else
 			{
-				oPlayers[iLocalPlayerID]->Move(2);
+				oPlayers[iLocalPlayerID]->MoveDirection(2);
 			}
 		}
 		else
@@ -104,16 +110,16 @@ void InputKeyHold()
 			if ((glfwGetKey('W') && !glfwGetKey('S'))
 				|| (glfwGetKey(GLFW_KEY_UP) && !glfwGetKey(GLFW_KEY_DOWN)))
 			{
-				oPlayers[iLocalPlayerID]->Move(0);
+				oPlayers[iLocalPlayerID]->MoveDirection(0);
 			}
 			else if ((glfwGetKey('S') && !glfwGetKey('W'))
 					|| (glfwGetKey(GLFW_KEY_DOWN) && !glfwGetKey(GLFW_KEY_UP)))
 			{
-				oPlayers[iLocalPlayerID]->Move(4);
+				oPlayers[iLocalPlayerID]->MoveDirection(4);
 			}
 			else
 			{
-				oPlayers[iLocalPlayerID]->Move(-1);
+				oPlayers[iLocalPlayerID]->MoveDirection(-1);
 			}
 		}
 	}
@@ -124,6 +130,33 @@ void InputProcessKey(int iKey, int iAction)
 {
 	if (iAction == GLFW_PRESS)
 	{
+		if (nChatMode) {
+			switch (iKey) {
+			// Enter key
+			case GLFW_KEY_ENTER:
+				nChatMode = 0;
+				// Send the chat string
+				// DEBUG: Finish
+				if (sChatString.length() > 0)
+					printf("Sent: \"%s\"\n", sChatString.c_str());
+				break;
+			// Escape key
+			case GLFW_KEY_ESC:
+				nChatMode = 0;
+				break;
+			// Backspace key
+			case GLFW_KEY_BACKSPACE:
+				if (sChatString.length() > 0)
+					sChatString = sChatString.substr(0, sChatString.length() - 1);
+				break;
+			// Any other key
+			default:
+				break;
+			}
+
+			return;
+		}
+
 		switch (iKey) {
 		// escape key
 		case GLFW_KEY_ESC:
@@ -175,6 +208,16 @@ void InputProcessKey(int iKey, int iAction)
 			bUseDefaultTriangulation = !bUseDefaultTriangulation;
 			printf("Using %s triangulation.\n", bUseDefaultTriangulation ? "gpc" : "PB");
 			break;
+		// DEBUG: Toggle on/off the stencil operations
+		case GLFW_KEY_F4:
+			bStencilOperations = !bStencilOperations;
+			printf("Turned %s stencil operations.\n", bStencilOperations ? "ON" : "OFF");
+			break;
+		// chat
+		case 'T':
+			sChatString = "";
+			nChatMode = 1;
+			break;
 		// any other key
 		default:
 			break;
@@ -190,6 +233,25 @@ void InputProcessKey(int iKey, int iAction)
 	}*/
 }
 
+// Character processing function
+void GLFWCALL InputProcessChar(int nChar, int nAction)
+{
+	if (nAction == GLFW_PRESS)
+	{
+		if (nChatMode == 1)
+			nChatMode = 2;
+		else if (nChatMode == 2) {
+			if (sChatString.length() < 57 && nChar < 256)
+				sChatString = sChatString + (char)nChar;
+			// DEBUG: ... I dunno if this is necessary to check or if it's always gonna pass
+			if (!isprint(nChar)) { printf("OMG ERRORZRE!\n"); Terminate(152); }
+		}
+	}
+	/*else if (iAction == GLFW_RELEASE)
+	{
+	}*/
+}
+
 // do whatever if mouse has moved
 void InputMouseMoved()
 {
@@ -198,7 +260,15 @@ void InputMouseMoved()
 	if (!iGameState)
 	// if we're actally in game
 	{
-		oPlayers[iLocalPlayerID]->Rotate(fFilteredMouseMovedX * fMouseSensivity / 100.0);
+		oPlayers[iLocalPlayerID]->fAimingDistance -= fFilteredMouseMovedY * fMouseSensitivity * 2;
+		if (oPlayers[iLocalPlayerID]->fAimingDistance > 500.0)
+			oPlayers[iLocalPlayerID]->fAimingDistance = 500.0;
+		if (oPlayers[iLocalPlayerID]->fAimingDistance < 25.0)
+			oPlayers[iLocalPlayerID]->fAimingDistance = 25.0;
+
+		oPlayers[iLocalPlayerID]->Rotate(fFilteredMouseMovedX * fMouseSensitivity / 100.0
+			* (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? 0.5 : 1.0));
+			//* 200.0 / oPlayers[iLocalPlayerID]->fAimingDistance);
 	}
 }
 
@@ -251,7 +321,7 @@ void InputMouseHold()
 }
 
 // processes mouse clicks
-void InputProcessMouse(int iButton, int iAction)
+void GLFWCALL InputProcessMouse(int iButton, int iAction)
 {
 	// mouse button down
 	if (iAction == GLFW_PRESS)
@@ -294,27 +364,3 @@ void InputProcessMouse(int iButton, int iAction)
 		// ...
 	}
 }
-
-// check if a mouse button is pressed
-/*bool InputIsMouseButtonDown(int iButton)
-{
-	switch (iButton) {
-	case 0:
-		// left mouse button
-		if ((iMouseButtonsDown & 1) == 1) return true;
-		break;
-	case 1:
-		// right mouse button
-		if ((iMouseButtonsDown & 2) == 2) return true;
-		break;
-	case 2:
-		// middle mouse button
-		if ((iMouseButtonsDown & 4) == 4) return true;
-		break;
-	default:
-		return false;
-		break;
-	}
-
-	return false;
-}*/

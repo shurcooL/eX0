@@ -2,7 +2,7 @@
 void Init();
 
 // resize the window callback function
-void ResizeWindow(int iWidth, int iHeight);
+void GLFWCALL ResizeWindow(int iWidth, int iHeight);
 
 // set glfw callback functions
 void SetGlfwCallbacks();

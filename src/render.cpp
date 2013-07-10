@@ -117,6 +117,13 @@ void RenderHUD(void)
 	sTempString = (string)"clips: " + itos(oPlayers[iLocalPlayerID]->GetSelClips());
 	OglUtilsPrint(0, 462, 0, false, (char *)sTempString.c_str());
 
+	// Print the chat string
+	if (nChatMode) {
+		sTempString = (string)"Say: " + sChatString;
+		if ((long)(fCurTime * 4) % 2) sTempString += "_";
+		OglUtilsPrint(0, 18, 0, false, (char *)sTempString.c_str());
+	}
+
 	/*sTempString = ftos(oPlayers[1]->GetIntX());
 	glLoadIdentity();
 	OglUtilsPrint(0, 30, 0, false, (char *)sTempString.c_str());*/
@@ -158,6 +165,9 @@ void RenderOffsetCamera(bool bLocalPlayerReferenceFrame)
 	// Camera view
 	if (iCameraType == 0) {
 		glTranslatef(0, -250, -680);
+		//glTranslatef(0, glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? -250 - oPlayers[iLocalPlayerID]->fAimingDistance : -250,
+		//				glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? -680 : -680);
+		//glTranslatef(0, -500, -1360);
 	} else if (iCameraType == 1) {
 		glTranslatef(0, 0, -450);
 		glRotatef(-40, 1, 0, 0);
@@ -185,10 +195,10 @@ void RenderFOV()
 
 	// Highlight the Field of View
 	OglUtilsSetMaskingMode(WITH_MASKING_MODE);
-
 	//OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
 	RenderOffsetCamera(true);
 
+	// Highlight what's visible
 	glEnable(GL_BLEND);
 	glShadeModel(GL_SMOOTH);
 	glBegin(GL_QUADS);
@@ -199,9 +209,9 @@ void RenderFOV()
 		glVertex2i(750, 1000);
 		glVertex2i(-750, 1000);
 	glEnd();
-
 	glShadeModel(GL_FLAT);
 
+	// Darken what's not
 	glStencilFunc(GL_NOTEQUAL, 1, 1);
 	glBegin(GL_QUADS);
 		glColor4f(0, 0, 0, 0.6);
@@ -224,6 +234,7 @@ void RenderCreateFOVMask()
 	// Start rendering to the mask the fully unobstructed Field of View
 	OglUtilsSetMaskingMode(RENDER_TO_MASK_MODE);
 	OglUtilsSetMaskValue(1);
+	//glClear(GL_STENCIL_BUFFER_BIT);		// DEBUG: Only needed when the camera suddenly shifts POV
 
 	//OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
 	RenderOffsetCamera(true);		// Reset the matrix, local reference frame

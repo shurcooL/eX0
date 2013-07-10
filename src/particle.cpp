@@ -29,7 +29,7 @@ void CParticle::Render()
 			switch(oParticles[iLoop1].iWhatType)
 			{
 			// bullet
-			case 1:
+			case BULLET:
 				GetInterpolatedPos(&fIntPos, iLoop1);
 				//glColor4f(0.95, 0.95, 0.1, 0.8);
 				glLineWidth(2);
@@ -48,7 +48,7 @@ void CParticle::Render()
 				glLineWidth(2);
 				break;
 			// bouncy bullet
-			case 2:
+			case BOUNCY_BULLET:
 				GetInterpolatedPos(&fIntPos, iLoop1);
 				//fIntPos = oParticles[iLoop1].oPosition;
 				glShadeModel(GL_SMOOTH);
@@ -77,7 +77,7 @@ void CParticle::Render()
 				glShadeModel(GL_FLAT);
 				break;
 			// DEBUG: Render the smoke cloud FOV mask in wireframe
-			case ParticleTypes::SMOKE_CLOUD:
+			case SMOKE_CLOUD:
 				/*OglUtilsSetMaskingMode(NO_MASKING_MODE);
 				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 				glLineWidth(1);
@@ -349,9 +349,9 @@ void CParticle::Tick()
 				}
 
 				// Create a smoke grenade cloud
-				if (oParticles[iLoop1].iWhatType == ParticleTypes::BOUNCY_BULLET) {
+				if (oParticles[iLoop1].iWhatType == BOUNCY_BULLET) {
 					AddParticle(oParticles[iLoop1].oPosition.x, oParticles[iLoop1].oPosition.y,
-					  0, 0, ParticleTypes::SMOKE_CLOUD, 60, 30, oParticles[iLoop1].iOwnerID); 
+					  0, 0, SMOKE_CLOUD, 60, 30, oParticles[iLoop1].iOwnerID);
 				}
 
 				// Kill it and continue w/ the next particle
@@ -387,7 +387,7 @@ void CParticle::RenderFOVMask()
 		switch(oParticles[iLoop1].iWhatType)
 		{
 		// smoke
-		case ParticleTypes::SMOKE_CLOUD:
+		case SMOKE_CLOUD:
 			RenderSmokeFOVMask(oParticles[iLoop1].oPosition, oParticles[iLoop1].fMaxDamage);
 			break;
 		default:

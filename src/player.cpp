@@ -1,6 +1,6 @@
 #include "globals.h"
 
-int		iNumPlayers = 10;
+int		iNumPlayers;
 int		iLocalPlayerID = 0;
 CPlayer	*oPlayers[32];
 
@@ -16,7 +16,9 @@ CPlayer::CPlayer()
 	fVelY = 0;
 	fZ = 0;
 	iIsStealth = 0;
+	nMoveDirection = -1;
 	iSelWeapon = 2;
+	fAimingDistance = 200.0;
 	fHealth = 100;
 	sName = "unnamed player";
 	iTeam = 0;
@@ -133,6 +135,47 @@ void CPlayer::CalcTrajs()
     // is the player dead?
 	if (IsDead()) return;
 
+	// Update the player velocity (acceleration)
+	/*if (nMoveDirection == -1)
+	{
+		fVelX = 0.0;
+		fVelY = 0.0;
+	}
+	else
+	{
+		fVelX = Math::Sin((float)nMoveDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 2.0);
+		fVelY = Math::Cos((float)nMoveDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 2.0);
+	}*/
+	// DEBUG - this is STILL not finished, need to redo properly
+	// need to do linear acceleration and deceleration
+	if (nMoveDirection == -1)
+	{
+		Vector2 oVel(fVelX, fVelY);
+		float fLength = oVel.Unitize();
+		fLength -= 0.25;
+		if (fLength > 0.0) oVel *= fLength; else oVel *= 0;
+		fVelX = oVel.x;
+		fVelY = oVel.y;
+	}
+	else
+	{
+		fVelX += 0.25 * Math::Sin((float)nMoveDirection * 0.785398f + fZ);
+		fVelY += 0.25 * Math::Cos((float)nMoveDirection * 0.785398f + fZ);
+		Vector2 oVel(fVelX, fVelY);
+		float fLength = oVel.Unitize();
+		if (fLength - 0.5 > 3.5 - iIsStealth * 1.5) {
+			fLength -= 0.5;
+			oVel *= fLength;
+			fVelX = oVel.x;
+			fVelY = oVel.y;
+		} else if (fLength > 3.5 - iIsStealth * 1.5) {
+			oVel *= 3.5 - iIsStealth * 1.5;
+			fVelX = oVel.x;
+			fVelY = oVel.y;
+		}
+	}
+
+	// Update the player positions
 	fOldX = fX;
 	fOldY = fY;
 	fX += fVelX;
@@ -306,6 +349,7 @@ float CPlayer::GetZ()
 {
 	// DEBUG - yet another hack.. replace it with some proper network-syncronyzed view bobbing
 	return fZ + Math::Sin(glfwGetTime() * 7.5) * GetVelocity() * 0.005;
+	//return fZ;
 }
 
 float CPlayer::GetVelocity()
@@ -317,37 +361,9 @@ float CPlayer::GetVelocity()
 	return Math::Sqrt(fVelX * fVelX + fVelY * fVelY);
 }
 
-void CPlayer::Move(int iDirection)
+void CPlayer::MoveDirection(int nDirection)
 {
-    // is the player dead?
-	if (IsDead()) return;
-
-	/*if (iDirection == -1)
-	{
-		fVelX = 0.0;
-		fVelY = 0.0;
-	}
-	else
-	{
-		fVelX = Math::Sin((float)iDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 2.0);
-		fVelY = Math::Cos((float)iDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 2.0);
-	}*/
-	// DEBUG - this is not finished, need to redo properly
-	// need to do linear acceleration
-	if (iDirection == -1)
-	{
-		Vector2 oVel(fVelX, fVelY);
-		float fLength = oVel.Unitize();
-		fLength -= 0.025;
-		if (fLength > 0.0) oVel *= fLength; else oVel *= 0;
-		fVelX = oVel.x;
-		fVelY = oVel.y;
-	}
-	else
-	{
-		fVelX += 0.025 * (Math::Sin((float)iDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 2.0) - fVelX);
-		fVelY += 0.025 * (Math::Cos((float)iDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 2.0) - fVelY);
-	}
+	nMoveDirection = nDirection;
 }
 
 void CPlayer::Rotate(float fAmount)
@@ -415,6 +431,13 @@ void CPlayer::Render()
 		glDisable(GL_BLEND);
 		glDisable(GL_LINE_SMOOTH);
 		glLineWidth(2.0);
+
+		// Draw the cross section of the aiming-guide
+		/*glBegin(GL_LINES);
+			glColor3f(0.9, 0.2, 0.1);
+			glVertex2i(-5, fAimingDistance);
+			glVertex2i(5, fAimingDistance);
+		glEnd();*/
 
 		RenderOffsetCamera(false);
 	}

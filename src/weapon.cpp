@@ -82,10 +82,7 @@ void CWeapon::Fire()
 				// play shot sound
 				// ...
 				iClipAmmo--;
-				fTimer += oWeaponSpecs[iWhatWeapon].fROF * PLAYER_TICK_TIME / 0.030;
-
-				// inaccuracy
-				// ... rotate the player
+				fTimer += oWeaponSpecs[iWhatWeapon].fROF * PARTICLE_TICK_TIME / PLAYER_TICK_TIME;
 
 				// make a projectile particle
 				oParticleEngine.AddParticle(oPlayers[iOwnerID]->GetIntX(), oPlayers[iOwnerID]->GetIntY(),
@@ -94,6 +91,8 @@ void CWeapon::Fire()
 					oWeaponSpecs[iWhatWeapon].iWhatType, oWeaponSpecs[iWhatWeapon].fMaxDamage,
 					oWeaponSpecs[iWhatWeapon].fMaxLife, iOwnerID);
 
+				// inaccuracy
+				// ... rotate the player
 				// DEBUG: A temporary hack for recoil
 				oPlayers[iOwnerID]->Rotate(((rand() % 1000)/1000.0f * 0.25f - 0.125) * oWeaponSpecs[iWhatWeapon].fInaccuracy);
 			}
@@ -180,7 +179,7 @@ void WeaponInitSpecs()
 
 	// silenced m4a1
 	oWeaponSpecs[1].sName = "silenced m4a1";
-	oWeaponSpecs[1].iWhatType = 1;		// bullets
+	oWeaponSpecs[1].iWhatType = CParticle::BULLET;		// bullets
 	oWeaponSpecs[1].iClips = 4;
 	oWeaponSpecs[1].iMaxClips = 6;
 	oWeaponSpecs[1].iClipAmmo = 30;
@@ -193,7 +192,7 @@ void WeaponInitSpecs()
 
 	// test bouncy bullet/grenade gun
 	oWeaponSpecs[2].sName = "test gun";
-	oWeaponSpecs[2].iWhatType = 2;		// bullets
+	oWeaponSpecs[2].iWhatType = CParticle::BOUNCY_BULLET;		// bouncy bullets
 	oWeaponSpecs[2].iClips = 2;
 	oWeaponSpecs[2].iMaxClips = 2;
 	oWeaponSpecs[2].iClipAmmo = 500;

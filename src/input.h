@@ -1,4 +1,4 @@
-#define MOUSE_FILTERING_SAMPLES		5
+#define MOUSE_FILTERING_SAMPLES		3
 
 // do mouse movement calcs
 void InputMouseMovCalcs();
@@ -7,7 +7,10 @@ void InputMouseMovCalcs();
 void InputKeyHold();
 
 // key processing
-void InputProcessKey(int iKey, int iAction);
+void GLFWCALL InputProcessKey(int iKey, int iAction);
+
+// Character processing function
+void GLFWCALL InputProcessChar(int nChar, int nAction);
 
 // do whatever if mouse has moved
 void InputMouseMoved();
@@ -19,7 +22,4 @@ void InputFilteredMouseMoved();
 void InputMouseHold();
 
 // processes mouse clicks
-void InputProcessMouse(int iButton, int iAction);
-
-// check if a mouse button is pressed
-//bool InputIsMouseButtonDown(int iButton);
+void GLFWCALL InputProcessMouse(int iButton, int iAction);

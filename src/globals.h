@@ -16,9 +16,9 @@ p = pointer
 ///////////////////////
 // standard includes //
 ///////////////////////
-#ifdef WIN32
-#include "MMGR/nommgr.h"	// first disable the Fluid Studios Memory Manager
+//#include "MMGR/nommgr.h"	// first disable the Fluid Studios Memory Manager
 
+#ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>	// standard header for ms windows applications
 #endif // WIN32
@@ -34,9 +34,7 @@ p = pointer
 #include <GL/glfw.h>	// the glfw header
 #include <list>
 
-#ifdef WIN32
-#include "MMGR/mmgr.h"	// Fluid Studios Memory Manager
-#endif // WIN32
+#include "mmgr/mmgr.h"	// Fluid Studios Memory Manager
 
 
 ////////////////////
@@ -86,10 +84,11 @@ extern bool			bPaused;
 // DEBUG: Debug state variables
 extern bool			bWireframe;
 extern bool			bUseDefaultTriangulation;
+extern bool			bStencilOperations;
 
 extern GLFWvidmode	oDesktopMode;
 extern bool			bFullscreen;
-extern float		fMouseSensivity;
+extern float		fMouseSensitivity;
 extern bool			bAutoReload;
 
 extern int			iCursorX, iCursorY;
@@ -98,6 +97,9 @@ extern int			iMouseMovedX[MOUSE_FILTERING_SAMPLES], iMouseMovedY[MOUSE_FILTERING
 //extern int			iMouseMovedX, iMouseMovedY;
 extern float		fFilteredMouseMovedX, fFilteredMouseMovedY;
 extern int			iMouseButtonsDown;
+
+extern int			nChatMode;
+extern string		sChatString;
 
 extern int			iNumPlayers;
 extern int			iLocalPlayerID;

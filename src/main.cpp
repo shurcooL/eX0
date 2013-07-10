@@ -10,6 +10,7 @@ bool			bPaused = false;
 
 bool			bWireframe = false;
 bool			bUseDefaultTriangulation = true;
+bool			bStencilOperations = false;
 
 GLFWvidmode		oDesktopMode;
 bool			bFullscreen = false;
@@ -36,7 +37,7 @@ void Init(int argc, char *argv[])
 	bFullscreen = false;
 	if (argc >= 2 && strcmp(argv[1], "--fullscreen") == 0) bFullscreen = true;
 #ifdef WIN32
-	bFullscreen = MessageBox(NULL, "would you like to run in fullscreen mode?", "eX0", MB_YESNO | MB_ICONQUESTION) == IDYES;
+	else bFullscreen = MessageBox(NULL, "would you like to run in fullscreen mode?", "eX0", MB_YESNO | MB_ICONQUESTION) == IDYES;
 #endif
 
 	// create the window
@@ -45,7 +46,7 @@ void Init(int argc, char *argv[])
 	if (!glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW))
 		Terminate(1);
 	glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
-	glfwSetWindowTitle(((string)"eX0 (Built on " + __DATE__" at " + __TIME__ + ")").c_str());	// set the window title
+	glfwSetWindowTitle(((string)"eX0 v0.0 (Built on " + __DATE__ + " at " + __TIME__ + ")").c_str());	// set the window title
 
 	glfwSwapInterval(0);		// Turn V-Sync off
 
@@ -70,7 +71,7 @@ void Init(int argc, char *argv[])
 	SetGlfwCallbacks();
 	GameDataLoad();			// load game data
 	WeaponInitSpecs();
-	PlayerInit();
+	iNumPlayers = 10; PlayerInit();
 	// ...
 
 	// init OpenGL
@@ -109,7 +110,7 @@ void Deinit()
 }
 
 // resize the window callback function
-void ResizeWindow(int iWidth, int iHeight)
+void GLFWCALL ResizeWindow(int iWidth, int iHeight)
 {
 	if (iWidth != 640 || iHeight != 480)
 		Terminate(1);		// Refuse to run in non-native resolution, for now
@@ -120,6 +121,7 @@ void SetGlfwCallbacks()
 {
 	glfwSetWindowSizeCallback(ResizeWindow);
 	glfwSetKeyCallback(InputProcessKey);
+	glfwSetCharCallback(InputProcessChar);
 	glfwSetMouseButtonCallback(InputProcessMouse);
 }
 
@@ -183,6 +185,9 @@ int main(int argc, char *argv[])
 	// DEBUG vars
 	static float fTempTimer = 0;
 	static int iWhere;
+
+	// Print the version and date/time built
+	printf("eX0 v0.0 - Built on %s at %s.\n\n", __DATE__, __TIME__);
 
 	// initialize
 	Init(argc, argv);
@@ -299,26 +304,26 @@ int main(int argc, char *argv[])
 						}
 					}
 					if (Math::Sqrt(Math::Pow(oPlayers[1]->GetIntX() + oPlayers[0]->GetIntX(), 2) + Math::Pow(oPlayers[1]->GetIntY() + oPlayers[0]->GetIntY(), 2)) < PLAYER_WIDTH * 2.0 && !oPlayers[1]->IsReloading())
-						//oPlayers[1]->Move(-1);
+						//oPlayers[1]->MoveDirection(-1);
 						fTempTimer4 = 1.0f;
 					static int i2 = 1;
 					if (fTempTimer4 > 0.0f) {
 						int iWhere2 = (iWhere + 4) % 8;
 						int i = ((int)Math::Ceil(fTempTimer4 * 4) % 2) * 2 - 1;
 						iWhere2 = (iWhere + 4 + i + i2) % 8;
-						oPlayers[1]->Move(iWhere2);
+						oPlayers[1]->MoveDirection(iWhere2);
 					} else {
-						oPlayers[1]->Move(iWhere);
+						oPlayers[1]->MoveDirection(iWhere);
 						if (++i2 > 1) i2 = -1;
 					}
-					if (fTempTimer3 > -1000.0f && fTempTimer3 <= 0.0f) oPlayers[1]->Move(-1);
+					if (fTempTimer3 > -1000.0f && fTempTimer3 <= 0.0f) oPlayers[1]->MoveDirection(-1);
 				}
 				else if (fTempTimer2 >= 0)
 				{
-					oPlayers[1]->Move(0);
+					oPlayers[1]->MoveDirection(0);
 					if (ColHandIsPointInside(oPlayers[1]->GetIntX() + Math::Sin(oPlayers[1]->GetZ()) * BOT_AI_SENSOR_LENGTH, oPlayers[1]->GetIntY() + Math::Cos(oPlayers[1]->GetZ()) * BOT_AI_SENSOR_LENGTH * 2))
-						oPlayers[1]->Move(-1);
-				} else { if (glfwGetKey('Q')) oPlayers[1]->Move(0); else oPlayers[1]->Move(-1); }
+						oPlayers[1]->MoveDirection(-1);
+				} else { if (glfwGetKey('Q')) oPlayers[1]->MoveDirection(0); else oPlayers[1]->MoveDirection(-1); }
 			}
 
 			// DEBUG: Make other bots shoot
@@ -346,7 +351,7 @@ int main(int argc, char *argv[])
 			//RenderInteractiveScene();
 
 			// render the fov zone
-			RenderFOV();
+			if (bStencilOperations) RenderFOV();
 
 			// Enable the FOV masking
 			OglUtilsSetMaskingMode(WITH_MASKING_MODE);
