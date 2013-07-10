@@ -19,6 +19,11 @@ ClientConnection::ClientConnection(SOCKET nTcpSocket)
 
 	m_pPlayer = NULL;
 
+	// Schedule the bad client timeout event
+	CTimedEvent oEvent = CTimedEvent(glfwGetTime() + 5.0, 0, &ClientConnection::BadClientTimeout, this);
+	m_nBadClientTimeoutEventId = oEvent.GetId();
+	pTimedEventScheduler->ScheduleEvent(oEvent);
+
 	m_oConnections.push_back(this);
 }
 
@@ -26,6 +31,9 @@ ClientConnection::~ClientConnection()
 {
 	//if (nUpdateEventId != 0 && pTimedEventScheduler != NULL)
 	//	pTimedEventScheduler->RemoveEventById(nUpdateEventId);
+
+	if (m_nBadClientTimeoutEventId != 0)
+		CancelBadClientTimeout();
 
 	if (GetPlayer() != NULL)
 		delete GetPlayer();
@@ -185,6 +193,24 @@ ClientConnection * ClientConnection::GetFromSignature(u_char cSignature[m_knSign
 	}
 
 	return NULL;
+}
+
+void ClientConnection::CancelBadClientTimeout()
+{
+	pTimedEventScheduler->RemoveEventById(m_nBadClientTimeoutEventId);
+	m_nBadClientTimeoutEventId = 0;
+}
+
+void ClientConnection::BadClientTimeout(void * pClientConnection)
+{
+	glfwLockMutex(oPlayerTick);
+
+	// TODO: Perfect the 'ass dropping' mechanism...
+	printf("drop his ass (socket %d)\n", reinterpret_cast<ClientConnection *>(pClientConnection)->GetTcpSocket());
+	shutdown(reinterpret_cast<ClientConnection *>(pClientConnection)->GetTcpSocket(), SD_BOTH);
+	//delete pClientConnection;
+
+	glfwUnlockMutex(oPlayerTick);
 }
 
 void ClientConnection::CloseAll()

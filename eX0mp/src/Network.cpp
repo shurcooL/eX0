@@ -380,7 +380,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			pTimedEventScheduler->RemoveEventById(nSendUdpHandshakePacketEventId);
 
 			// Start syncing the clock, send a Time Request packet every 50 ms
-			CTimedEvent oEvent(glfwGetTime(), 0.05, SendTimeRequestPacket, NULL);
+			CTimedEvent oEvent(glfwGetTime(), 0.05, &SendTimeRequestPacket, NULL);
 			nSendTimeRequestPacketEventId = oEvent.GetId();
 			pTimedEventScheduler->ScheduleEvent(oEvent);
 

@@ -115,6 +115,9 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, ClientConnection *& pConnection)
 			{
 				// Valid Join Server Request packet
 				printf("Got a valid Join Server Request packet! yay.. yay... ;/\n");
+
+				// Cancel the bad client timeout
+				pConnection->CancelBadClientTimeout();
 			} else {
 				// Drop the connection to this unsupported client
 				printf("Error: Got an INVALID Join Server Request packet, dropping connection.\n");

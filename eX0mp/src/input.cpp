@@ -212,7 +212,7 @@ glfwUnlockMutex(oPlayerTick);
 				bSelectTeamDisplay = bSelectTeamReady = false;
 				pLocalPlayer->GiveHealth(-150);
 
-				if (pServer != NULL) {
+				if (pLocalServer == NULL) {
 					// Send a Join Team Request packet
 					CPacket oJoinTeamRequest;
 					oJoinTeamRequest.pack("hcc", 0, (u_char)27, (u_char)0);
@@ -268,6 +268,7 @@ glfwUnlockMutex(oPlayerTick);
 			break;
 		case '2':
 			if (bSelectTeamDisplay && bSelectTeamReady && pLocalPlayer->GetTeam() != 1 && iGameState == 0) {
+if (pLocalServer != NULL) break;
 				bSelectTeamDisplay = bSelectTeamReady = false;
 				pLocalPlayer->GiveHealth(-150);
 
@@ -279,6 +280,7 @@ glfwUnlockMutex(oPlayerTick);
 			}
 			break;
 		case '3':
+if (pLocalServer != NULL) break;
 			if (bSelectTeamDisplay && bSelectTeamReady && pLocalPlayer->GetTeam() != 2 && iGameState == 0) {
 				bSelectTeamDisplay = bSelectTeamReady = false;
 				pLocalPlayer->GiveHealth(-150);

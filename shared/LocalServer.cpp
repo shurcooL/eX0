@@ -17,20 +17,20 @@ LocalServer::LocalServer()
 	glfwSetTime(0.0);
 
 	// The game is now started; i.e. let the Game Logic thread start being active
-	printf("The game is started on the server.\n");
+	printf("The game server has been started.\n");
 	iGameState = 0;
 }
 
 LocalServer::~LocalServer()
 {
 	// Game is ended
-	printf("The game is ended on the server.\n");
+	printf("The game server has been ended.\n");
 	iGameState = 1;
 
 	m_pThread->RequestStop();
 
 	// DEBUG: A hack to send ourselves an empty UDP packet in order to get out of select()
-	struct sockaddr_in myaddr;
+	sockaddr_in myaddr;
 	myaddr.sin_family = AF_INET;
 	myaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	myaddr.sin_port = htons(DEFAULT_PORT);
@@ -60,7 +60,7 @@ void GLFWCALL LocalServer::ThreadFunction(void * pArgument)
 
 	// Start the server
 	{
-		struct sockaddr_in myaddr;	 // server address
+		sockaddr_in myaddr;	 // server address
 		int nYes = 1;		// for setsockopt() SO_REUSEADDR, below
 
 		FD_ZERO(&master);	// clear the master and temp sets
@@ -240,6 +240,10 @@ printf("processed accept()              in %.5lf ms\n", (glfwGetTime() - t1) * 1
 				// Handle TCP data from a client
 				else {
 					ClientConnection * pConnection = ClientConnection::GetFromTcpSocket(i);
+					if (pConnection == NULL) {
+						printf("Error: Got TCP data (or an error/disconnect) from a non-existing client socket (%d).\n", i);
+						Terminate(155);
+					}
 
 					nbytes = recv(i, reinterpret_cast<char *>(pConnection->oTcpPacketBuffer.cTcpPacketBuffer) + pConnection->oTcpPacketBuffer.nCurrentPacketSize,
 															  sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer) - pConnection->oTcpPacketBuffer.nCurrentPacketSize,
@@ -248,48 +252,43 @@ printf("processed accept()              in %.5lf ms\n", (glfwGetTime() - t1) * 1
 					// Recv returned 0 or less than 0
 					if (nbytes <= 0)
 					{
-						if (pConnection == NULL) {
-							printf("Error: Got an error/disconnect on a non-existing client socket (%d).\n", i);
-						} else
-						{
-							// got error or connection closed by client
-							if (nbytes == 0) {
-								if (pConnection->GetJoinStatus() >= ACCEPTED) {
-									// connection closed
-									printf("Player #%d (name '%s') has left the game (gracefully).\n", pConnection->GetPlayerID(),
-										pConnection->GetPlayer()->GetName().c_str());
-								} else {
-									printf("eX0ds: socket %d hung up nicely (was not a player)\n", (int)i);
-								}
+						// got error or connection closed by client
+						if (nbytes == 0) {
+							if (pConnection->GetJoinStatus() >= ACCEPTED) {
+								// connection closed
+								printf("Player #%d (name '%s') has left the game (gracefully).\n", pConnection->GetPlayerID(),
+									pConnection->GetPlayer()->GetName().c_str());
 							} else {
-								NetworkPrintError("recv");
-
-								if (pConnection->GetJoinStatus() >= ACCEPTED) {
-									// connection closed
-									printf("Player #%d (name '%s') has left the game (connection terminated).\n", pConnection->GetPlayerID(),
-										pConnection->GetPlayer()->GetName().c_str());
-								} else {
-									printf("eX0ds: socket %d terminated hard (error), was not a player\n", (int)i);
-								}
+								printf("eX0ds: socket %d hung up nicely (was not a player)\n", (int)i);
 							}
+						} else {
+							NetworkPrintError("recv");
 
-							if (pConnection->GetJoinStatus() >= PUBLIC_CLIENT) {
-								// Send a Player Left Server to all the other clients
-								CPacket oPlayerLeftServerPacket;
-								oPlayerLeftServerPacket.pack("hc", 0, (u_char)26);
-								oPlayerLeftServerPacket.pack("c", (u_char)pConnection->GetPlayerID());
-								oPlayerLeftServerPacket.CompleteTpcPacketSize();
-								ClientConnection::BroadcastTcpExcept(oPlayerLeftServerPacket, pConnection, PUBLIC_CLIENT);
+							if (pConnection->GetJoinStatus() >= ACCEPTED) {
+								// connection closed
+								printf("Player #%d (name '%s') has left the game (connection terminated).\n", pConnection->GetPlayerID(),
+									pConnection->GetPlayer()->GetName().c_str());
+							} else {
+								printf("eX0ds: socket %d terminated hard (error), was not a player\n", (int)i);
 							}
-
-							// Remove the player, if he's already connected
-glfwLockMutex(oPlayerTick);
-							delete pConnection; pConnection = NULL;
-glfwUnlockMutex(oPlayerTick);
-							FD_CLR(i, &master); // remove from master set
-							it1 = oActiveSockets.erase(it1);
-							bGoToNextIt = false;
 						}
+
+						if (pConnection->GetJoinStatus() >= PUBLIC_CLIENT) {
+							// Send a Player Left Server to all the other clients
+							CPacket oPlayerLeftServerPacket;
+							oPlayerLeftServerPacket.pack("hc", 0, (u_char)26);
+							oPlayerLeftServerPacket.pack("c", (u_char)pConnection->GetPlayerID());
+							oPlayerLeftServerPacket.CompleteTpcPacketSize();
+							ClientConnection::BroadcastTcpExcept(oPlayerLeftServerPacket, pConnection, PUBLIC_CLIENT);
+						}
+
+						// Remove the player, if he's already connected
+glfwLockMutex(oPlayerTick);
+						delete pConnection; pConnection = NULL;
+glfwUnlockMutex(oPlayerTick);
+						FD_CLR(i, &master); // remove from master set
+						it1 = oActiveSockets.erase(it1);
+						bGoToNextIt = false;
 					}
 					// Recv returned greater than 0
 					else
@@ -297,51 +296,47 @@ glfwUnlockMutex(oPlayerTick);
 						// we got some TCP data from a client, process it
 						//printf("Got %d bytes from client #%d\n", nbytes, (int)i);
 
-						if (pConnection == NULL)
-							printf("Got a TCP packet from non-existing client socket (%d), discarding.\n", i);
-						else {
-							pConnection->oTcpPacketBuffer.nCurrentPacketSize += static_cast<u_short>(nbytes);
-							eX0_assert(pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer), "pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer)");
-							// Check if received enough to check the packet size
-							u_short snRealPacketSize = MAX_TCP_PACKET_SIZE;
+						pConnection->oTcpPacketBuffer.nCurrentPacketSize += static_cast<u_short>(nbytes);
+						eX0_assert(pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer), "pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer)");
+						// Check if received enough to check the packet size
+						u_short snRealPacketSize = MAX_TCP_PACKET_SIZE;
+						if (pConnection->oTcpPacketBuffer.nCurrentPacketSize >= 2)
+							snRealPacketSize = 3 + ntohs(*reinterpret_cast<u_short *>(pConnection->oTcpPacketBuffer.cTcpPacketBuffer));
+						if (snRealPacketSize > MAX_TCP_PACKET_SIZE) {		// Make sure the packet is not larger than allowed
+							printf("Got a TCP packet that's larger than allowed.\n");
+							snRealPacketSize = MAX_TCP_PACKET_SIZE;
+						}
+						// Received an entire packet
+						while (pConnection->oTcpPacketBuffer.nCurrentPacketSize >= snRealPacketSize)
+						{
+							// Process it
+							CPacket oPacket(pConnection->oTcpPacketBuffer.cTcpPacketBuffer, snRealPacketSize);
+							if (!NetworkProcessTcpPacket(oPacket, pConnection)) {
+								printf("Couldn't process a TCP packet (type %d):\n  ", *reinterpret_cast<u_char *>(pConnection->oTcpPacketBuffer.cTcpPacketBuffer + 2));
+								oPacket.Print();
+							}
+
+							// Check if we've disconnected the client after processing his TCP packet, and drop the socket if so
+							if (pConnection == NULL) {
+								printf("pConnection == NULL; dropping socket.\n");
+								FD_CLR(i, &master); // remove from master set
+								it1 = oActiveSockets.erase(it1);
+								bGoToNextIt = false;
+								break;
+							}
+
+							//memmove(buf, buf + snRealPacketSize, sizeof(buf) - snRealPacketSize);
+							//snCurrentPacketSize -= snRealPacketSize;
+							pConnection->oTcpPacketBuffer.nCurrentPacketSize -= snRealPacketSize;
+							eX0_assert(pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer) - snRealPacketSize, "pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer) - snRealPacketSize");
+							memmove(pConnection->oTcpPacketBuffer.cTcpPacketBuffer, pConnection->oTcpPacketBuffer.cTcpPacketBuffer + snRealPacketSize, pConnection->oTcpPacketBuffer.nCurrentPacketSize);
+
 							if (pConnection->oTcpPacketBuffer.nCurrentPacketSize >= 2)
 								snRealPacketSize = 3 + ntohs(*reinterpret_cast<u_short *>(pConnection->oTcpPacketBuffer.cTcpPacketBuffer));
+							else snRealPacketSize = MAX_TCP_PACKET_SIZE;
 							if (snRealPacketSize > MAX_TCP_PACKET_SIZE) {		// Make sure the packet is not larger than allowed
 								printf("Got a TCP packet that's larger than allowed.\n");
 								snRealPacketSize = MAX_TCP_PACKET_SIZE;
-							}
-							// Received an entire packet
-							while (pConnection->oTcpPacketBuffer.nCurrentPacketSize >= snRealPacketSize)
-							{
-								// Process it
-								CPacket oPacket(pConnection->oTcpPacketBuffer.cTcpPacketBuffer, snRealPacketSize);
-								if (!NetworkProcessTcpPacket(oPacket, pConnection)) {
-									printf("Couldn't process a TCP packet (type %d):\n  ", *reinterpret_cast<u_char *>(pConnection->oTcpPacketBuffer.cTcpPacketBuffer + 2));
-									oPacket.Print();
-								}
-
-								// Check if we've disconnected the client after processing his TCP packet, and drop the socket if so
-								if (pConnection == NULL) {
-									printf("pConnection == NULL; dropping socket.\n");
-									FD_CLR(i, &master); // remove from master set
-									it1 = oActiveSockets.erase(it1);
-									bGoToNextIt = false;
-									break;
-								}
-
-								//memmove(buf, buf + snRealPacketSize, sizeof(buf) - snRealPacketSize);
-								//snCurrentPacketSize -= snRealPacketSize;
-								pConnection->oTcpPacketBuffer.nCurrentPacketSize -= snRealPacketSize;
-								eX0_assert(pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer) - snRealPacketSize, "pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer) - snRealPacketSize");
-								memmove(pConnection->oTcpPacketBuffer.cTcpPacketBuffer, pConnection->oTcpPacketBuffer.cTcpPacketBuffer + snRealPacketSize, pConnection->oTcpPacketBuffer.nCurrentPacketSize);
-
-								if (pConnection->oTcpPacketBuffer.nCurrentPacketSize >= 2)
-									snRealPacketSize = 3 + ntohs(*reinterpret_cast<u_short *>(pConnection->oTcpPacketBuffer.cTcpPacketBuffer));
-								else snRealPacketSize = MAX_TCP_PACKET_SIZE;
-								if (snRealPacketSize > MAX_TCP_PACKET_SIZE) {		// Make sure the packet is not larger than allowed
-									printf("Got a TCP packet that's larger than allowed.\n");
-									snRealPacketSize = MAX_TCP_PACKET_SIZE;
-								}
 							}
 						}
 					}

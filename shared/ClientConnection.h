@@ -19,6 +19,8 @@ public:
 	bool HasPlayer() const;
 	CPlayer * GetPlayer();
 
+	void CancelBadClientTimeout();
+
 	u_char		cCurrentUpdateSequenceNumber;
 
 	struct TcpPacketBuffer_t {
@@ -47,7 +49,11 @@ private:
 
 	CPlayer * m_pPlayer;
 
+	u_int		m_nBadClientTimeoutEventId;
+
 	static std::list<ClientConnection *>		m_oConnections;
+
+	static void BadClientTimeout(void * pClientConnection);
 };
 
 #endif // __ClientConnection_H__
