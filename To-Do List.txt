@@ -1,10 +1,21 @@
 eX0 To-Do List (highest priority on top)
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+//-FIX[rare]: 0 <= 256.00015 <= 1; fHistoryTicks not in range: 256.00015. Fixed. It happens when fTicks >= fTickTime and from->to states are 0->1. Just added a (fCurrentTimepoint >= 256) check when fCurrentTimepoint is calculated. Done.
+-Establish a clear ownership relationship between Connection and Player classes (i.e. Connection owns its Players).
+-Consider if PlayerController should go inside LocalStateAuther rather than CPlayer.
+//-Refactor CPlayer class not to contain a redundant nLastLatency thing, rather use a dummy connection container for that type of stuff. Done.
+-Put a whole bunch of stuff in GameSession class, including players and connections, etc.
+-Add ability to add 'bots' on the server while clients are connected (notify them properly); this will require clients to be aware of >1 player per connection; also a way to kick/remove them.
+-Finish the Connect to Local Game Server protocol/handshake connection.
+//-Rename LocalServer class to GameServer and create some sort of offline server ('n'either) connection ability.
+-Figure out if I need to close the UDP socket in ~NetworkConnection(), not just the TCP socket.
 -Camera class
 /-InputManager/InputListener classes
 -Console class
--GameSession class
--GameTimer class
+/-GameSession class
+//-GameTimer class
+-Still need a better separation between rendering and logic timeframe/player location/etc. system.
+//-FIX: Render thread should use RenderTimer for player positions; also fix the glitch that happens when g_cCurrentCommandSequenceNumber is incremented in logic thread, during player rendering (thus breaking RenderInPast()). Done.
 //-Refactor (and move to Thread class) and clean up the FpsCounter class
 //-FIX: When you are connecting (i.e. in the middle of clock sync), if another player changes/joins a team, you will not get that packet. Ok, now it's better, but make sure not to send PlayerJoinedTeam (packet 28) to UDP_CONNECTED clients that didn't send their local info (packet 21). I think I need to add another state in between UDP_CONN and IN_GAME, that indicates player got the current world state info packet (21). Only send player joined/left to players with >= PUBLIC_CLIENT state. Done, but could use more testing/verification (i.e. some code review).
 //-FIX: Right now all clients share the same TCP packet buffer, which is bad, as they can interleave their stuff and mess each other up. Each client should have his own TCP packet buffer. Done.
@@ -12,7 +23,7 @@ eX0 To-Do List (highest priority on top)
 //-Rewrite classes that create a thread into using Thread class.
 -Make a better design for the way Process***Packet() accepts/figures out packet length and type. Also think about splitting CPacket into two: write-only and read-only ones.
 //-Keep clocks in sync by periodically sending time-correcting ping packets. Perform the time-correction based on statistics over the last minute or so. Make the local time adjustment more robust, rethink how often to really perform it, and maybe make it smooth(er)... Perhaps check if all oRecentTimeDifference values are positive/negative before doing anything, to be completely sure your adjustment won't do more harm than good. I.e. check if oRecentTimeDifference Mean >> Std Deviation. Done time syncing on the client for now, could use more work/tweaking in the future if needed.
-//-FIX: Right now CPlayers are never reset on the server, even when a completely different client gets assigned to it. Maybe I should make a new CPlayer when a client gets assigned one, and delete it when CClient is deleted, instead of a silly array of CPlayers.
+//-FIX: Right now CPlayers are never reset on the server, even when a completely different client gets assigned to it. Maybe I should make a new CPlayer when a client gets assigned one, and delete it when CClient is deleted, instead of a silly array of CPlayers. Done.
 //-Design a better time->state determinant system. Did some tests, and it turns out current system is more than good enough, there are no precision problems with adding 0.05 to dNextTickTime.
 -Change packet 21 to not include current state#,x,y,z but rather have the client accept values from the 1st Server Update UDP packet (type 2). Maybe? Not sure if a good idea, but think about this.
 //-About removing bFirstCommand on server - a test with red indicates might need it after all, as server might be slightly ahead of client and client will send a 'duplicate' command which server will thus ignore. Maybe have srvr accept duplicate cmd once if first packet is true? Think! See Last Problem.txt for the test with red log. Introduced a 'command series' number that is incremented on each respawn/team change, thus eliminating the problem. Done.

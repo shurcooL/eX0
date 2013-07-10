@@ -15,7 +15,7 @@ ServerConnection::~ServerConnection()
 bool ServerConnection::Connect(const char * szHostname, u_short nPort)
 {
 	eX0_assert(szHostname != NULL && *szHostname != '\0');
-	eX0_assert(pLocalServer == NULL, "connecting to a remote server while running a local server, doesn't make sense!");
+	eX0_assert(pGameServer == NULL, "connecting to a remote server while running a local server, doesn't make sense!");
 
 	hostent *he;
 	sockaddr_in	oServerAddress;
@@ -92,7 +92,7 @@ bool ServerConnection::Connect(const char * szHostname, u_short nPort)
 
 void ServerConnection::GenerateSignature()
 {
-	double dSignature = glfwGetTime();
+	double dSignature = g_pGameSession->LogicTimer().GetRealTime();
 	//memcpy(m_cSignature, (void *)&dSignature, m_knSignatureSize);
 	SetSignature(reinterpret_cast<u_char *>(&dSignature));
 }

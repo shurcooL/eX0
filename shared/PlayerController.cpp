@@ -6,8 +6,8 @@
 #endif // EX0_CLIENT
 
 PlayerController::PlayerController(CPlayer & oPlayer)
-	: m_nCommandRequests(0),
-	  m_oPlayer(oPlayer)
+	: m_oPlayer(oPlayer),
+	  m_nCommandRequests(0)
 {
 }
 
@@ -32,4 +32,11 @@ void PlayerController::UseUpCommandRequest()
 	eX0_assert(m_nCommandRequests > 0);
 
 	--m_nCommandRequests;
+}
+
+void PlayerController::Reset()
+{
+	m_nCommandRequests = 0;
+
+	ChildReset();
 }

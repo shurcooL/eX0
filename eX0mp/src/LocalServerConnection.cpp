@@ -14,7 +14,7 @@ LocalServerConnection::~LocalServerConnection()
 bool LocalServerConnection::Connect(const char * szHostname, u_short)
 {
 	eX0_assert(szHostname == NULL || *szHostname == '\0');
-	eX0_assert(pLocalServer != NULL, "connecting to a local server when it's not running, doesn't make sense why do that since it won't work!");
+	eX0_assert(pGameServer != NULL, "connecting to a local server when it's not running, doesn't make sense why do that since it won't work!");
 
 	SetJoinStatus(TCP_CONNECTED);
 	printf("Established a 'TCP' connection with local server, attempting to join the game.\n");

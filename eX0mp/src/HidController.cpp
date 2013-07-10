@@ -2,14 +2,15 @@
 
 HidController::HidController(CPlayer & oPlayer)
 	: LocalController(oPlayer),
-	  m_pPlayerInputListener(NULL)
+	  m_pPlayerInputListener(new PlayerInputListener())
 {
-	m_pPlayerInputListener = new PlayerInputListener();
 	g_pInputManager->RegisterListener(m_pPlayerInputListener);
 }
 
 HidController::~HidController()
 {
+	if (nullptr != g_pInputManager) g_pInputManager->UnregisterListener(m_pPlayerInputListener);
+	delete m_pPlayerInputListener;
 }
 
 void HidController::ProvideRealtimeInput(double /*dTimePassed*/)
@@ -17,7 +18,6 @@ void HidController::ProvideRealtimeInput(double /*dTimePassed*/)
 	m_oPlayer.Rotate(static_cast<float>(m_pPlayerInputListener->GetRotationAmount()));
 }
 
-//bool HidController::RequestCommand(u_char/* cSequenceNumber*/)
 void HidController::ProvideNextCommand()
 {
 	SequencedCommand_t oSequencedCommand;
@@ -30,4 +30,9 @@ void HidController::ProvideNextCommand()
 	oSequencedCommand.cSequenceNumber = g_cCurrentCommandSequenceNumber;
 
 	eX0_assert(m_oPlayer.m_oInputCmdsTEST.push(oSequencedCommand), "m_oInputCmdsTEST.push(oCommand) failed, lost a command!!\n");
+}
+
+void HidController::ChildReset()
+{
+	m_pPlayerInputListener->Reset();
 }

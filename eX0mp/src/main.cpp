@@ -16,9 +16,9 @@ bool			bStencilOperations = false;
 GLFWvidmode		oDesktopMode;
 bool			bFullscreen = false;
 
-double			dTimePassed = 0;
+/*double			dTimePassed = 0;
 double			dCurTime = 0;
-double			dBaseTime = 0;
+double			dBaseTime = 0;*/
 std::string		sFpsString = std::string();
 
 std::string		sTempString = std::string();
@@ -31,11 +31,11 @@ int				nGlobalExitCode = 0;
 int nRunModeDEBUG;
 bool bWindowModeDEBUG = true;
 
-void eX0_assert(bool expression, string message)
+void eX0_assert(bool expression, string message, bool fatal)
 {
 	if (!expression) {
 		printf("\nAssertion FAILED: '%s'\n\n", message.c_str());
-		//abort();
+		if (fatal) exit(51);
 	}
 }
 
@@ -137,6 +137,8 @@ bool Init(int, char *[])
 	nPlayerCount = 256;					// Set the max player limit for this server
 	if (bWindowModeDEBUG) pChatMessages = new CHudMessageQueue(0, 480 - 150, 5, 7.5f);
 	//FpsCounter::Initialize();
+	if (bWindowModeDEBUG)
+		g_pInputManager = new InputManager();
 	if (!NetworkInit()) {				// Initialize the networking
 		printf("Couldn't initialize the networking.\n");
 		return false;
@@ -144,10 +146,8 @@ bool Init(int, char *[])
 	pTimedEventScheduler = new CTimedEventScheduler();
 	g_pGameSession = new GameSession();
 	pGameLogicThread = new GameLogicThread();
-	if (nRunModeDEBUG != 0 && nRunModeDEBUG != 3)
-		pLocalServer = new LocalServer();
-	if (bWindowModeDEBUG)
-		g_pInputManager = new InputManager();
+	if (nRunModeDEBUG != 0)
+		pGameServer = new GameServer(nRunModeDEBUG != 3);
 
 	SyncRandSeed();
 
@@ -160,15 +160,17 @@ void Deinit()
 	printf("Deinit\n");
 
 	// Sub-deinit
-	delete g_pInputManager; g_pInputManager = NULL;
-	delete pGameLogicThread; pGameLogicThread = NULL;
-	delete g_pGameSession; g_pGameSession = NULL;
-	delete pTimedEventScheduler; pTimedEventScheduler = NULL;
-	delete pLocalServer; pLocalServer = NULL;
+	delete pGameLogicThread; pGameLogicThread = nullptr;
+	delete g_pGameSession; g_pGameSession = nullptr;
+	delete pTimedEventScheduler; pTimedEventScheduler = nullptr;
+	delete pGameServer; pGameServer = nullptr;
+	// DEBUG: Wrong place? This is done twice on Server-instance, once on Client-instance... Refactor this thoroughly
+	ClientConnection::CloseAll();
 	NetworkDeinit();					// Shutdown the networking component
+	delete g_pInputManager; g_pInputManager = nullptr;
 	FpsCounter::DeleteAll();//FpsCounter::Deinitialize();
 	CPlayer::DeleteAll();				// Delete all players
-	delete pChatMessages; pChatMessages = NULL;
+	delete pChatMessages; pChatMessages = nullptr;
 	GameDataUnload();					// unload game data
 	if (bWindowModeDEBUG) OglUtilsDeinitGL();					// Deinit OpenGL stuff
 	// ...
@@ -285,9 +287,34 @@ void signal_handler(int sig)
 }
 #endif
 
+// DEBUG
+void DumpStateHistory(std::list<SequencedState_t> & oStateHistory)
+{
+	printf("=== oStateHistory DUMP ====================\n");
+
+	double dCurrentTime = g_pGameSession->RenderTimer().GetTime();
+	double dCurrentTimepoint = dCurrentTime / (256.0 / g_cCommandRate);
+	dCurrentTimepoint -= static_cast<uint32>(dCurrentTimepoint);
+	dCurrentTimepoint *= 256;
+
+	printf("dCurrentTimepoint = %f\n", dCurrentTimepoint);
+	printf("size %d\n", oStateHistory.size());
+	printf("front 2nd %d: (%f, %f, %f)\n", oStateHistory.begin().operator ++().operator *().cSequenceNumber, oStateHistory.begin().operator ++().operator *().oState.fX, oStateHistory.begin().operator ++().operator *().oState.fY, oStateHistory.begin().operator ++().operator *().oState.fZ);
+	printf("front 1st %d: (%f, %f, %f)\n", oStateHistory.front().cSequenceNumber, oStateHistory.front().oState.fX, oStateHistory.front().oState.fY, oStateHistory.front().oState.fZ);
+	printf("g_cCurrentCommandSequenceNumber %d\n", g_cCurrentCommandSequenceNumber);
+	printf("g_pGameSession->cRenderCurrentCommandSequenceNumberTEST %d\n", g_pGameSession->cRenderCurrentCommandSequenceNumberTEST);
+
+	printf("\n");
+}
+
 // main function
 int main(int argc, char *argv[])
 {
+	eX0_assert(sizeof(int8)*8 == 8 && sizeof(uint8)*8 == 8, "sizeof(u/int8) incorrect", true);
+	eX0_assert(sizeof(int16)*8 == 16 && sizeof(uint16)*8 == 16, "sizeof(u/int16) incorrect", true);
+	eX0_assert(sizeof(int32)*8 == 32 && sizeof(uint32)*8 == 32, "sizeof(u/int32) incorrect", true);
+	eX0_assert(sizeof(int64)*8 == 64 && sizeof(uint64)*8 == 64, "sizeof(u/int64) incorrect", true);
+
 	// Add a Ctrl+C signal handler, for abrupt termination
 #ifdef WIN32
 	SetConsoleCtrlHandler(&CtrlCHandler, TRUE);
@@ -307,7 +334,9 @@ int main(int argc, char *argv[])
 	printf("%s\n\n", EX0_BUILD_STRING);
 
 #ifdef EX0_DEBUG
-	char ch = static_cast<char>(getchar());
+	char ch;
+	ch = static_cast<char>(getchar());
+	//ch = 'n';
 	if (ch == 'c') nRunModeDEBUG = 0;			// Client only
 	else if (ch == 's') nRunModeDEBUG = 1;		// Server only
 	else if (ch == 'b') nRunModeDEBUG = 2;		// Both server and client
@@ -360,7 +389,7 @@ glfwLockMutex(oPlayerTick);
 
 		pLocalPlayer->fTickTime = 1.0f / g_cCommandRate;
 
-		for (int nBotNumber = 1; nBotNumber <= 1; ++nBotNumber)
+		for (int nBotNumber = 1; nBotNumber <= 0; ++nBotNumber)
 		{//Bot test
 			CPlayer * pTestPlayer = new CPlayer();
 			std::string sName = "Test Mimic " + itos(nBotNumber);
@@ -391,22 +420,23 @@ glfwLockMutex(oPlayerTick);
 glfwUnlockMutex(oPlayerTick);
 	} else if (nRunModeDEBUG == 3)		// Off-line client/server (no network)
 	{
+		// Connect to local server
+		NetworkConnect(NULL, 0);
+		pServer->SetJoinStatus(IN_GAME);
+
 glfwLockMutex(oPlayerTick);
 		pLocalPlayer = new CPlayer(iLocalPlayerID);
 		pLocalPlayer->SetName(sLocalPlayerName);
 		pLocalPlayer->m_pController = new HidController(*pLocalPlayer);
 		pLocalPlayer->m_pStateAuther = new LocalStateAuther(*pLocalPlayer);
+		(new LocalClientConnection())->SetPlayer(pLocalPlayer);
+		pLocalPlayer->pConnection->SetJoinStatus(IN_GAME);
 
 		pLocalPlayer->fTickTime = 1.0f / g_cCommandRate;
 
-		// Reset the clock
-		g_cCurrentCommandSequenceNumber = 0;
-		g_dNextTickTime = 1.0 / g_cCommandRate;
-		glfwSetTime(0.0);
-
 		// Start the game
 		printf("Entered the game.\n");
-		iGameState = 0;
+		//iGameState = 0;
 
 		bSelectTeamDisplay = true;
 		bSelectTeamReady = true;
@@ -423,16 +453,29 @@ glfwUnlockMutex(oPlayerTick);
 		glfwSetMousePos(320, 240);*/
 
 		// make sure that the physics won't count all the time passed during init
-		dBaseTime = glfwGetTime();
+		//dBaseTime = glfwGetTime();
+		if (nullptr == pGameServer)
+			g_pGameSession->LogicTimer().Start();
+		g_pGameSession->RenderTimer().Start();
 	}
 
 	// Main loop
-	while (bProgramRunning && (glfwGetWindowParam(GLFW_OPENED) || !bWindowModeDEBUG))
+	while (bProgramRunning && (!bWindowModeDEBUG || glfwGetWindowParam(GLFW_OPENED)))
 	{
+		// DEBUG: A hack
+		/*static double dPreviousTime = glfwGetTime();
+		double dCurrentTime = glfwGetTime();
+		double dTimePassed = dCurrentTime - dPreviousTime;
+		dPreviousTime = dCurrentTime;*/
+		g_pGameSession->RenderTimer().UpdateTime();
+
 		pFpsCounter->IncrementCounter();
-		FpsCounter::UpdateCounters(glfwGetTime());
+		FpsCounter::UpdateCounters(g_pGameSession->RenderTimer().GetTime());
 		if (!bWindowModeDEBUG) FpsCounter::PrintCounters();
 //if (glfwGetKey('O')) {CTimedEventScheduler * p = pTimedEventScheduler; pTimedEventScheduler = NULL; delete p;}
+
+// DEBUG
+//if (g_pGameSession->LogicTimer().GetTime() / 12.8 >= 50.005 / 256) InputProcessKey('1', GLFW_PRESS);
 
 		if (bWindowModeDEBUG)
 		{
@@ -440,12 +483,6 @@ glfwUnlockMutex(oPlayerTick);
 			OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
 			glLoadIdentity();
 			glClear(GL_COLOR_BUFFER_BIT);
-
-			// DEBUG: A hack
-			static double dPreviousTime = glfwGetTime();
-			double dCurrentTime = glfwGetTime();
-			double dTimePassed = dCurrentTime - dPreviousTime;
-			dPreviousTime = dCurrentTime;
 
 			if (iGameState == 0)
 			// in game
@@ -456,15 +493,15 @@ glfwUnlockMutex(oPlayerTick);
 					//InputMouseMovCalcs();
 
 					// key or mouse button held down?
-					InputKeyHold();
-					InputMouseHold();
+					//InputKeyHold();
+					//InputMouseHold();
 				}
 #endif // EX0_CLIENT
 
 glfwLockMutex(oPlayerTick);
 				for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
 					if (NULL != PlayerGet(nPlayer)) {
-						PlayerGet(nPlayer)->SeekRealtimeInput(dTimePassed);
+						PlayerGet(nPlayer)->SeekRealtimeInput(g_pGameSession->RenderTimer().GetTimePassed());
 					}
 				}
 glfwUnlockMutex(oPlayerTick);
@@ -473,7 +510,17 @@ glfwLockMutex(oPlayerTick);
 				// DEBUG: Do this first to make sure there's no mis-match between player position for scene and other player rendering
 				// But this should be done by a separate camera type of thing
 				if (pLocalPlayer != NULL) {
-					pLocalPlayer->fTicks = (float)(glfwGetTime() - (g_dNextTickTime - 1.0 / g_cCommandRate));
+					// TODO: This needs to be worked on... need a better separation between rendering and logic timeframe/player location/etc.
+					pLocalPlayer->fTicks = (float)(g_pGameSession->RenderTimer().GetTime() - (g_dNextTickTime - 1.0 / g_cCommandRate));
+					g_pGameSession->cRenderCurrentCommandSequenceNumberTEST = g_cCurrentCommandSequenceNumber;
+					// DEBUG: Thhis fTicks < 0 thing doesn't work proprly. Get rid of it and everything legacy timing related, replace with current time only
+					if (pLocalPlayer->fTicks < 0)
+					{
+						pLocalPlayer->fTicks += static_cast<float>(1.0 / g_cCommandRate);
+						--g_pGameSession->cRenderCurrentCommandSequenceNumberTEST;
+						printf("NOTE: fTicks was < 0, but not anymore.\n");
+					}
+
 					if (pLocalPlayer->GetTeam() != 2) {
 						if (!pLocalPlayer->IsDead()) {
 							pLocalPlayer->UpdateInterpolatedPos();
@@ -483,7 +530,6 @@ glfwLockMutex(oPlayerTick);
 glfwUnlockMutex(oPlayerTick);
 
 				// render the static scene
-				// TODO: Don't do any rendering when the window is GLFW_ICONIFIED (minimized)
 				RenderStaticScene();
 
 				// render the interactive scene
@@ -530,7 +576,7 @@ glfwUnlockMutex(oPlayerTick);
 			{
 				g_pInputManager->ProcessJoysticks();
 
-				g_pInputManager->TimePassed(dTimePassed);		// DEBUG: Not the right place
+				g_pInputManager->TimePassed(g_pGameSession->RenderTimer().GetTimePassed());		// DEBUG: Not the right place
 
 				glfwSleep(0.0);
 			}

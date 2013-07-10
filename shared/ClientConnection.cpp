@@ -15,17 +15,13 @@ ClientConnection::ClientConnection(SOCKET nTcpSocket)
 	  m_oPingSentTimes(PING_SENT_TIMES_HISTORY),
 	  m_pPlayer(NULL),
 	  m_oPlayers(),
-	  m_nBadClientTimeoutEventId(0)
+	  m_nNonClientTimeoutEventId(0)
 {
 	printf("ClientConnection(%d) Ctor.\n", GetTcpSocket());
 
-	//cCurrentUpdateSequenceNumber = 0;
-	//m_nLastLatency = 0;
-	//m_pPlayer = NULL;
-
-	// Schedule the bad client timeout event
-	CTimedEvent oEvent = CTimedEvent(glfwGetTime() + BAD_CLIENT_TIMEOUT, 0, &ClientConnection::BadClientTimeout, this);
-	m_nBadClientTimeoutEventId = oEvent.GetId();
+	// Schedule the non-client timeout event
+	CTimedEvent oEvent = CTimedEvent(NON_CLIENT_TIMEOUT, 0, &ClientConnection::NonClientTimeout, this);
+	m_nNonClientTimeoutEventId = oEvent.GetId();
 	pTimedEventScheduler->ScheduleEvent(oEvent);
 
 	m_oConnections.push_back(this);
@@ -39,25 +35,22 @@ ClientConnection::ClientConnection()
 	  m_oPingSentTimes(PING_SENT_TIMES_HISTORY),
 	  m_pPlayer(NULL),
 	  m_oPlayers(),
-	  m_nBadClientTimeoutEventId(0)
+	  m_nNonClientTimeoutEventId(0)
 {
 	printf("ClientConnection() Ctor.\n");
-
-	//cCurrentUpdateSequenceNumber = 0;
-	//m_nLastLatency = 0;
-	//m_pPlayer = NULL;
 
 	m_oConnections.push_back(this);
 }
 
 ClientConnection::~ClientConnection()
 {
-	//if (nUpdateEventId != 0 && pTimedEventScheduler != NULL)
-	//	pTimedEventScheduler->RemoveEventById(nUpdateEventId);
+	if (m_nNonClientTimeoutEventId != 0)
+		CancelNonClientTimeout();
 
-	if (m_nBadClientTimeoutEventId != 0)
-		CancelBadClientTimeout();
-
+	while (IsMultiPlayer()) {
+		delete m_oPlayers.at(m_oPlayers.size() - 1);
+		m_oPlayers.pop_back();
+	}
 	if (GetPlayer() != NULL)
 		delete GetPlayer();
 
@@ -196,6 +189,8 @@ void ClientConnection::AddPlayer(CPlayer * pPlayer)
 	eX0_assert(true == HasPlayer(), "true == HasPlayer()");
 	eX0_assert(true == IsLocal(), "true == IsLocal() failed, means Non-Local client wants to be multiplayer");	// DEBUG: This is a temporary restriction, in future allow network clients to be multiplayer
 
+	pPlayer->pConnection = this;
+
 	m_oPlayers.push_back(pPlayer);
 }
 
@@ -208,7 +203,10 @@ void ClientConnection::RemovePlayer(CPlayer * pPlayer)
 	for (std::vector<CPlayer *>::iterator it1 = m_oPlayers.begin(); it1 != m_oPlayers.end(); ++it1)
 	{
 		if (*it1 == pPlayer) {
+			if (NULL != pPlayer) pPlayer->pConnection = NULL;
+
 			m_oPlayers.erase(it1);
+
 			return;
 		}
 	}
@@ -217,6 +215,7 @@ void ClientConnection::RemovePlayer(CPlayer * pPlayer)
 CPlayer * ClientConnection::GetPlayer(u_int nPlayerNumber)
 {
 	eX0_assert(nPlayerNumber < GetPlayerCount(), "nPlayerNumber < GetPlayerCount()");
+	eX0_assert(nPlayerNumber == 0 || true == IsLocal(), "nPlayerNumber == 0 || true == IsLocal() failed, means Non-Local client wants to be multiplayer");	// DEBUG: This is a temporary restriction, in future allow network clients to be multiplayer
 
 	if (nPlayerNumber == 0) return GetPlayer();
 	else return m_oPlayers.at(nPlayerNumber - 1);
@@ -262,15 +261,15 @@ ClientConnection * ClientConnection::GetFromSignature(u_char cSignature[m_knSign
 	return NULL;
 }
 
-void ClientConnection::CancelBadClientTimeout()
+void ClientConnection::CancelNonClientTimeout()
 {
 	if (pTimedEventScheduler != NULL) {
-		pTimedEventScheduler->RemoveEventById(m_nBadClientTimeoutEventId);
+		pTimedEventScheduler->RemoveEventById(m_nNonClientTimeoutEventId);
 	}
-	m_nBadClientTimeoutEventId = 0;
+	m_nNonClientTimeoutEventId = 0;
 }
 
-void ClientConnection::BadClientTimeout(void * pClientConnection)
+void ClientConnection::NonClientTimeout(void * pClientConnection)
 {
 	glfwLockMutex(oPlayerTick);
 

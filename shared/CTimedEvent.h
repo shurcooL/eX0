@@ -8,7 +8,7 @@ class CTimedEvent
 {
 public:
 	CTimedEvent(void);
-	CTimedEvent(double dTime, double dInterval, EventFunction_f pEventFunction, void * pArgument);
+	CTimedEvent(double dDelayTime, double dInterval, EventFunction_f pEventFunction, void * pArgument);
 	~CTimedEvent(void);
 
 	double GetTime(void) const;

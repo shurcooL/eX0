@@ -8,22 +8,35 @@ public:
 	GameTimer();
 	~GameTimer();
 
-	double GetTime(void);
-	double GetTimePassed(void);
-	double GetRealTime(void);
-	void UpdateTime(void);
+	double GetTime();
+	double GetTimePassed();
+	double GetRealTime();
+	void UpdateTime();
 
-	void Start(void);
+	void Start();
+	bool IsStarted();
 	void SetTime(double dNewCurrentTime);
+
+	void StartSyncingTimer(GameTimer * pTimer);
+	void StopSyncingTimer(GameTimer * pTimer);
 
 private:
 	GameTimer(const GameTimer &);
 	GameTimer & operator =(const GameTimer &);
 
-	double		m_dTimeOffset;
+	void SyncOtherTimer();
 
-	double		m_dCurrentTime;
-	double		m_dTimePassed;
+	double			m_dTimeOffset;
+
+	double			m_dCurrentTime;
+	double			m_dTimePassed;
+
+	volatile double		m_dSyncTimeOffset;
+	volatile bool		m_bSyncTime;
+
+	bool			m_bIsStarted;
+	GLFWmutex		m_oSyncMutex;
+	GameTimer *		m_pSyncOtherTimer;
 };
 
 #endif // __GameTimer_H__

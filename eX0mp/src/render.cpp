@@ -123,7 +123,7 @@ void RenderHUD()
 			glColor3d(0.9, 0.5, 0.1);
 		else
 			glColor3d(1, 1, 1);
-		sTempString = (string)"health: " + itos((int)ceil(pLocalPlayer->GetHealth()));
+		sTempString = (std::string)"health: " + itos((int)ceil(pLocalPlayer->GetHealth()));
 		OglUtilsPrint(0, 426, 0, false, (char *)sTempString.c_str());
 		glColor3f(1, 1, 1);
 		sTempString = (string)"ammo: " + itos(pLocalPlayer->GetSelClipAmmo());
@@ -135,7 +135,7 @@ void RenderHUD()
 	// Print the chat string
 	if (nChatMode) {
 		sTempString = (string)"Say: " + sChatString;
-		if ((long)(dCurTime * 4) % 2) sTempString += "_";
+		if ((long)(g_pGameSession->RenderTimer().GetTime() * 4) % 2) sTempString += "_";
 		OglUtilsPrint(0, 18, 0, false, (char *)sTempString.c_str());
 	}
 
@@ -191,10 +191,10 @@ void RenderHUD()
 			OglUtilsPrint(0, 35, 1, false, (char *)sTempString.c_str());
 			sTempString = "y: " + ftos(pLocalPlayer->GetIntY());
 			glLoadIdentity();
-			OglUtilsPrint(0, 35+6, 1, false, (char *)sTempString.c_str());
+			OglUtilsPrint(0, 35+7, 1, false, (char *)sTempString.c_str());
 			sTempString = "z: " + ftos(pLocalPlayer->GetZ());
 			glLoadIdentity();
-			OglUtilsPrint(0, 35+12, 1, false, (char *)sTempString.c_str());
+			OglUtilsPrint(0, 35+14, 1, false, (char *)sTempString.c_str());
 			sTempString = "vel: " + ftos(pLocalPlayer->GetVelocity());
 			glLoadIdentity();
 			OglUtilsPrint(80, 35, 1, false, (char *)sTempString.c_str());
@@ -204,9 +204,14 @@ void RenderHUD()
 		{
 			if (PlayerGet(iLoop1) != NULL) {
 				glLoadIdentity();
+if (PlayerGet(iLoop1)->pConnection == NULL) {
+	printf("  OMG OMG 3: render pConnection == nuLL for PlayerGet(%d)\n", iLoop1);
+	//printf("\n");
+	continue;
+}
 				sTempString = (string)"pl#" + itos(iLoop1) + " name: '" + PlayerGet(iLoop1)->GetName()
 					+ "' hp: " + itos((int)PlayerGet(iLoop1)->GetHealth())
-					+ " lat: " + ftos(PlayerGet(iLoop1)->GetLastLatency() * 0.1f)
+					+ " lat: " + ftos(PlayerGet(iLoop1)->pConnection->GetLastLatency() * 0.1f)
 					+ " lacsn: " + itos(PlayerGet(iLoop1)->cLatestAuthStateSequenceNumber);
 				OglUtilsPrint(0, 60 + iLoop1 * 8, 1, false, (char *)sTempString.c_str());
 			}
@@ -222,15 +227,15 @@ void RenderHUD()
 		// Networking info
 		sTempString = "g_cCurrentCommandSequenceNumber = " + itos(g_cCurrentCommandSequenceNumber);
 		glLoadIdentity();
-		OglUtilsPrint(0, 145+6, 1, false, (char *)sTempString.c_str());
+		OglUtilsPrint(0, 145+7, 1, false, (char *)sTempString.c_str());
 		if (pServer != NULL) {
 			sTempString = "cLastUpdateSequenceNumber = " + itos(pServer->cLastUpdateSequenceNumber);
 			glLoadIdentity();
-			OglUtilsPrint(0, 145+12, 1, false, (char *)sTempString.c_str());
+			OglUtilsPrint(0, 145+14, 1, false, (char *)sTempString.c_str());
 		}
 		sTempString = "oUnconfirmedMoves.size() = " + itos(oUnconfirmedMoves.size());
 		glLoadIdentity();
-		OglUtilsPrint(0, 145+18, 1, false, (char *)sTempString.c_str());
+		OglUtilsPrint(0, 145+21, 1, false, (char *)sTempString.c_str());
 
 		//OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
 		//RenderOffsetCamera(false);
@@ -260,8 +265,10 @@ void RenderPlayers()
 
 		for (std::vector<CPlayer *>::iterator it1 = CPlayer::m_oPlayers.begin(); it1 < CPlayer::m_oPlayers.end(); ++it1) {
 			if (*it1 != NULL && *it1 != pLocalPlayer && (*it1)->GetTeam() != 2) {
-				(*it1)->RenderInPast(kfInterpolate);
-				(*it1)->RenderInPast(0);
+				if ((*it1)->pConnection->IsLocal())
+					(*it1)->RenderInPast(0);
+				else
+					(*it1)->RenderInPast(kfInterpolate);
 			}
 		}
 
@@ -273,9 +280,11 @@ void RenderPlayers()
 		}
 	} else {
 		for (std::vector<CPlayer *>::iterator it1 = CPlayer::m_oPlayers.begin(); it1 < CPlayer::m_oPlayers.end(); ++it1) {
-			if (*it1 != NULL && *it1 != pLocalPlayer && (*it1)->GetTeam() != 2) {
-				(*it1)->RenderInPast(kfInterpolate);
-				(*it1)->RenderInPast(0);
+			if (*it1 != NULL && (*it1)->GetTeam() != 2) {
+				if ((*it1)->pConnection->IsLocal())
+					(*it1)->RenderInPast(0);
+				else
+					(*it1)->RenderInPast(kfInterpolate);
 			}
 		}
 	}

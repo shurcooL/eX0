@@ -1,18 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
   <Class Name="ClientConnection" Collapsed="true">
-    <Position X="10.5" Y="2.5" Width="1.5" />
+    <Position X="12" Y="2.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AIECBATAAAABABAQBJEAQAABQAgAACVAAwkAIAQAAJI=</HashCode>
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\ClientConnection.h</FileName>
-    </TypeIdentifier>
-  </Class>
-  <Class Name="AiController" Collapsed="true">
-    <Position X="4" Y="3.75" Width="1.25" />
-    <TypeIdentifier>
-      <HashCode>AAAACAAAACAAAAAAAAEAAQAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>c:\Work\Generation 10\eX0\eX0\shared\AiController.h</FileName>
-      <NewMemberFileName>c:\Work\Generation 10\eX0\eX0\shared\LocalController.h</NewMemberFileName>
     </TypeIdentifier>
   </Class>
   <Class Name="LocalStateAuther" Collapsed="true">
@@ -23,16 +15,16 @@
     </TypeIdentifier>
   </Class>
   <Class Name="NetworkConnection" Collapsed="true">
-    <Position X="11.5" Y="1.25" Width="1.75" />
+    <Position X="13" Y="1.25" Width="1.75" />
     <TypeIdentifier>
-      <HashCode>gAAAIAAAAIERAQABhACACAAAAAAAEAgAQAggEAEAAQA=</HashCode>
+      <HashCode>gAAAIAAAAIERAQABhACACQAAAAAAEAgAQAggEAEAAQA=</HashCode>
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\NetworkConnection.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="NetworkController" Collapsed="true">
     <Position X="0.75" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAACQAAACEAAQAAAAAAAAIABAAAIAAIAIA=</HashCode>
+      <HashCode>ACAAAAAAAAAACQAAACAAAQAAAAAAAAIABAAAIAAIAIA=</HashCode>
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\NetworkController.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -43,13 +35,6 @@
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\NetworkStateAuther.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="PlayerController" Collapsed="true">
-    <Position X="2" Y="1.25" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAABBQCAAAEAASAEAAAAAAAAAAAAAACAAAA=</HashCode>
-      <FileName>c:\Work\Generation 10\eX0\eX0\shared\PlayerController.h</FileName>
-    </TypeIdentifier>
-  </Class>
   <Class Name="PlayerStateAuther" Collapsed="true">
     <Position X="6.75" Y="1.25" Width="1.5" />
     <TypeIdentifier>
@@ -58,21 +43,22 @@
     </TypeIdentifier>
   </Class>
   <Class Name="ServerConnection" Collapsed="true">
-    <Position X="12.75" Y="2.5" Width="1.5" />
+    <Position X="14.25" Y="2.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ABgAAAAAAAAAAAAAAAAAAIBAAAAAAAAAAAAAAAAAQAA=</HashCode>
       <FileName>src\ServerConnection.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="LocalClientConnection" Collapsed="true">
-    <Position X="10.25" Y="3.75" Width="2" />
+  <Class Name="RemoteClientConnection" Collapsed="true">
+    <Position X="9.5" Y="3.75" Width="2" />
     <TypeIdentifier>
-      <HashCode>AAAABAAAAAAAAQAAAAAAAAAAAAAAAEAAQAAgAAAAAAA=</HashCode>
-      <FileName>c:\Work\Generation 10\eX0\eX0\shared\LocalClientConnection.h</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAEAAAYAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\RemoteClientConnection.h</FileName>
+      <NewMemberFileName>c:\Work\Generation 10\eX0\eX0\shared\LocalClientConnection.h</NewMemberFileName>
     </TypeIdentifier>
   </Class>
   <Class Name="LocalServerConnection" Collapsed="true">
-    <Position X="12.5" Y="3.75" Width="2" />
+    <Position X="14" Y="3.75" Width="2" />
     <TypeIdentifier>
       <HashCode>AgAAgAAAAAAAAQAAAAAAAIAAAAAAAAAAQAAgAAAAAAA=</HashCode>
       <FileName>src\LocalServerConnection.h</FileName>
@@ -81,15 +67,51 @@
   <Class Name="LocalController" Collapsed="true">
     <Position X="3" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>CAAAAAAAAAAAAQQAAAAAAQAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>CAAAAAAAAAAAAQQAAAAAAQAAAAAgAAAAAAAAAAAAAAA=</HashCode>
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\LocalController.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="AiController" Collapsed="true">
+    <Position X="4" Y="3.75" Width="1.25" />
+    <TypeIdentifier>
+      <HashCode>ACAACAAAACAAAAAAAAAAAQAAAAAgAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\AiController.h</FileName>
+      <NewMemberFileName>c:\Work\Generation 10\eX0\eX0\shared\LocalController.h</NewMemberFileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="PlayerController" Collapsed="true">
+    <Position X="2" Y="1.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ACAQIAAAAAABAQAAAAAAASAEAAgAAAAAAIAAAAAAAAA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\PlayerController.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="HidController" Collapsed="true">
     <Position X="2.25" Y="3.75" Width="1.25" />
     <TypeIdentifier>
-      <HashCode>AAAAAACAAAAACAAAAAEAAQAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>ACAAAACAAAAACAAAAAAAAQAAAAAgAAAAAAAAAIAAAAA=</HashCode>
       <FileName>src\HidController.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="LocalClientConnection" Collapsed="true">
+    <Position X="11.75" Y="3.75" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAABAQAAAAAAQAAAAAAAAAAAAAAAEAAQAAgAAAAAAA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\LocalClientConnection.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="PlayerInputListener" Collapsed="true">
+    <Position X="1.75" Y="6.75" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAIAAAAAIAEAAAAABCEAADAUQCBAACQAAgAA=</HashCode>
+      <FileName>src\PlayerInputListener.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="InputListener" Collapsed="true">
+    <Position X="1.75" Y="5.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAIAAAAAACACIABQAABEAAAAAgAA=</HashCode>
+      <FileName>src\InputListener.h</FileName>
     </TypeIdentifier>
   </Class>
   <Font Name="Tahoma" Size="8.25" />

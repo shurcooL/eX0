@@ -9,10 +9,11 @@ CFLAGS = -I../../../Libraries/glfw/include -I/usr/X11R6/include \
 LFLAGS = ../../../Libraries/glfw/lib/x11/libglfw.a -L/usr/X11R6/lib -lGL -lGLU \
 	-lX11 -lXrandr -lpthread -lm
 # -lXxf86vm -lXext
-OBJS   = whatever
+OBJS   = $(SHARED_PATH)GameTimer.cpp $(SHARED_PATH)GameSession.cpp $(SHARED_PATH)RemoteClientConnection.cpp \
+$(SRC_PATH)HidController.cpp $(SRC_PATH)InputManager.cpp $(SRC_PATH)InputListener.cpp $(SRC_PATH)PlayerInputListener.cpp
 
 # Rule for eX0
-eX0: $(SHARED_PATH)col_hand.cpp $(SHARED_PATH)game_data.cpp $(SRC_PATH)input.cpp $(SRC_PATH)main.cpp \
+eX0: $(OBJS) $(SHARED_PATH)col_hand.cpp $(SHARED_PATH)game_data.cpp $(SRC_PATH)input.cpp $(SRC_PATH)main.cpp \
 $(SHARED_PATH)math.cpp $(SRC_PATH)ogl_utils.cpp $(SHARED_PATH)particle.cpp $(SHARED_PATH)player.cpp \
 $(SRC_PATH)render.cpp $(SHARED_PATH)weapon.cpp \
 $(SHARED_PATH)NetworkConnection.cpp $(SRC_PATH)ServerConnection.cpp $(SHARED_PATH)ClientConnection.cpp \
@@ -27,10 +28,10 @@ $(SHARED_PATH)CTimedEvent.cpp $(SHARED_PATH)CTimedEventScheduler.cpp $(SRC_PATH)
 $(SHARED_PATH)MovingAverage.cpp \
 $(SHARED_PATH)GameLogicThread.cpp $(SHARED_PATH)PlayerStateAuther.cpp $(SHARED_PATH)NetworkStateAuther.cpp \
 $(SHARED_PATH)PlayerController.cpp $(SHARED_PATH)LocalController.cpp $(SHARED_PATH)AiController.cpp \
-$(SHARED_PATH)Thread.cpp $(SHARED_PATH)LocalServer.cpp $(SHARED_PATH)FpsCounter.cpp \
+$(SHARED_PATH)Thread.cpp $(SHARED_PATH)GameServer.cpp $(SHARED_PATH)FpsCounter.cpp \
 $(SHARED_PATH)NetworkController.cpp $(SHARED_PATH)LocalStateAuther.cpp
 	$(CC) $(CFLAGS) $(SHARED_PATH)col_hand.cpp $(SHARED_PATH)game_data.cpp \
-$(SRC_PATH)input.cpp $(SRC_PATH)main.cpp \
+$(OBJS) $(SRC_PATH)input.cpp $(SRC_PATH)main.cpp \
 $(SHARED_PATH)math.cpp $(SRC_PATH)ogl_utils.cpp $(SHARED_PATH)particle.cpp $(SHARED_PATH)player.cpp \
 $(SRC_PATH)render.cpp $(SHARED_PATH)weapon.cpp \
 $(SHARED_PATH)NetworkConnection.cpp $(SRC_PATH)ServerConnection.cpp $(SHARED_PATH)ClientConnection.cpp \
@@ -45,7 +46,7 @@ $(SHARED_PATH)CTimedEvent.cpp $(SHARED_PATH)CTimedEventScheduler.cpp $(SRC_PATH)
 $(SHARED_PATH)MovingAverage.cpp \
 $(SHARED_PATH)GameLogicThread.cpp $(SHARED_PATH)PlayerStateAuther.cpp $(SHARED_PATH)NetworkStateAuther.cpp \
 $(SHARED_PATH)PlayerController.cpp $(SHARED_PATH)LocalController.cpp $(SHARED_PATH)AiController.cpp \
-$(SHARED_PATH)Thread.cpp $(SHARED_PATH)LocalServer.cpp $(SHARED_PATH)FpsCounter.cpp \
+$(SHARED_PATH)Thread.cpp $(SHARED_PATH)GameServer.cpp $(SHARED_PATH)FpsCounter.cpp \
 $(SHARED_PATH)NetworkController.cpp $(SHARED_PATH)LocalStateAuther.cpp \
 $(LFLAGS) -o $@
 

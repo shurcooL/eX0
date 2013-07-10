@@ -5,57 +5,65 @@
 #	include "../eX0ds/src/globals.h"
 #endif // EX0_CLIENT
 
-LocalServer * pLocalServer = NULL;
+GameServer * pGameServer = NULL;
 
-LocalServer::LocalServer()
+GameServer::GameServer(bool bNetworkEnabled)
+	: m_pThread(nullptr)
 {
 	// Reset the clock
 	g_cCurrentCommandSequenceNumber = 0;
-	g_dNextTickTime = 1.0 / g_cCommandRate;
-	glfwSetTime(0.0);
+	g_pGameSession->GlobalStateSequenceNumberTEST = 0;
+	//g_dNextTickTime = 1.0 / g_cCommandRate;
+	g_dNextTickTime = 0;
+	//glfwSetTime(0.0);
+	g_pGameSession->LogicTimer().Start();
 
-	m_pThread = new Thread(&LocalServer::ThreadFunction, this, "LocalServer");
+	if (bNetworkEnabled)
+		m_pThread = new Thread(&GameServer::ThreadFunction, this, "GameServer");
 
 	// The game is now started; i.e. let the Game Logic thread start being active
 	printf("The game server has been started.\n");
 	iGameState = 0;
 }
 
-LocalServer::~LocalServer()
+GameServer::~GameServer()
 {
 	// Game is ended
 	printf("The game server has been ended.\n");
 	iGameState = 1;
 
-	m_pThread->RequestStop();
+	if (nullptr != m_pThread)
+	{
+		m_pThread->RequestStop();
 
-	// DEBUG: A hack to send ourselves an empty UDP packet in order to get out of select()
-	sockaddr_in myaddr;
-	myaddr.sin_family = AF_INET;
-	myaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-	myaddr.sin_port = htons(DEFAULT_PORT);
-	memset(myaddr.sin_zero, 0, sizeof(myaddr.sin_zero));
-	sendto(nUdpSocket, NULL, 0, 0, (struct sockaddr *)&myaddr, sizeof(myaddr));
+		// DEBUG: A hack to send ourselves an empty UDP packet in order to get out of select()
+		sockaddr_in myaddr;
+		myaddr.sin_family = AF_INET;
+		myaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+		myaddr.sin_port = htons(DEFAULT_PORT);
+		memset(myaddr.sin_zero, 0, sizeof(myaddr.sin_zero));
+		sendto(nUdpSocket, NULL, 0, 0, (struct sockaddr *)&myaddr, sizeof(myaddr));
 
-	shutdown(listener, SD_BOTH);
-	shutdown(nUdpSocket, SD_BOTH);
+		shutdown(listener, SD_BOTH);
+		shutdown(nUdpSocket, SD_BOTH);
 
-	// Close the connection to all clients
-	ClientConnection::CloseAll();
+		// Close the connection to all clients
+		ClientConnection::CloseAll();
 
-	delete m_pThread;
+		delete m_pThread;
 
-	// Close the server sockets
-	NetworkCloseSocket(listener);
-	NetworkCloseSocket(nUdpSocket);
+		// Close the server sockets
+		NetworkCloseSocket(listener);
+		NetworkCloseSocket(nUdpSocket);
+	}
 }
 
-void GLFWCALL LocalServer::ThreadFunction(void * pArgument)
+void GLFWCALL GameServer::ThreadFunction(void * pArgument)
 {
 	Thread * pThread = Thread::GetThisThreadAndRevertArgument(pArgument);
 	FpsCounter * pFpsCounter = pThread->GetFpsCounter();
 
-	LocalServer * pLocalServer = static_cast<LocalServer *>(pArgument);
+	GameServer * pGameServer = static_cast<GameServer *>(pArgument);
 
 	fd_set			master;   // master file descriptor list
 	fd_set			read_fds; // temp file descriptor list for select()
@@ -71,28 +79,28 @@ void GLFWCALL LocalServer::ThreadFunction(void * pArgument)
 		oActiveSockets.clear();
 
 		// Create the listener socket
-		if ((pLocalServer->listener = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET) {
+		if ((pGameServer->listener = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET) {
 			NetworkPrintError("socket");
 			Terminate(1);
 			return;
 		}
-		printf("Created TCP listener socket #%d.\n", (int)pLocalServer->listener);
+		printf("Created TCP listener socket #%d.\n", (int)pGameServer->listener);
 		// Create the UDP socket
-		if ((pLocalServer->nUdpSocket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
+		if ((pGameServer->nUdpSocket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
 			NetworkPrintError("socket");
 			Terminate(1);
 			return;
 		}
-		printf("Created UDP socket #%d.\n", (int)pLocalServer->nUdpSocket);
+		printf("Created UDP socket #%d.\n", (int)pGameServer->nUdpSocket);
 
 		// lose the pesky "address already in use" error message
-		/*if (setsockopt(pLocalServer->listener, SOL_SOCKET, SO_REUSEADDR, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
+		/*if (setsockopt(pGameServer->listener, SOL_SOCKET, SO_REUSEADDR, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
 			NetworkPrintError("setsockopt");
 			Terminate(1);
 			return;
 		}*/
 		// Disable the Nagle algorithm for send coalescing
-		if (setsockopt(pLocalServer->listener, IPPROTO_TCP, TCP_NODELAY, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
+		if (setsockopt(pGameServer->listener, IPPROTO_TCP, TCP_NODELAY, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
 			NetworkPrintError("setsockopt(nodelay)");
 			Terminate(1);
 			return;
@@ -103,30 +111,30 @@ void GLFWCALL LocalServer::ThreadFunction(void * pArgument)
 		myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 		myaddr.sin_port = htons(DEFAULT_PORT);
 		memset(myaddr.sin_zero, 0, sizeof(myaddr.sin_zero));
-		if (bind(pLocalServer->listener, (struct sockaddr *)&myaddr, sizeof(myaddr)) == SOCKET_ERROR) {
+		if (bind(pGameServer->listener, (struct sockaddr *)&myaddr, sizeof(myaddr)) == SOCKET_ERROR) {
 			NetworkPrintError("bind (tcp)");
 			Terminate(1);
 			return;
 		}
 		// Bind the UDP socket
-		if (bind(pLocalServer->nUdpSocket, (struct sockaddr *)&myaddr, sizeof(myaddr)) == SOCKET_ERROR) {
+		if (bind(pGameServer->nUdpSocket, (struct sockaddr *)&myaddr, sizeof(myaddr)) == SOCKET_ERROR) {
 			NetworkPrintError("bind (udp)");
 			Terminate(1);
 			return;
 		}
 
 		// listen
-		if (listen(pLocalServer->listener, 10) == SOCKET_ERROR) {
+		if (listen(pGameServer->listener, 10) == SOCKET_ERROR) {
 			NetworkPrintError("listen");
 			Terminate(1);
 			return;
 		}
 
 		// add the listener to the master set
-		FD_SET(pLocalServer->listener, &master);
-		oActiveSockets.push_back(pLocalServer->listener);
-		FD_SET(pLocalServer->nUdpSocket, &master);
-		oActiveSockets.push_back(pLocalServer->nUdpSocket);
+		FD_SET(pGameServer->listener, &master);
+		oActiveSockets.push_back(pGameServer->listener);
+		FD_SET(pGameServer->nUdpSocket, &master);
+		oActiveSockets.push_back(pGameServer->nUdpSocket);
 
 		// Create the server thread
 		/*if (!ServerCreateThread()) {
@@ -137,7 +145,7 @@ void GLFWCALL LocalServer::ThreadFunction(void * pArgument)
 
 		if (pThread->ShouldBeRunning()) {
 			// Schedule the broadcast Ping packet event
-			CTimedEvent oEvent = CTimedEvent(glfwGetTime(), BROADCAST_PING_PERIOD, &LocalServer::BroadcastPingPacket, NULL);
+			CTimedEvent oEvent = CTimedEvent(0, BROADCAST_PING_PERIOD, &GameServer::BroadcastPingPacket, NULL);
 			pTimedEventScheduler->ScheduleEvent(oEvent);
 		}
 	}
@@ -153,7 +161,7 @@ void GLFWCALL LocalServer::ThreadFunction(void * pArgument)
 	socklen_t addrlen;
 
 	// keep track of the biggest file descriptor
-	fdmax = std::max<int>((int)pLocalServer->listener, (int)pLocalServer->nUdpSocket); // so far, it's one of these two
+	fdmax = std::max<int>((int)pGameServer->listener, (int)pGameServer->nUdpSocket); // so far, it's one of these two
 
 	// Main server loop
 	while (pThread->ShouldBeRunning())
@@ -183,11 +191,10 @@ void GLFWCALL LocalServer::ThreadFunction(void * pArgument)
 			// Socket is ready for reading
 			if (FD_ISSET(i, &read_fds)) {
 				// handle new connections
-				if (i == pLocalServer->listener)
+				if (i == pGameServer->listener)
 				{
-double t1 = glfwGetTime();
 					addrlen = sizeof(remoteaddr);
-					if ((newfd = accept(pLocalServer->listener, (struct sockaddr *)&remoteaddr,
+					if ((newfd = accept(pGameServer->listener, (struct sockaddr *)&remoteaddr,
 														&addrlen)) == INVALID_SOCKET) {
 						NetworkPrintError("accept");
 					} else {
@@ -208,12 +215,11 @@ glfwUnlockMutex(oPlayerTick);
 							return;
 						}
 					}
-printf("processed accept()              in %.5lf ms\n", (glfwGetTime() - t1) * 1000);
 				}
 				// Handle UDP data from a client
-				else if (i == pLocalServer->nUdpSocket)
+				else if (i == pGameServer->nUdpSocket)
 				{
-					if ((nbytes = recvfrom(pLocalServer->nUdpSocket, reinterpret_cast<char *>(cUdpBuffer), sizeof(cUdpBuffer), 0,
+					if ((nbytes = recvfrom(pGameServer->nUdpSocket, reinterpret_cast<char *>(cUdpBuffer), sizeof(cUdpBuffer), 0,
 					  (struct sockaddr *)&oSenderAddr, &nSenderAddrLen)) == SOCKET_ERROR)
 					{
 						// Error
@@ -229,7 +235,7 @@ printf("processed accept()              in %.5lf ms\n", (glfwGetTime() - t1) * 1
 						else if ((pConnection = ClientConnection::GetFromUdpAddress(oSenderAddr)) == NULL)
 						{
 							// Check for the special case of UDP Handshake packet
-							bool bUdpHandshakePacket = NetworkProcessUdpHandshakePacket(cUdpBuffer, static_cast<u_short>(nbytes), oSenderAddr, pLocalServer->nUdpSocket);
+							bool bUdpHandshakePacket = NetworkProcessUdpHandshakePacket(cUdpBuffer, static_cast<u_short>(nbytes), oSenderAddr, pGameServer->nUdpSocket);
 
 							if (!bUdpHandshakePacket)
 								printf("Got a non-handshake UDP packet from unknown sender (%s:%d), discarding.\n",
@@ -363,19 +369,19 @@ glfwUnlockMutex(oPlayerTick);
 	pThread->ThreadEnded();
 }
 
-bool LocalServer::Start()
+bool GameServer::Start()
 {
 	return true;
 }
 
-void LocalServer::BroadcastPingPacket(void *)
+void GameServer::BroadcastPingPacket(void *)
 {
 	glfwLockMutex(oPlayerTick);
 
 	// Construct the Ping Packet
 	CPacket oPingPacket;
 	oPingPacket.pack("c", (u_char)10);
-	float fPingData = static_cast<float>(glfwGetTime());
+	float fPingData = static_cast<float>(g_pGameSession->LogicTimer().GetRealTime());
 	PingData_t oPingData;
 	memcpy(oPingData.cPingData, (void *)&fPingData, 4);
 	for (int nPingDataByte = 0; nPingDataByte < 4; ++nPingDataByte)
@@ -400,7 +406,7 @@ void LocalServer::BroadcastPingPacket(void *)
 			&& false == PlayerGet(nPlayer)->pConnection->IsLocal())
 		{
 			// TODO: Need a mutex to protect PingSentTimes
-			PlayerGet(nPlayer)->pConnection->GetPingSentTimes().push(oPingData, glfwGetTime());
+			PlayerGet(nPlayer)->pConnection->GetPingSentTimes().push(oPingData, g_pGameSession->LogicTimer().GetRealTime());
 
 			PlayerGet(nPlayer)->pConnection->SendUdp(oPingPacket);
 		}

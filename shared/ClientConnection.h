@@ -9,7 +9,7 @@ public:
 	ClientConnection(SOCKET nTcpSocket);
 	~ClientConnection();
 
-	u_short GetLastLatency() const;
+	virtual u_short GetLastLatency() const;
 	void SetLastLatency(u_short nLastLatency);
 
 	HashMatcher<PingData_t, double> & GetPingSentTimes();
@@ -27,7 +27,7 @@ public:
 	u_int GetPlayerCount() const;
 	bool IsMultiPlayer() const { return GetPlayerCount() > 1; }
 
-	void CancelBadClientTimeout();
+	void CancelNonClientTimeout();
 
 	u_char		cCurrentUpdateSequenceNumber;
 
@@ -61,11 +61,11 @@ private:
 	CPlayer *	m_pPlayer;
 	std::vector<CPlayer *>	m_oPlayers;
 
-	u_int		m_nBadClientTimeoutEventId;
+	u_int		m_nNonClientTimeoutEventId;
 
 	static std::list<ClientConnection *>		m_oConnections;
 
-	static void BadClientTimeout(void * pClientConnection);
+	static void NonClientTimeout(void * pClientConnection);
 };
 
 #endif // __ClientConnection_H__

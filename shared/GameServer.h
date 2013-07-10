@@ -1,15 +1,15 @@
 #pragma once
-#ifndef __LocalServer_H__
-#define __LocalServer_H__
+#ifndef __GameServer_H__
+#define __GameServer_H__
 
-class LocalServer
+class GameServer
 {
 public:
-	LocalServer();
-	~LocalServer();
+	GameServer(bool bNetworkEnabled);
+	~GameServer();
 
 private:
-	bool Start(void);
+	bool Start();
 	static void BroadcastPingPacket(void *);
 
 	SOCKET			listener;		// listening socket descriptor
@@ -19,4 +19,4 @@ private:
 	static void GLFWCALL ThreadFunction(void * pArgument);
 };
 
-#endif // __LocalServer_H__
+#endif // __GameServer_H__

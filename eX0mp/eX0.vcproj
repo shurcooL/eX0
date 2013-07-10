@@ -257,6 +257,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\GameServer.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\GameServer.h"
+				>
+			</File>
+			<File
 				RelativePath="..\shared\GameSession.cpp"
 				>
 			</File>
@@ -374,14 +382,6 @@
 			</File>
 			<File
 				RelativePath="..\shared\LocalController.h"
-				>
-			</File>
-			<File
-				RelativePath="..\shared\LocalServer.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\shared\LocalServer.h"
 				>
 			</File>
 			<File
@@ -506,6 +506,14 @@
 			</File>
 			<File
 				RelativePath="..\shared\PlayerStateAuther.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\RemoteClientConnection.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\RemoteClientConnection.h"
 				>
 			</File>
 			<File

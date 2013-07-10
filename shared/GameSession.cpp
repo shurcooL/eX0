@@ -8,9 +8,11 @@
 GameSession * g_pGameSession = NULL;
 
 GameSession::GameSession()
-	: m_oGameTimer(),
+	: GlobalStateSequenceNumberTEST(0),
+	  m_oLogicTimer(),
 	  m_oRenderTimer()
 {
+	m_oLogicTimer.StartSyncingTimer(&m_oRenderTimer);
 }
 
 GameSession::~GameSession()
@@ -19,7 +21,7 @@ GameSession::~GameSession()
 
 GameTimer & GameSession::LogicTimer()
 {
-	return m_oGameTimer;
+	return m_oLogicTimer;
 }
 
 GameTimer & GameSession::RenderTimer()

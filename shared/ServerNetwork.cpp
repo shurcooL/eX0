@@ -118,8 +118,8 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, ClientConnection *& pConnection)
 					// Valid Join Server Request packet
 					printf("Got a valid Join Server Request packet! yay.. yay... ;/\n");
 
-					// Cancel the bad client timeout
-					pConnection->CancelBadClientTimeout();
+					// Cancel the non-client timeout
+					pConnection->CancelNonClientTimeout();
 				} else {
 					// Drop the connection to this unsupported client
 					printf("Error: Got an INVALID Join Server Request packet, dropping connection.\n");
@@ -195,7 +195,7 @@ glfwUnlockMutex(oPlayerTick);
 			printf("Player #%d (name '%s') has entered the game.\n", pConnection->GetPlayerID(), pConnection->GetPlayer()->GetName().c_str());
 
 			// Schedule the sending of Server Update packets for this client
-			pConnection->GetPlayer()->m_dNextUpdateTime = glfwGetTime();
+			pConnection->GetPlayer()->m_dNextUpdateTime = g_pGameSession->LogicTimer().GetTime();
 		}
 		break;
 	// Send Text Message
@@ -244,7 +244,8 @@ glfwUnlockMutex(oPlayerTick);
 
 glfwLockMutex(oPlayerTick);
 			pConnection->GetPlayer(cPlayerNumber)->SetTeam((int)cTeam);
-			printf("Player #%d (name '%s') joined team %d.\n", pConnection->GetPlayerID(cPlayerNumber), pConnection->GetPlayer(cPlayerNumber)->GetName().c_str(), cTeam);
+double d = g_pGameSession->LogicTimer().GetTime() / (256.0 / g_cCommandRate); d -= static_cast<int32>(d); d *= 256;
+			printf("Player #%d (name '%s') joined team %d at logic time %f [server].\n", pConnection->GetPlayerID(cPlayerNumber), pConnection->GetPlayer(cPlayerNumber)->GetName().c_str(), cTeam, d);
 
 			// Create a Player Joined Team packet
 			CPacket oPlayerJoinedTeamPacket(CPacket::BOTH);
@@ -265,15 +266,16 @@ glfwLockMutex(oPlayerTick);
 				printf("Positioning player %d at %f, %f, %f.\n", pConnection->GetPlayerID(cPlayerNumber), x, y, pConnection->GetPlayer()->GetZ());
 
 				// DEBUG: Perform the cLastRecvedCommandSequenceNumber synchronization to time
-				double d = glfwGetTime() / (256.0 / g_cCommandRate);
-				d -= floor(d);
-				d *= 256.0;
+				double d = g_pGameSession->LogicTimer().GetRealTime() / (256.0 / g_cCommandRate);
+				d -= static_cast<int32>(d);
+				d *= 256;
 				if (false == pConnection->IsLocal()) {
-					static_cast<NetworkController *>(pConnection->GetPlayer(cPlayerNumber)->m_pController)->cLastRecvedCommandSequenceNumber = (u_char)d;
+					static_cast<NetworkController *>(pConnection->GetPlayer(cPlayerNumber)->m_pController)->cLastRecvedCommandSequenceNumber = (u_char)d + 1;
 				}
-				pConnection->GetPlayer(cPlayerNumber)->cLatestAuthStateSequenceNumber = (u_char)d;
+				pConnection->GetPlayer(cPlayerNumber)->cLatestAuthStateSequenceNumber = (u_char)d + 1;
+				pConnection->GetPlayer(cPlayerNumber)->GlobalStateSequenceNumberTEST = (u_char)d;
 
-				pConnection->GetPlayer(cPlayerNumber)->m_oInputCmdsTEST.clear();			// DEBUG: Is this the right thing to do? Right place to do it?
+				pConnection->GetPlayer(cPlayerNumber)->m_oInputCmdsTEST.clear();		// DEBUG: Is this the right thing to do? Right place to do it?
 				pConnection->GetPlayer(cPlayerNumber)->m_oAuthUpdatesTEST.clear();		// DEBUG: Is this the right thing to do? Right place to do it?
 
 				if (false == pConnection->IsLocal()) {
@@ -429,7 +431,7 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, ClientConnection * pConnection)
 			oPacket.unpack("c", &cSequenceNumber);
 
 			CPacket oTimeResponsePacket;
-			oTimeResponsePacket.pack("ccd", (u_char)106, cSequenceNumber, glfwGetTime());
+			oTimeResponsePacket.pack("ccd", (u_char)106, cSequenceNumber, g_pGameSession->LogicTimer().GetRealTime());
 			pConnection->SendUdp(oTimeResponsePacket, UDP_CONNECTED);
 		}
 		break;
@@ -448,12 +450,12 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, ClientConnection * pConnection)
 
 			// Reply with a Pung packet immediately
 			CPacket oPungPacket;
-			oPungPacket.pack("cccccd", (u_char)12, oPingData.cPingData[0], oPingData.cPingData[1], oPingData.cPingData[2], oPingData.cPingData[3], glfwGetTime());
+			oPungPacket.pack("cccccd", (u_char)12, oPingData.cPingData[0], oPingData.cPingData[1], oPingData.cPingData[2], oPingData.cPingData[3], g_pGameSession->LogicTimer().GetRealTime());
 			pConnection->SendUdp(oPungPacket);
 
 			// TODO: Mutex
 			try {
-				double dLatency = glfwGetTime() - pConnection->GetPingSentTimes().MatchAndRemoveAfter(oPingData);
+				double dLatency = g_pGameSession->LogicTimer().GetRealTime() - pConnection->GetPingSentTimes().MatchAndRemoveAfter(oPingData);
 				pConnection->SetLastLatency(static_cast<u_short>(ceil(dLatency * 10000)));
 				//printf("#%d RTT = %.4lf ms -> %d\n", pConnection->GetPlayerID(), dLatency * 1000, pConnection->GetLastLatency());
 			} catch (int) {
@@ -461,7 +463,7 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, ClientConnection * pConnection)
 				printf("DEBUG: Couldn't find a ping sent time match.\n");
 			}
 			/*if (pConnection->GetPingSentTimes().MatchAndRemoveAfter(oPingData)) {
-				double dLatency = glfwGetTime() - pConnection->GetPingSentTimes().GetLastMatchedValue();
+				double dLatency = g_pGameSession->LogicTimer().GetRealTime() - pConnection->GetPingSentTimes().GetLastMatchedValue();
 				pConnection->SetLastLatency(static_cast<u_short>(ceil(dLatency * 10000)));
 				//printf("#%d RTT = %.4lf ms -> %d\n", pConnection->GetPlayerID(), dLatency * 1000, pConnection->GetLastLatency());
 			}*/
@@ -478,11 +480,7 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, ClientConnection * pConnection)
 		if (nDataSize < 9) return false;		// Check packet size
 		else {
 glfwLockMutex(oPlayerTick);
-//double t1 = glfwGetTime();
-
 			static_cast<NetworkController *>(pConnection->GetPlayer()->m_pController)->ProcessCommand(oPacket);
-
-//static u_int i = 0; if (i++ % 50 == 0) printf("processed Client Command packet in %.5lf ms\n", (glfwGetTime() - t1) * 1000);
 glfwUnlockMutex(oPlayerTick);
 		}
 		break;

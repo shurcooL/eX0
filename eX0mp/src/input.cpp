@@ -150,7 +150,11 @@ void GLFWCALL InputProcessKey(int iKey, int iAction)
 			break;
 		// 'v' - change camera view
 		case 'V':
-			iCameraType = (iCameraType + 1) % 4;
+#define CAMERA_TYPES	(4)
+			if (GLFW_PRESS == glfwGetKey(GLFW_KEY_LSHIFT) || GLFW_PRESS == glfwGetKey(GLFW_KEY_RSHIFT))
+				iCameraType = (iCameraType - 1 + CAMERA_TYPES) % CAMERA_TYPES;
+			else
+				iCameraType = (iCameraType + 1) % CAMERA_TYPES;
 			break;
 		// restart the game
 		/*case GLFW_KEY_F1:
@@ -351,6 +355,7 @@ glfwUnlockMutex(oPlayerTick);
 				if (pLocalPlayer->pConnection->GetPlayerCount() <= 1) break;
 
 				CPlayer * pPlayerToRemove = pLocalPlayer->pConnection->GetPlayer(pLocalPlayer->pConnection->GetPlayerCount() - 1);
+				pLocalPlayer->pConnection->RemovePlayer(pPlayerToRemove);
 
 				// Send a Player Left Server to all the other clients
 				CPacket oPlayerLeftServerPacket(CPacket::BOTH);
@@ -358,8 +363,6 @@ glfwUnlockMutex(oPlayerTick);
 				oPlayerLeftServerPacket.pack("c", pPlayerToRemove->iID);
 				oPlayerLeftServerPacket.CompleteTpcPacketSize();
 				ClientConnection::BroadcastTcp(oPlayerLeftServerPacket, PUBLIC_CLIENT);
-
-				pLocalPlayer->pConnection->RemovePlayer(pPlayerToRemove);
 			}
 			break;
 		// any other key
@@ -477,7 +480,7 @@ void GLFWCALL InputProcessMouse(int iButton, int iAction)
 		case GLFW_MOUSE_BUTTON_RIGHT:
 			break;
 		case GLFW_MOUSE_BUTTON_MIDDLE:
-			if (iGameState == 0) pLocalPlayer->iSelWeapon = ((pLocalPlayer->iSelWeapon == 3) ? 2 : 3);
+			if (iGameState == 0 && nullptr != pLocalPlayer) pLocalPlayer->iSelWeapon = ((pLocalPlayer->iSelWeapon == 3) ? 2 : 3);
 			break;
 		default:
 			break;

@@ -16,10 +16,9 @@ AiController::~AiController()
 
 void AiController::ProvideRealtimeInput(double dTimePassed)
 {
-	m_oPlayer.Rotate(0.4f * static_cast<float>(dTimePassed));
+	m_oPlayer.Rotate(-0.4f * static_cast<float>(dTimePassed));
 }
 
-//bool AiController::RequestCommand(u_char/* cSequenceNumber*/)
 void AiController::ProvideNextCommand()
 {
 	SequencedCommand_t oSequencedCommand;
@@ -42,4 +41,8 @@ void AiController::ProvideNextCommand()
 	oSequencedCommand.cSequenceNumber = g_cCurrentCommandSequenceNumber;
 
 	eX0_assert(m_oPlayer.m_oInputCmdsTEST.push(oSequencedCommand), "m_oInputCmdsTEST.push(oCommand) failed, lost a command!!\n");
+}
+
+void AiController::ChildReset()
+{
 }

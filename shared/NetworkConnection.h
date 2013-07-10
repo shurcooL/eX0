@@ -40,6 +40,9 @@ public:
 	virtual bool IsLocal() { return false; }
 
 private:
+	NetworkConnection(const NetworkConnection &);
+	NetworkConnection & operator =(const NetworkConnection &);
+
 	volatile JoinStatus		m_nJoinStatus;
 
 	SOCKET		m_nTcpSocket;

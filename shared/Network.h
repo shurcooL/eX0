@@ -12,7 +12,7 @@ class CPacket;
 #define BROADCAST_PING_PERIOD		2.5		// How often to broadcast the Ping packet on the server
 #define PING_SENT_TIMES_HISTORY		5		// How many Ping or Pong sent-times to keep track of
 
-#define BAD_CLIENT_TIMEOUT			5.0		// Time (in sec) a newly connected client has to introduce itself before it gets dropped (i.e. kick anything but normal clients)
+#define NON_CLIENT_TIMEOUT			5.0		// Time (in sec) a newly connected client has to introduce itself before it gets dropped (i.e. kick anything but normal clients)
 #define UDP_HANDSHAKE_RETRY_TIME	0.1		// Time (in sec) to retransmit UDP Handshake packets until we become UDP_ACCEPTED
 #define TIME_REQUEST_SEND_RATE		0.05	// Time (in sec) in between sending of each Time Request packet
 

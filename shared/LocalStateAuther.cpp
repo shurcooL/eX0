@@ -18,7 +18,6 @@ void LocalStateAuther::AfterTick()
 {
 	while (!m_oPlayer.m_oInputCmdsTEST.empty() && m_oPlayer.m_pController->GetCommandRequests() > 0)
 	{
-//double t1 = glfwGetTime();
 		//eX0_assert(m_oInputCmdsTEST.size() == 1, "m_oAuthUpdatesTEST.size() is != 1!!!!\n");
 
 		m_oPlayer.m_pController->UseUpCommandRequest();
@@ -39,7 +38,6 @@ void LocalStateAuther::AfterTick()
 
 			m_oPlayer.cLatestAuthStateSequenceNumber = oSequencedCommand.cSequenceNumber;
 		}//end section from Network.cpp
-//static u_int i = 0; if (i++ % 50 == 0) printf("processed Command         in %.5lf ms\n", (glfwGetTime() - t1) * 1000);
 
 		// DEBUG: Used for server rendering purposes only, may not be needed later
 		{
@@ -64,7 +62,7 @@ void LocalStateAuther::SendUpdate()
 	if (m_oPlayer.pConnection == NULL || m_oPlayer.pConnection->GetJoinStatus() < IN_GAME)
 		return;
 
-	while (dCurTime >= m_oPlayer.m_dNextUpdateTime)
+	while (g_pGameSession->LogicTimer().GetTime() >= m_oPlayer.m_dNextUpdateTime)
 	{
 		m_oPlayer.m_dNextUpdateTime += 1.0 / g_cUpdateRate;
 

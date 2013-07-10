@@ -6,17 +6,19 @@ class PlayerInputListener
 	: public InputListener
 {
 public:
-	PlayerInputListener(void);
-	~PlayerInputListener(void);
+	PlayerInputListener();
+	~PlayerInputListener();
 
-	char GetMoveDirection(void);
-	bool GetStealth(void);
-	double GetRotationAmount(void);
+	char GetMoveDirection();
+	bool GetStealth();
+	double GetRotationAmount();
 
 	bool ProcessButton(int nDevice, int nButton, bool bPressed);
 	bool ProcessSlider(int nDevice, int nSlider, double dMovedAmount);
 	bool ProcessAxis(int nDevice, int nAxis, double dPosition);
 	void TimePassed(double dTimePassed);
+
+	void Reset();
 
 private:
 	/*bool	m_bForward;

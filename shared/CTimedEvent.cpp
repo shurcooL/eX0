@@ -1,4 +1,7 @@
 #include "NetworkIncludes.h"
+#include <GL/glfw.h>
+#include <set>
+#include <list>
 #include <string>
 
 /*#ifdef EX0_CLIENT
@@ -6,10 +9,16 @@
 #else
 #	include "../eX0ds/src/mmgr/mmgr.h"
 #endif // EX0_CLIENT*/
+#include "FpsCounter.h"
+#include "Thread.h"
+#include "GameTimer.h"
+#include "CTimedEventScheduler.h"
 
 #include "CTimedEvent.h"
 
-void eX0_assert(bool expression, std::string message = ""); // TODO: Create a centralized 'common stuff' file, and include it there instead
+extern CTimedEventScheduler * pTimedEventScheduler;
+
+void eX0_assert(bool expression, std::string message = "", bool fatal = false); // TODO: Create a centralized 'common stuff' file, and include it there instead
 
 u_int CTimedEvent::m_nNextFreeId = 1;
 
@@ -23,11 +32,11 @@ CTimedEvent::CTimedEvent()
 	m_pArgument = NULL;
 }
 
-CTimedEvent::CTimedEvent(double dTime, double dInterval, EventFunction_f pEventFunction, void * pArgument)
+CTimedEvent::CTimedEvent(double dDelayTime, double dInterval, EventFunction_f pEventFunction, void * pArgument)
 {
 	m_nId = m_nNextFreeId++;
 
-	m_dTime = dTime;
+	m_dTime = pTimedEventScheduler->m_oTimer.GetRealTime() + dDelayTime;
 	m_dInterval = dInterval;
 	m_pEventFunction = pEventFunction;
 	m_pArgument = pArgument;

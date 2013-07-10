@@ -71,7 +71,6 @@ extern "C"
 #include "PolyBoolean/polybool.h"
 #include "PolyBoolean/pbio.h"
 using namespace POLYBOOLEAN;
-#include "main.h"
 #include "Mgc/MgcIntr2DLinLin.h"
 #include "Mgc/MgcDist2DVecLin.h"
 using namespace Mgc;
@@ -96,18 +95,21 @@ using namespace Mgc;
 #include "../../shared/LocalStateAuther.h"
 #include "../../shared/NetworkStateAuther.h"
 #include "../../shared/player.h"
+#include "main.h"
 //#include "RemoteAuthPlayer.h"
 #include "../../shared/Network.h"
-#include "../../shared/LocalServer.h"
+#include "../../shared/GameServer.h"
 #include "../../shared/HashMatcher.h"
 #include "../../shared/NetworkConnection.h"
 #include "../../shared/ClientConnection.h"
 #include "../../shared/LocalClientConnection.h"
+#include "../../shared/RemoteClientConnection.h"
 #include "ServerConnection.h"
 #include "LocalServerConnection.h"
 #include "../../shared/CPacket.h"
 #include "../../shared/CTimedEvent.h"
 #include "../../shared/FpsCounter.h"
+#include "../../shared/GameTimer.h"
 #include "../../shared/CTimedEventScheduler.h"
 #include "../../shared/GameLogicThread.h"
 #include "OGLTextureManager/TextureManager.h"
@@ -115,7 +117,6 @@ using namespace Mgc;
 #include "InputListener.h"
 #include "PlayerInputListener.h"
 #include "InputManager.h"
-#include "../../shared/GameTimer.h"
 #include "../../shared/GameSession.h"
 
 
@@ -160,8 +161,8 @@ extern string		sLocalPlayerName;
 
 extern int			iCameraType;
 
-extern double		dTimePassed;
-extern double		dCurTime, dBaseTime;
+/*extern double		dTimePassed;
+extern double		dCurTime, dBaseTime;*/
 extern string		sFpsString;
 
 extern string		sTempString;
@@ -180,7 +181,7 @@ extern GLUquadricObj *	oQuadricObj;
 
 extern CTimedEventScheduler *	pTimedEventScheduler;
 extern GameLogicThread *		pGameLogicThread;
-extern LocalServer *			pLocalServer;
+extern GameServer *				pGameServer;
 
 extern ServerConnection *	pServer;
 

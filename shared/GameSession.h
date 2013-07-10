@@ -11,11 +11,16 @@ public:
 	GameTimer & LogicTimer(void);
 	GameTimer & RenderTimer(void);
 
+	int64		GlobalStateSequenceNumberTEST;
+
+	u_char		cRenderCurrentCommandSequenceNumberTEST;
+	double		dTickTimeTEST;
+
 private:
 	GameSession(const GameSession &);
 	GameSession & operator =(const GameSession &);
 
-	GameTimer	m_oGameTimer;
+	GameTimer	m_oLogicTimer;
 	GameTimer	m_oRenderTimer;
 };
 

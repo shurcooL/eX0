@@ -18,6 +18,10 @@ public:
 private:
 	std::multiset<CTimedEvent>	m_oEvents;
 
+public:		// DEBUG: Hack, use friend or something
+	GameTimer		m_oTimer;
+private:
+
 	GLFWmutex		m_oSchedulerMutex;
 
 	Thread *		m_pThread;

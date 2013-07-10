@@ -118,14 +118,14 @@ void SendTimeRequestPacket(void *)
 {
 	static u_int nTrpSent = 0;
 
-	// Send a time request packet
+	// Send a Time Request Packet
 	CPacket oTimeRequestPacket;
 	oTimeRequestPacket.pack("cc", (u_char)105, cNextTimeRequestSequenceNumber);
-	oSentTimeRequestPacketTimes.at(cNextTimeRequestSequenceNumber) = glfwGetTime();
+	oSentTimeRequestPacketTimes.at(cNextTimeRequestSequenceNumber) = g_pGameSession->LogicTimer().GetRealTime();
 	++cNextTimeRequestSequenceNumber;
 	pServer->SendUdp(oTimeRequestPacket, UDP_CONNECTED);
 
-	//printf("Sent TRqP #%d at %.5lf ms\n", ++nTrpSent, glfwGetTime() * 1000);
+	//printf("Sent TRqP #%d at %.5lf ms\n", ++nTrpSent, g_pGameSession->LogicTimer().GetRealTime() * 1000);
 }
 
 // Connect to a server
@@ -283,9 +283,6 @@ bool NetworkProcessTcpPacket(CPacket & oPacket)
 	u_short nDataSize; oPacket.unpack("h", &nDataSize);
 	u_char cPacketType; oPacket.unpack("c", &cPacketType);
 
-if (glfwGetKey(GLFW_KEY_TAB) == GLFW_RELEASE)
-fTempFloat = static_cast<float>(glfwGetTime());
-
 	switch (cPacketType) {
 	// Join Server Accept
 	case 2:
@@ -309,6 +306,9 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			pLocalPlayer->m_pController = new HidController(*pLocalPlayer);
 			pLocalPlayer->m_pStateAuther = new NetworkStateAuther(*pLocalPlayer);
 
+			// DEBUG: Change the fake 'new RemoteCC' to the real ServerConnection (pServer) perhaps?
+			(new RemoteClientConnection())->SetPlayer(pLocalPlayer);
+
 			// TODO: Player name (and other local settings?) needs to be assigned, validated (and corrected if needed) in a better way
 			pLocalPlayer->SetName(sLocalPlayerName);
 
@@ -330,7 +330,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 
 			// Send UDP packet with the same signature to initiate the UDP handshake
 			// Add timed event (Retransmit UdpHandshake packet every 100 milliseconds)
-			CTimedEvent oEvent(glfwGetTime(), UDP_HANDSHAKE_RETRY_TIME, &NetworkSendUdpHandshakePacket, NULL);
+			CTimedEvent oEvent(0, UDP_HANDSHAKE_RETRY_TIME, &NetworkSendUdpHandshakePacket, NULL);
 			nSendUdpHandshakePacketEventId = oEvent.GetId();
 			pTimedEventScheduler->ScheduleEvent(oEvent);
 		}
@@ -373,7 +373,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			pTimedEventScheduler->RemoveEventById(nSendUdpHandshakePacketEventId);
 
 			// Start syncing the clock, send a Time Request packet every 50 ms
-			CTimedEvent oEvent(glfwGetTime(), TIME_REQUEST_SEND_RATE, &SendTimeRequestPacket, NULL);
+			CTimedEvent oEvent(0, TIME_REQUEST_SEND_RATE, &SendTimeRequestPacket, NULL);
 			nSendTimeRequestPacketEventId = oEvent.GetId();
 			pTimedEventScheduler->ScheduleEvent(oEvent);
 
@@ -480,6 +480,8 @@ fTempFloat = static_cast<float>(glfwGetTime());
 						new CPlayer(nPlayer);
 						PlayerGet(nPlayer)->m_pController = NULL;		// No player controller
 						PlayerGet(nPlayer)->m_pStateAuther = new NetworkStateAuther(*PlayerGet(nPlayer));
+
+						(new RemoteClientConnection())->SetPlayer(PlayerGet(nPlayer));
 					}
 
 					PlayerGet(nPlayer)->SetName(sName);
@@ -543,6 +545,8 @@ glfwLockMutex(oPlayerTick);
 				new CPlayer(static_cast<u_int>(cPlayerId));
 				PlayerGet(cPlayerId)->m_pController = NULL;		// No player controller
 				PlayerGet(cPlayerId)->m_pStateAuther = new NetworkStateAuther(*PlayerGet(cPlayerId));
+
+				(new RemoteClientConnection())->SetPlayer(PlayerGet(cPlayerId));
 
 				PlayerGet(cPlayerId)->SetName(sName);
 				PlayerGet(cPlayerId)->SetTeam(2);
@@ -611,7 +615,7 @@ glfwLockMutex(oPlayerTick);
 			oPacket.unpack("cc", &cPlayerID, &cTeam);
 
 			eX0_assert(pServer->GetJoinStatus() >= IN_GAME || cPlayerID != iLocalPlayerID, "We should be IN_GAME if we receive a Player Joined Team packet about us.");
-			if (PlayerGet(cPlayerID) == NULL) { printf("Got a Player Joined Team packet, but player %d was not connected.\n", cPlayerID); return false; }
+			if (PlayerGet(cPlayerID) == NULL) { printf("ERROR: Got a Player Joined Team packet, but player %d was not connected.\n", cPlayerID); return false; }
 
 			if (false == pServer->IsLocal()) {
 				PlayerGet(cPlayerID)->SetTeam(cTeam);
@@ -633,7 +637,8 @@ glfwLockMutex(oPlayerTick);
 				}
 			}
 
-			printf("Player #%d (name '%s') joined team %d.\n", cPlayerID, PlayerGet(cPlayerID)->GetName().c_str(), cTeam);
+double d = g_pGameSession->LogicTimer().GetTime() / (256.0 / g_cCommandRate); d -= static_cast<int32>(d); d *= 256;
+			printf("Player #%d (name '%s') joined team %d at logic time %f [client].\n", cPlayerID, PlayerGet(cPlayerID)->GetName().c_str(), cTeam, d);
 			pChatMessages->AddMessage(((int)cPlayerID == iLocalPlayerID ? "Joined " : PlayerGet(cPlayerID)->GetName() + " joined ")
 				+ (cTeam == 0 ? "team Red" : (cTeam == 1 ? "team Blue" : "Spectators")) + ".");
 
@@ -652,25 +657,23 @@ glfwUnlockMutex(oPlayerTick);
 		break;
 	}
 
-if (glfwGetKey(GLFW_KEY_TAB) == GLFW_RELEASE)
-fTempFloat = static_cast<float>(glfwGetTime()) - fTempFloat;
-
 	return true;
 }
 
 void NetworkJoinGame()
 {
 	// DEBUG: Perform the cCurrentCommandSequenceNumber synchronization
-	double d = glfwGetTime() / (256.0 / g_cCommandRate);
-	d -= floor(d);
-	d *= 256.0;
-	g_cCurrentCommandSequenceNumber = (u_char)d;
-	g_dNextTickTime = ceil(glfwGetTime() / (1.0 / g_cCommandRate)) * (1.0 / g_cCommandRate);
+	double d = g_pGameSession->LogicTimer().GetRealTime() / (256.0 / g_cCommandRate);
+	d -= static_cast<int32>(d);
+	d *= 256;
+	g_cCurrentCommandSequenceNumber = (u_char)d + 1;
+	g_dNextTickTime = floor(g_pGameSession->LogicTimer().GetRealTime() / (1.0 / g_cCommandRate)) * (1.0 / g_cCommandRate);
 	printf("abc: %f, %d\n", d, g_cCurrentCommandSequenceNumber);
 	d -= floor(d);
 	printf("tick %% = %f, nextTickAt = %.10lf\n", d*100, g_dNextTickTime);
-	printf("%.8lf sec: NxtTk=%.15lf, NxtTk/12.8=%.15lf\n", glfwGetTime(), g_dNextTickTime, g_dNextTickTime / (256.0 / g_cCommandRate));
+	printf("%.8lf sec: NxtTk=%.15lf, NxtTk/12.8=%.15lf\n", g_pGameSession->LogicTimer().GetRealTime(), g_dNextTickTime, g_dNextTickTime / (256.0 / g_cCommandRate));
 	pLocalPlayer->fTicks = (float)(d * pLocalPlayer->fTickTime);
+	pLocalPlayer->GlobalStateSequenceNumberTEST = (u_char)d;
 
 	pServer->SetJoinStatus(IN_GAME);
 
@@ -712,24 +715,26 @@ bool NetworkProcessUdpPacket(CPacket & oPacket)
 			++nTrpReceived;
 
 			if (nTrpReceived <= 30) {
-				double dLatency = glfwGetTime() - oSentTimeRequestPacketTimes.at(cSequenceNumber);
+				double dLatency = g_pGameSession->LogicTimer().GetRealTime() - oSentTimeRequestPacketTimes.at(cSequenceNumber);
 				if (dLatency <= dShortestLatency) {
 					dShortestLatency = dLatency;
-					dShortestLatencyLocalTime = glfwGetTime();
+					dShortestLatencyLocalTime = g_pGameSession->LogicTimer().GetRealTime();
 					dShortestLatencyRemoteTime = dTime;
 				}
-				//printf("Got a TRP #%d at %.5lf ms latency: %.5lf ms (shortest = %.5lf ms)\n", nTrpReceived, glfwGetTime() * 1000, dLatency * 1000, dShortestLatency * 1000);
+				//printf("Got a TRP #%d at %.5lf ms latency: %.5lf ms (shortest = %.5lf ms)\n", nTrpReceived, g_pGameSession->LogicTimer().GetRealTime() * 1000, dLatency * 1000, dShortestLatency * 1000);
 			} else printf("Got an unnecessary TRP #%d packet, ignoring.\n", nTrpReceived);
 
 			if (nTrpReceived == 30) {
 				pTimedEventScheduler->RemoveEventById(nSendTimeRequestPacketEventId);
 
 				// Adjust local clock
-				glfwSetTime((glfwGetTime() - dShortestLatencyLocalTime) + dShortestLatencyRemoteTime
+				/*glfwSetTime((glfwGetTime() - dShortestLatencyLocalTime) + dShortestLatencyRemoteTime
 					+ 0.5 * dShortestLatency + 0.0000135);
 				dTimePassed = 0;
 				dCurTime = glfwGetTime();
-				dBaseTime = dCurTime;
+				dBaseTime = dCurTime;*/
+				g_pGameSession->LogicTimer().SetTime((g_pGameSession->LogicTimer().GetRealTime() - dShortestLatencyLocalTime)
+					+ dShortestLatencyRemoteTime + 0.5 * dShortestLatency + 0.0000135);
 
 				glfwLockMutex(oJoinGameMutex);
 				if (bGotPermissionToEnter)
@@ -778,7 +783,7 @@ glfwUnlockMutex(oPlayerTick);
 			oPacket.unpack("cccc", &oPingData.cPingData[0], &oPingData.cPingData[1], &oPingData.cPingData[2], &oPingData.cPingData[3]);
 
 			// Make note of the current time (t1), for own latency calculation (RTT = t2 - t1)
-			oPongSentTimes.push(oPingData, glfwGetTime());
+			oPongSentTimes.push(oPingData, g_pGameSession->LogicTimer().GetRealTime());
 
 			// Respond immediately with a Pong packet
 			CPacket oPongPacket;
@@ -793,7 +798,7 @@ glfwUnlockMutex(oPlayerTick);
 				oPacket.unpack("h", &nLastLatency);
 
 				if (PlayerGet(nPlayer) != NULL && nPlayer != iLocalPlayerID) {
-					PlayerGet(nPlayer)->SetLastLatency(nLastLatency);
+					PlayerGet(nPlayer)->pConnection->SetLastLatency(nLastLatency);
 				}
 			}
 		}
@@ -807,7 +812,7 @@ glfwUnlockMutex(oPlayerTick);
 
 		if (nDataSize != 12) return false;		// Check packet size
 		else {
-			double dLocalTimeAtPungReceive = glfwGetTime();		// Make note of current time (t2)
+			double dLocalTimeAtPungReceive = g_pGameSession->LogicTimer().GetRealTime();		// Make note of current time (t2)
 
 			PingData_t oPingData;
 			double	dServerTime;
@@ -819,7 +824,7 @@ glfwUnlockMutex(oPlayerTick);
 
 				// Calculate own latency and update it on the scoreboard
 				double dLatency = dLocalTimeAtPungReceive - dLocalTimeAtPongSend;
-				pLocalPlayer->SetLastLatency(static_cast<u_short>(ceil(dLatency * 10000)));
+				pLocalPlayer->pConnection->SetLastLatency(static_cast<u_short>(ceil(dLatency * 10000)));
 				oRecentLatency.push(dLatency, dLocalTimeAtPongSend);
 				//printf("\nOwn latency is %.5lf ms. LwrQrtl = %.5lf ms\n", dLatency * 1000, oRecentLatency.LowerQuartile() * 1000);
 
@@ -835,7 +840,8 @@ glfwUnlockMutex(oPlayerTick);
 					// TODO: Make this more robust, rethink how often to really perform this adjustment, and maybe make it smooth(er)...
 					if (oRecentTimeDifference.well_populated() && oRecentTimeDifference.Signum() != 0) {
 						double dAverageTimeDifference = -oRecentTimeDifference.WeightedMovingAverage();
-						glfwSetTime(dAverageTimeDifference + glfwGetTime());
+						//glfwSetTime(dAverageTimeDifference + glfwGetTime());
+						g_pGameSession->LogicTimer().SetTime(g_pGameSession->LogicTimer().GetRealTime() + dAverageTimeDifference);
 						oRecentTimeDifference.clear();
 						printf("Performed time adjustment by %.5lf ms.\n", dAverageTimeDifference * 1000);
 					}

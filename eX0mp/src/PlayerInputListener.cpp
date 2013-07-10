@@ -117,10 +117,25 @@ bool PlayerInputListener::ProcessButton(int nDevice, int nButton, bool bPressed)
 			m_dStealthHalfAxisState += (bPressed ? 1 : -1);
 			break;
 		case GLFW_KEY_LEFT:
-			m_dRotationAxisState -= (bPressed ? 1 : -1) / 25.0;
+			m_dRotationAxisState -= (bPressed ? 1 : -1) / 10.0;
 			break;
 		case GLFW_KEY_RIGHT:
-			m_dRotationAxisState += (bPressed ? 1 : -1) / 25.0;
+			m_dRotationAxisState += (bPressed ? 1 : -1) / 10.0;
+			break;
+		default:
+			return false;
+			break;
+		}
+
+		return true;
+	}
+	else if (nDevice == 1000)		// Mouse
+	{
+		switch (nButton)
+		{
+		case GLFW_MOUSE_BUTTON_LEFT:
+			// DEBUG: Can't access local player directly... this has to be general and work for any player
+			pLocalPlayer->bWeaponFireTEST = bPressed;
 			break;
 		default:
 			return false;
@@ -143,6 +158,20 @@ bool PlayerInputListener::ProcessSlider(int nDevice, int nSlider, double dMovedA
 			m_dRotationAxis += fRotationAmount;
 
 			return true;
+		}
+		else if (nSlider == 2)		// Mouse Z Axis
+		{
+			// DEBUG: Don't do this!! Very bad, what if dMovedAmount == 2 or 3? Need to loop this dMovedAmount number of times.
+			if (dMovedAmount <= 0)
+			{
+				// DEBUG: Can't access local player directly... this has to be general and work for any player
+				pLocalPlayer->iSelWeapon = ++pLocalPlayer->iSelWeapon % 4;
+			}
+			else
+			{
+				// DEBUG: Can't access local player directly... this has to be general and work for any player
+				pLocalPlayer->iSelWeapon = (--pLocalPlayer->iSelWeapon + 4) % 4;
+			}
 		}
 	}
 
@@ -177,6 +206,14 @@ void PlayerInputListener::TimePassed(double dTimePassed)
 	m_dStrafeAxis += m_dStrafeAxisState * dTimePassed * 20;
 	m_dRotationAxis += m_dRotationAxisState * dTimePassed * 20;
 	m_dStealthHalfAxis += m_dStealthHalfAxisState * dTimePassed * 20;
+}
+
+void PlayerInputListener::Reset()
+{
+	m_dForwardAxis = 0;
+	m_dStrafeAxis = 0;
+	m_dRotationAxis = 0;
+	m_dStealthHalfAxis = 0;
 }
 
 /*

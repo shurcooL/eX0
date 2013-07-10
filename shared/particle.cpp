@@ -180,8 +180,9 @@ void CParticle::CollisionHandling(int iParticle)
 				|| PlayerGet(iLoop1)->IsDead())
 				continue;
 
-			oVector.x = PlayerGet(iLoop1)->GetIntX();
-			oVector.y = PlayerGet(iLoop1)->GetIntY();
+			State_t oPlayerState = PlayerGet(iLoop1)->GetStateInPast(PlayerGet(iLoop1)->pConnection->IsLocal() ? 0 : kfInterpolate);
+			oVector.x = oPlayerState.fX;
+			oVector.y = oPlayerState.fY;
 
 			oParams[1] = Distance(oVector, oSegment1, &oParams[0]);
 
@@ -279,8 +280,9 @@ void CParticle::CollisionHandling(int iParticle)
 				|| PlayerGet(iLoop1)->IsDead())
 				continue;
 
-			oVector.x = PlayerGet(iLoop1)->GetIntX();
-			oVector.y = PlayerGet(iLoop1)->GetIntY();
+			State_t oPlayerState = PlayerGet(iLoop1)->GetStateInPast(PlayerGet(iLoop1)->pConnection->IsLocal() ? 0 : kfInterpolate);
+			oVector.x = oPlayerState.fX;
+			oVector.y = oPlayerState.fY;
 
 			oParams[1] = Distance(oVector, oSegment1, &oParams[0]);
 
@@ -315,14 +317,14 @@ void CParticle::Tick()
 		// is it an in-use particle?
 		if (oParticles[iLoop1].iWhatType)
 		{
-			oParticles[iLoop1].fTicks += (float)dTimePassed;
-			oParticles[iLoop1].fLife -= (float)dTimePassed;
+			oParticles[iLoop1].fTicks += (float)g_pGameSession->LogicTimer().GetTimePassed();
+			oParticles[iLoop1].fLife -= (float)g_pGameSession->LogicTimer().GetTimePassed();
 
 			// Kill the particle if it's supposed to die by hitting something
 			// and its life wasn't over at the time of impact
 			if ( (oParticles[iLoop1].fTicks / PARTICLE_TICK_TIME) >= oParticles[iLoop1].fDieAt
 				&& (oParticles[iLoop1].fLife > 0 ||													// Either still alive now
-					oParticles[iLoop1].fDieAt < (1 + oParticles[iLoop1].fLife / dTimePassed)) )		// Hit something before life ended
+					oParticles[iLoop1].fDieAt < (1 + oParticles[iLoop1].fLife / g_pGameSession->LogicTimer().GetTimePassed())) )		// Hit something before life ended
 			{
 				// give damage to whoever
 				if (oParticles[iLoop1].iWillHit != -1) {
@@ -357,7 +359,7 @@ void CParticle::Tick()
 						oVector.x = PlayerGet(iLoop2)->GetIntX();
 						oVector.y = PlayerGet(iLoop2)->GetIntY();
 
-						oVector -= oParticles[iLoop1].oPosition + (1 + oParticles[iLoop1].fLife / (float)dTimePassed) * oParticles[iLoop1].oVelocity;
+						oVector -= oParticles[iLoop1].oPosition + (1 + oParticles[iLoop1].fLife / (float)g_pGameSession->LogicTimer().GetTimePassed()) * oParticles[iLoop1].oVelocity;
 
 						float fDistance = oVector.Length();
 

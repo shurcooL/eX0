@@ -9,6 +9,7 @@ public:
 	~InputManager();
 
 	void RegisterListener(InputListener * pListener);
+	void UnregisterListener(InputListener * pListener);
 
 	void ShowMouseCursor(void);
 	void HideMouseCursor(void);
@@ -30,6 +31,7 @@ private:
 	void InitializeJoysticks(void);
 
 	std::vector<InputListener *>		m_oListeners;
+	GLFWmutex							m_oListenersMutex;
 
 	bool	m_bIsMousePointerVisible;
 

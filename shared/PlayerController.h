@@ -6,16 +6,19 @@ class PlayerController
 {
 public:
 	PlayerController(CPlayer & oPlayer);
-	virtual ~PlayerController(void);
+	virtual ~PlayerController();
 
-	void RequestNextCommand(void);
-	u_int GetCommandRequests(void);
-	void UseUpCommandRequest(void);
+	void RequestNextCommand();
+	u_int GetCommandRequests();
+	void UseUpCommandRequest();
 
-	virtual bool IsLocal(void) = 0;
+	void Reset();
+
+	virtual bool IsLocal() = 0;
 
 protected:
-	virtual void ProvideNextCommand(void) = 0;
+	virtual void ProvideNextCommand() = 0;
+	virtual void ChildReset() = 0;
 
 	CPlayer & m_oPlayer;
 

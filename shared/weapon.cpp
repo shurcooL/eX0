@@ -5,7 +5,7 @@
 #	include "../eX0ds/src/globals.h"
 #endif // EX0_CLIENT
 
-WeaponSpec_t	oWeaponSpecs[3];
+WeaponSpec_t	oWeaponSpecs[4];
 
 // implementation of the player class
 CWeapon::CWeapon()
@@ -25,7 +25,7 @@ void CWeapon::Tick()
 #ifdef EX0_CLIENT
 //if (this->iOwnerID == 0) printf("dTimer: %f => ", dTimer);
 	// TODO - The whole weapon timing/event scheduling (rate of fire, reloading, etc.) system needs to be reworked
-	if (dTimer > 0.0) dTimer -= dTimePassed;
+	if (dTimer > 0.0) dTimer -= g_pGameSession->LogicTimer().GetTimePassed();
 	else dTimer = 0.0;
 //if (this->iOwnerID == 0) printf("%f\n", dTimer);
 	if ((bReloading || (bReloadRequested && glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE))
@@ -199,6 +199,11 @@ void CWeapon::Init(int iWhoIsOwner, int iWeapon)
 	iWhatWeapon = iWeapon;
 	iClips = oWeaponSpecs[iWhatWeapon].iClips;
 	iClipAmmo = oWeaponSpecs[iWhatWeapon].iClipAmmo;
+
+	bReloading = false;
+	bReloadRequested = false;
+	dTimer = 0;
+	m_oMuzzleFlashState = READY;
 }
 
 int CWeapon::GetClips()
@@ -252,4 +257,17 @@ void WeaponInitSpecs()
 	oWeaponSpecs[2].fInaccuracy = 0.0;
 	oWeaponSpecs[2].fMaxDamage = 25;
 	oWeaponSpecs[2].fMaxLife = 3.0;
+
+	// non-auto gun TEST
+	oWeaponSpecs[3].sName = "non-auto gun (to be)";
+	oWeaponSpecs[3].iWhatType = CParticle::BULLET;		// bullets
+	oWeaponSpecs[3].iClips = 6;
+	oWeaponSpecs[3].iMaxClips = 6;
+	oWeaponSpecs[3].iClipAmmo = 7;
+	oWeaponSpecs[3].fROF = 1.300f;
+	oWeaponSpecs[3].fReloadTime = 2.540f;
+	oWeaponSpecs[3].fProjSpeed = 155;
+	oWeaponSpecs[3].fInaccuracy = 0.15f;
+	oWeaponSpecs[3].fMaxDamage = 180;
+	oWeaponSpecs[3].fMaxLife = 1000;
 }

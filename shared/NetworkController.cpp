@@ -19,8 +19,11 @@ NetworkController::~NetworkController()
 	glfwDestroyMutex(m_oMutex);
 }
 
-//bool NetworkController::RequestCommand(u_char/* cSequenceNumber*/)
 void NetworkController::ProvideNextCommand()
+{
+}
+
+void NetworkController::ChildReset()
 {
 }
 

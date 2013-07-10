@@ -11,18 +11,22 @@
 #endif // EX0_CLIENT*/
 #include "../shared/FpsCounter.h"
 #include "../shared/Thread.h"
+#include "../shared/GameTimer.h"
+#include "CTimedEvent.h"
 
 #include "CTimedEventScheduler.h"
 
-#include "CTimedEvent.h"
-void eX0_assert(bool expression, std::string message = ""); // TODO: Create a centralized 'common stuff' file, and include it there instead
+void eX0_assert(bool expression, std::string message = "", bool fatal = false); // TODO: Create a centralized 'common stuff' file, and include it there instead
 
 CTimedEventScheduler * pTimedEventScheduler = NULL;
 
 CTimedEventScheduler::CTimedEventScheduler()
 	: m_oEvents(),
+	  m_oTimer(),
 	  m_oSchedulerMutex(glfwCreateMutex())
 {
+	m_oTimer.Start();
+
 	m_pThread = new Thread(&CTimedEventScheduler::ThreadFunction, this, "Scheduler");
 }
 
@@ -45,13 +49,13 @@ void GLFWCALL CTimedEventScheduler::ThreadFunction(void * pArgument)
 	// Main scheduler loop
 	while (pThread->ShouldBeRunning())
 	{
+		pFpsCounter->IncrementCounter();
+
 		glfwLockMutex(pScheduler->m_oSchedulerMutex);
 
 		while (!pScheduler->m_oEvents.empty()
-			&& glfwGetTime() >= (oEvent = *pScheduler->m_oEvents.begin()).GetTime())
+			&& pScheduler->m_oTimer.GetRealTime() >= (oEvent = *pScheduler->m_oEvents.begin()).GetTime())
 		{
-			pFpsCounter->IncrementCounter();
-
 			pScheduler->m_oEvents.erase(pScheduler->m_oEvents.begin());
 			oEvent.Execute();
 			if (oEvent.m_dInterval > 0) {
@@ -64,7 +68,7 @@ void GLFWCALL CTimedEventScheduler::ThreadFunction(void * pArgument)
 
 		// Sleep
 		/*if (!pScheduler->m_oEvents.empty())
-			glfwSleep(pScheduler->m_oEvents.top().GetTime() - glfwGetTime());
+			glfwSleep(pScheduler->m_oEvents.top().GetTime() - pScheduler->m_oTimer.GetRealTime());
 		else
 			glfwSleep(0.0);*/
 		glfwSleep(0.0001);

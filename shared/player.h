@@ -53,7 +53,7 @@ public:
 	void CalcTrajs();
 	void CalcColResp();
 	void Render();
-	void RenderInPast(float fTimeAgo);
+	void RenderInPast(double dTimeAgo);
 	void SetTeam(int nTeam);
 	int GetTeam();
 	void SetStealth(bool bOn);
@@ -88,27 +88,30 @@ public:
 	int GetSelClipAmmo();
 	void InitWeapons();
 	void BuyClip();
-	//void FakeTick();
 	bool IsReloading();
 	float GetHealth();
 	void GiveHealth(float fValue);
 	bool IsDead();
-	string & GetName();
-	void SetName(string & sNewName);
-//#ifdef EX0_CLIENT
+	std::string & GetName();
+	void SetName(std::string & sNewName);
 	void RespawnReset();
-#ifdef EX0_CLIENT
-	void SetLastLatency(u_short nLastLatency);
-	u_short GetLastLatency() const;
-#endif // EX0_CLIENT
 	PlayerController * m_pController;
 	PlayerStateAuther * m_pStateAuther;
 	void SeekRealtimeInput(double dTimePassed);
 	void Tick();
+	bool bWeaponFireTEST;
+	void WeaponTickTEST();
 	void AfterTick()				{ if (m_pStateAuther) m_pStateAuther->AfterTick(); }
 	void ProcessAuthUpdateTEST()	{ if (m_pStateAuther) m_pStateAuther->ProcessAuthUpdateTEST(); }
 	void SendUpdate()				{ if (m_pStateAuther) m_pStateAuther->SendUpdate(); }
 	double		m_dNextUpdateTime;
+
+#ifdef EX0_CLIENT
+	State_t GetStateInPastX(float fTimeAgo);
+	State_t GetStateInPast(double dTimeAgo);
+#endif // EX0_CLIENT
+
+	int64		GlobalStateSequenceNumberTEST;
 
 	u_char		cLatestAuthStateSequenceNumber;
 
@@ -148,15 +151,8 @@ private:
 	string		sName;
 	int			m_nTeam;
 
-//#ifdef EX0_CLIENT
 	std::list<SequencedState_t>		oStateHistory;		// The front has the latest entries
 	State_t							oOnlyKnownState;
-
-#ifdef EX0_CLIENT
-	u_short		m_nLastLatency;
-
-	State_t GetStateInPast(float fTimeAgo);
-#endif // EX0_CLIENT
 
 	static std::vector<CPlayer *>		m_oPlayers;
 	static u_int						m_nPlayerCount;

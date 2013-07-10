@@ -1,21 +1,21 @@
 #pragma once
-#ifndef __LocalClientConnection_H__
-#define __LocalClientConnection_H__
+#ifndef __RemoteClientConnection_H__
+#define __RemoteClientConnection_H__
 
-class LocalClientConnection
+class RemoteClientConnection
 	: public ClientConnection
 {
 public:
-	LocalClientConnection();
-	~LocalClientConnection();
+	RemoteClientConnection();
+	~RemoteClientConnection();
 
-	bool SendTcp(CPacket & oPacket, JoinStatus nMinimumJoinStatus = IN_GAME);
+	/*bool SendTcp(CPacket & oPacket, JoinStatus nMinimumJoinStatus = IN_GAME);
 	bool SendUdp(CPacket & oPacket, JoinStatus nMinimumJoinStatus = IN_GAME);
 
-	bool IsLocal() { return true; }
+	bool IsLocal();// { return false; }
 
 	u_short GetLastLatency() const;
-	/*void SetLastLatency(u_short nLastLatency);
+	void SetLastLatency(u_short nLastLatency);
 
 	HashMatcher<PingData_t, double> & GetPingSentTimes();
 
@@ -59,6 +59,10 @@ private:
 	static std::list<ClientConnection *>		m_oConnections;
 
 	static void BadClientTimeout(void * pClientConnection);*/
+
+private:
+	RemoteClientConnection(const RemoteClientConnection &);
+	RemoteClientConnection & operator =(const RemoteClientConnection &);
 };
 
-#endif // __LocalClientConnection_H__
+#endif // __RemoteClientConnection_H__

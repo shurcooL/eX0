@@ -12,8 +12,8 @@ public:
 	void ProvideRealtimeInput(double dTimePassed);
 
 protected:
-	//bool RequestCommand(u_char cSequenceNumber);
-	void ProvideNextCommand(void);
+	void ProvideNextCommand();
+	void ChildReset();
 
 private:
 	AiController(const AiController &);

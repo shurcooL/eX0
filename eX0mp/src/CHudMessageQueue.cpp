@@ -25,11 +25,11 @@ void CHudMessageQueue::AddMessage(string sMessage)
 	if (m_oMessages.size() >= m_nMessageLimit) {
 		// Full message queue
 		m_oMessages.pop_front();
-		m_dMessageTimer = glfwGetTime() + m_dMessageTimeout;
+		m_dMessageTimer = g_pGameSession->RenderTimer().GetTime() + m_dMessageTimeout;
 	} else if (m_oMessages.empty()) {
 		// Empty message queue
-		m_dMessageTimer = glfwGetTime() + 1.5 * m_dMessageTimeout;
-	} else if (m_dMessageTimer <= glfwGetTime() + m_kdMessageTimeoutThreshold) {
+		m_dMessageTimer = g_pGameSession->RenderTimer().GetTime() + 1.5 * m_dMessageTimeout;
+	} else if (m_dMessageTimer <= g_pGameSession->RenderTimer().GetTime() + m_kdMessageTimeoutThreshold) {
 		// Neither full or empty, but the last message is about to disappear
 		m_oMessages.pop_front();
 		m_dMessageTimer += m_dMessageTimeout;
@@ -45,7 +45,7 @@ void CHudMessageQueue::Render()
 
 	if (!m_oMessages.empty())
 	{
-		if (m_dMessageTimer <= glfwGetTime()) {
+		if (m_dMessageTimer <= g_pGameSession->RenderTimer().GetTime()) {
 			m_oMessages.pop_front();
 			m_dMessageTimer += m_dMessageTimeout;
 		}

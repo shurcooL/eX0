@@ -22,13 +22,18 @@ void GLFWCALL GameLogicThread::ThreadFunction(void * pArgument)
 	Thread * pThread = Thread::GetThisThreadAndRevertArgument(pArgument);
 	FpsCounter * pFpsCounter = pThread->GetFpsCounter();
 
+	// Wait until LogicTimer is started
+	while (false == g_pGameSession->LogicTimer().IsStarted() && pThread->ShouldBeRunning())
+		glfwSleep(0);
+
 	// Main loop
 	while (pThread->ShouldBeRunning())
 	{
 		// time passed calcs
-		dCurTime = glfwGetTime();
+		/*dCurTime = glfwGetTime();
 		dTimePassed = dCurTime - dBaseTime;
-		dBaseTime = dCurTime;
+		dBaseTime = dCurTime;*/
+		g_pGameSession->LogicTimer().UpdateTime();
 
 		// fps calcs
 		pFpsCounter->IncrementCounter();
@@ -37,8 +42,12 @@ void GLFWCALL GameLogicThread::ThreadFunction(void * pArgument)
 		// in game
 		{
 glfwLockMutex(oPlayerTick);
-			while (dCurTime >= g_dNextTickTime)
+			/*while (g_pGameSession->LogicTimer().GetTime() >= g_dNextTickTime)
 			{
+// CONTINUE: Ok, problem here is that the very first tick (when g_dNextTickTime == 0) happens before local player even joins the server,
+//           So, need to figure something out to fix that, or go back to not performing the 1st tick...
+//printf("tick(++%d) - logic_1 %f\n", g_cCurrentCommandSequenceNumber, g_pGameSession->LogicTimer().GetRealTime());
+
 				g_dNextTickTime += 1.0 / g_cCommandRate;
 				++g_cCurrentCommandSequenceNumber;
 
@@ -46,6 +55,20 @@ glfwLockMutex(oPlayerTick);
 					if (PlayerGet(nPlayer) != NULL)
 						PlayerGet(nPlayer)->Tick();
 				}
+			}*/
+			while (g_pGameSession->LogicTimer().GetTime() >= g_dNextTickTime)
+			{
+				g_dNextTickTime += 1.0 / g_cCommandRate;
+				++g_cCurrentCommandSequenceNumber;
+				++g_pGameSession->GlobalStateSequenceNumberTEST;
+			}
+			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+				if (PlayerGet(nPlayer) != NULL)
+					PlayerGet(nPlayer)->Tick();
+			}
+			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+				if (PlayerGet(nPlayer) != NULL)
+					PlayerGet(nPlayer)->WeaponTickTEST();
 			}
 			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
 				if (PlayerGet(nPlayer) != NULL) {
@@ -70,8 +93,8 @@ glfwLockMutex(oPlayerTick);
 glfwUnlockMutex(oPlayerTick);
 
 			// particle engine tick
-			/*oParticleEngine.Tick();
-			if (bPaused) dTimePassed = fTempFloat;*/
+			oParticleEngine.Tick();
+			//if (bPaused) dTimePassed = fTempFloat;
 
 //#ifndef EX0_CLIENT
 glfwLockMutex(oPlayerTick);
@@ -84,6 +107,8 @@ glfwUnlockMutex(oPlayerTick);
 		}
 
 		glfwSleep(0.0001);
+		//glfwSleep(0.0678);
+		//glfwSleep(0.234);
 	}
 
 	pThread->ThreadEnded();

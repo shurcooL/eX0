@@ -27,6 +27,8 @@ NetworkConnection::NetworkConnection(const SOCKET nTcpSocket)
 
 NetworkConnection::~NetworkConnection()
 {
+	// DEBUG: Do I need to close the UDP socket here or not??
+
 	if (GetJoinStatus() >= TCP_CONNECTED && GetTcpSocket() != INVALID_SOCKET) {
 		// Close the connection socket
 		shutdown(GetTcpSocket(), SD_BOTH);

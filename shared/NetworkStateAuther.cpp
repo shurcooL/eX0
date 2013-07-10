@@ -64,14 +64,6 @@ void NetworkStateAuther::AfterTick()
 			}
 			if ((rand() % 100) >= 0 || iLocalPlayerID != 0) // DEBUG: Simulate packet loss
 				pServer->SendUdp(oClientCommandPacket);
-
-			// DEBUG: Keep state history for local player
-			/*if ((rand() % 100) >= 0) {
-				SequencedState_t oSequencedState;
-				oSequencedState.cSequenceNumber = cCurrentCommandSequenceNumber;
-				oSequencedState.oState = oMove.oState;
-				PushStateHistory(oSequencedState);
-			}*/
 		//}
 	}
 }
