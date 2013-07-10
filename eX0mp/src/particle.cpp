@@ -163,11 +163,11 @@ void CParticle::CollisionHandling(int iParticle)
 		{
 			// a bullet can't hit his owner
 			if (!PlayerGet(iLoop1)->bConnected || iLoop1 == oParticles[iParticle].iOwnerID
-			  || oPlayers[iLoop1]->IsDead())
+			  || PlayerGet(iLoop1)->IsDead())
 				continue;
 
-			oVector.x = oPlayers[iLoop1]->GetIntX();
-			oVector.y = oPlayers[iLoop1]->GetIntY();
+			oVector.x = PlayerGet(iLoop1)->GetIntX();
+			oVector.y = PlayerGet(iLoop1)->GetIntY();
 
 			oParams[1] = Distance(oVector, oSegment1, &oParams[0]);
 

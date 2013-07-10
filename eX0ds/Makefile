@@ -1,23 +1,25 @@
-SRC_PATH :=
+SRC_PATH := src/
+SHARED_PATH := ../shared/
 
 CC     = g++
-CFLAGS = -I../glfw/include -I../../glfw/include -I/usr/X11R6/include \
-	-O3 -ffast-math
+CFLAGS = -I../../../Libraries/glfw/include -I/usr/X11R6/include \
+	-O3 -ffast-math -pthread
 # -w -Wall
-LFLAGS = -L../glfw/lib/x11 -L../../glfw/lib/x11 -L/usr/X11R6/lib -lglfw -lGL
-# -lGLU -lX11 -lXxf86vm -lXext -lpthread -lm
+LFLAGS = ../../../Libraries/glfw/lib/x11/libglfw.a -L/usr/X11R6/lib -lGL \
+	-lX11 -lXrandr -lpthread -lm
+# -lXxf86vm -lXext
 
 # Rule for eX0ds
 eX0ds: $(SRC_PATH)Main.cpp $(SRC_PATH)player.cpp $(SRC_PATH)Network.cpp $(SRC_PATH)mmgr/mmgr.cpp \
 $(SRC_PATH)Mgc/MgcDist2DVecLin.cpp $(SRC_PATH)Mgc/MgcIntr2DLinLin.cpp $(SRC_PATH)Mgc/MgcMath.cpp \
-$(SRC_PATH)Mgc/MgcVector2.cpp $(SRC_PATH)CClient.cpp $(SRC_PATH)CPacket.cpp $(SRC_PATH)col_hand.cpp \
-$(SRC_PATH)game_data.cpp $(SRC_PATH)math.cpp $(SRC_PATH)particle.cpp $(SRC_PATH)weapon.cpp \
-$(SRC_PATH)gpc/gpc.o $(SRC_PATH)Server.cpp $(SRC_PATH)CTimedEvent.cpp $(SRC_PATH)CTimedEventScheduler.cpp
+$(SRC_PATH)Mgc/MgcVector2.cpp $(SRC_PATH)CClient.cpp $(SHARED_PATH)CPacket.cpp $(SHARED_PATH)col_hand.cpp \
+$(SRC_PATH)game_data.cpp $(SHARED_PATH)math.cpp $(SRC_PATH)particle.cpp $(SRC_PATH)weapon.cpp \
+$(SRC_PATH)gpc/gpc.o $(SRC_PATH)Server.cpp $(SHARED_PATH)CTimedEvent.cpp $(SHARED_PATH)CTimedEventScheduler.cpp
 	$(CC) $(CFLAGS) $(SRC_PATH)Main.cpp $(SRC_PATH)player.cpp $(SRC_PATH)Network.cpp $(SRC_PATH)mmgr/mmgr.cpp \
 $(SRC_PATH)Mgc/MgcDist2DVecLin.cpp $(SRC_PATH)Mgc/MgcIntr2DLinLin.cpp $(SRC_PATH)Mgc/MgcMath.cpp \
-$(SRC_PATH)Mgc/MgcVector2.cpp $(SRC_PATH)CClient.cpp $(SRC_PATH)CPacket.cpp $(SRC_PATH)col_hand.cpp \
-$(SRC_PATH)game_data.cpp $(SRC_PATH)math.cpp $(SRC_PATH)particle.cpp $(SRC_PATH)weapon.cpp \
-$(SRC_PATH)gpc/gpc.o $(SRC_PATH)Server.cpp $(SRC_PATH)CTimedEvent.cpp $(SRC_PATH)CTimedEventScheduler.cpp \
+$(SRC_PATH)Mgc/MgcVector2.cpp $(SRC_PATH)CClient.cpp $(SHARED_PATH)CPacket.cpp $(SHARED_PATH)col_hand.cpp \
+$(SRC_PATH)game_data.cpp $(SHARED_PATH)math.cpp $(SRC_PATH)particle.cpp $(SRC_PATH)weapon.cpp \
+$(SRC_PATH)gpc/gpc.o $(SRC_PATH)Server.cpp $(SHARED_PATH)CTimedEvent.cpp $(SHARED_PATH)CTimedEventScheduler.cpp \
 $(LFLAGS) -o $@
 
 $(SRC_PATH)gpc/gpc.o: $(SRC_PATH)gpc/gpc.c

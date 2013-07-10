@@ -140,7 +140,6 @@ void InputProcessKey(int iKey, int iAction)
 				nChatMode = 0;
 				glfwDisable(GLFW_KEY_REPEAT);
 				// Send the chat string
-				// DEBUG: Finish
 				if (sChatString.length() > 0) {
 					// Send the text message packet
 					CPacket oSendMessagePacket;
@@ -173,7 +172,6 @@ void InputProcessKey(int iKey, int iAction)
 		case GLFW_KEY_ESC:
 			if (bSelectTeamDisplay && iGameState == 0) {
 				bSelectTeamDisplay = false;
-				printf("Cancelled team selection.\n");
 			} else {
 				Terminate(0);
 			}

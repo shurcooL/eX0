@@ -617,7 +617,7 @@ void CollectPline(PLINE2 * pline, PAREA ** r, PLINE2 ** holes, PAREA::PBOPCODE n
     } // nLabel == P_ISECTED
     else
     {
-		static const CNTRRULE cntrRule[] = 
+		static const CNTRRULE cntrRule[] =
 		{
 			CntrRuleUn,		//	PBO_UNITE,
 			CntrRuleIs,		//	PBO_ISECT,

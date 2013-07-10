@@ -1,3 +1,7 @@
+#pragma once
+#ifndef __IndexedCircularBuffer_H__
+#define __IndexedCircularBuffer_H__
+
 template <typename T, typename Tp> class IndexedCircularBuffer
 {
 public:
@@ -31,3 +35,5 @@ private:
 };
 
 #include "IndexedCircularBuffer.cpp"
+
+#endif // __IndexedCircularBuffer_H__

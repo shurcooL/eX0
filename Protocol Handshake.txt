@@ -1,51 +1,70 @@
 eX0 Protocol Handshake Draft
 ============================
 
- Client                                        | Server
+ Client					       | Server
 ===============================================|================================================
 					       |
 ----------------------------------------- Connecting -------------------------------------------
 Connect (TCP) to server,
-Set nJoinStatus=TCP_CONN.
+Set nJoinStatus = TCP_CONN.
 						Accept TCP connection,
 						Create CClient(nTcpSocket),
 						nJoinStatus is TCP_CONN by default.
-Send Join Game Request packet (type 1)
-with random unique signature.
-						Send Join Accept packet (type 2),
-						Set nJoinStatus=ACCEPTED.
-Set nJoinStatus=ACCEPTED,
-Send UDP packet (type 100) with same sig.
-						On UDP receive, set nJoinStatus=UDP_CONN,
+Create the networking thread,
+Send Join Server Request (1) with
+  a random unique signature.
+						Receive Join Server Request,
+						Send Join Server Accept (2),
+						Set nJoinStatus = ACCEPTED.
+Receive Join Server Accept,
+Set nJoinStatus = ACCEPTED,
+Start sending UDP packets (100) with same sig.
+						On UDP receive, set nJoinStatus = UDP_CONN,
 						Send UDP Conn Established (5).
 Receive UDP Conn Established,
-Set nJoinStatus=UDP_CONN.
+Set nJoinStatus = UDP_CONN.
 
------------------------------------------ Info Exchange ----------------------------------------
+---------------------------------------- Info Exchange -----------------------------------------
 Start syncing the clock,
-Send Local Player Info (30).
+Send Local Player Info (30),
+Set nJoinStatus = PUBLIC_CLIENT.
 						Receive Local Player Info,
+						Set nJoinStatus = PUBLIC_CLIENT,
+						Set Player Team = SPECTATOR,
 						Send Load Level (20),
-						Send Curr Players Info (21).
+						Send Curr Players Info (21),
+						Send Player Joined Server (25) to all others,
+						Send Enter Game Permission (6).
 Receive Load Level,
 Receive Curr Players Info.
 
------------------------------------------ Spectator --------------------------------------------
-						Send Permission To Join (6).
-Receive Permission To Join,
-Set nJoinStatus=IN_GAME,
-Send Client Entered Game (7).
-						Receieve Client Entered Game,
-						Set nJoinStatus=IN_GAME.
-						Send Player Entered Game to all others (25).
+----------------------------------- Join Game (as spectator for now) ---------------------------
+Receive Permission to Join,
+Finish syncing the clock,
+Set nJoinStatus = IN_GAME,
+Start running states in sync with server,
+Send Entered Game Notification (7).
+						Receive Entered Game Notification,
+						Set nJoinStatus = IN_GAME.
+						...
+						Send Server Update (2).
+Receive Server Update.
 
 ----------------------------------------- Start Game -------------------------------------------
-Send Own Position (1).
-						Receive Own Position,
-						Send Other Players Position (2).
-Receive Other Players Position.
+Send Join Team Request (27) = RED | BLUE.
+						Receive Join Team Request,
+						Set Player Team = RED | BLUE,
+						Broadcast Player Joined Team (28) = RED | BLUE.
+Receive Player Joined Team,
+Set Player Team = RED | BLUE.
 
------------------------------------------ Game Started -----------------------------------------
+---------------------------------------- Game Started ------------------------------------------
+Send Client Command (1).
+						Receive Client Command,
+						Send Server Update (2).
+Receive Server Update.
+
+---------------------------------------- Client Leaves -----------------------------------------
 Disconnect (TCP) gracefully.
-						Send Player Left Game to all others (26),
+						Send Player Left Server to all others (26),
 						Delete CClient().

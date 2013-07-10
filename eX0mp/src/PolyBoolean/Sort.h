@@ -60,7 +60,7 @@ VNODE * MergeSort(VNODE ** Head)
 							p = (t = t->nxt() = p)->nxt();
 							if (!p) nP = -1; else --nP;
 						}
-						else 
+						else
 						{
 							if (nQ < 1)
 								break;
@@ -94,7 +94,7 @@ VNODE * MergeSort(VNODE ** Head)
 							p = (t = t->nxt() = p)->nxt();
 							if (!p) nP = -1; else --nP;
 						}
-						else 
+						else
 						{
 							if (nQ < 1)
 								break;
@@ -143,7 +143,7 @@ VNODE * MergeSort(VNODE ** Head)
 							p = (t = t->nxt() = p)->nxt();
 							if (!p) nP = -1; else --nP;
 						}
-						else 
+						else
 						{
 							if (nQ < 1)
 								break;
@@ -177,7 +177,7 @@ VNODE * MergeSort(VNODE ** Head)
 							p = (t = t->nxt() = p)->nxt();
 							if (!p) nP = -1; else --nP;
 						}
-						else 
+						else
 						{
 							if (nQ < 1)
 								break;

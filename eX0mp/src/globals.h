@@ -9,16 +9,15 @@ p = pointer
 */
 
 #pragma once			// used to optimize compilation times (somehow)
-
-#ifndef _globals_H_		// if we haven't done this where this file can see it, then...
-#define _globals_H_		// all header files included
+#ifndef __globals_H__		// if we haven't done this where this file can see it, then...
+#define __globals_H__		// all header files included
 
 ///////////////////////
 // standard includes //
 ///////////////////////
-//#include "MMGR/nommgr.h"	// first disable the Fluid Studios Memory Manager
 
-#include "NetworkIncludes.h"
+#define NOMINMAX
+#include "../../shared/NetworkIncludes.h"
 
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -71,8 +70,8 @@ using namespace POLYBOOLEAN;
 #include "Mgc/MgcDist2DVecLin.h"
 using namespace Mgc;
 #include "IndexedCircularBuffer.h"
-#include "math.h"
-#include "col_hand.h"
+#include "../../shared/math.h"
+#include "../../shared/col_hand.h"
 #include "input.h"
 #include "render.h"
 #include "CHudMessageQueue.h"
@@ -81,11 +80,13 @@ using namespace Mgc;
 #include "particle.h"
 #include "weapon.h"
 #include "player.h"
-#include "Network.h"
-#include "CPacket.h"
-#include "CTimedEvent.h"
-#include "CTimedEventScheduler.h"
+#include "../../shared/Network.h"
+#include "../../shared/CPacket.h"
+#include "../../shared/CTimedEvent.h"
+#include "../../shared/CTimedEventScheduler.h"
 #include "OGLTextureManager/TextureManager.h"
+#include "../../shared/HashMatcher.h"
+#include "../../shared/MovingAverage.h"
 
 
 //////////////////
@@ -175,4 +176,4 @@ extern u_char			cUpdateRate;
 extern bool				bSelectTeamDisplay;
 extern bool				bSelectTeamReady;
 
-#endif // _globals_H_
+#endif // __globals_H__

@@ -37,6 +37,7 @@ CPlayer::CPlayer()
 
 	// Network related
 	bConnected = false;
+	m_nLastLatency = 0;
 }
 
 CPlayer::~CPlayer()
@@ -108,7 +109,6 @@ glfwLockMutex(oPlayerTick);
 				oMove.oState.fX = GetX(); oMove.oState.fY = GetY(); oMove.oState.fZ = GetZ();
 				oUnconfirmedMoves.push(oMove, cCurrentCommandSequenceNumber);
 
-				//iTempInt = __max(iTempInt, oUnconfirmedMoves.size() - 1);
 				iTempInt = max<int>(iTempInt, (int)oUnconfirmedMoves.size() - 1);
 
 				// Send the Update Own Position packet
@@ -598,6 +598,16 @@ void CPlayer::SetZ(float fValue)
 	if (fZ < 0.0) fZ += Math::TWO_PI;
 }
 
+short unsigned int CPlayer::GetLastLatency()
+{
+	return m_nLastLatency;
+}
+
+void CPlayer::SetLastLatency(short unsigned int nLastLatency)
+{
+	m_nLastLatency = nLastLatency;
+}
+
 void CPlayer::Render()
 {
 	// select player color
@@ -978,8 +988,8 @@ void CPlayer::UpdateInterpolatedPos()
 
 string & CPlayer::GetName(void) { return sName; }
 void CPlayer::SetName(string &sNewName) {
-	if (sNewName.length() > 0 && sNewName.length() <= 32)
-		sName = sNewName;
+	if (sNewName.length() > 0) sName = sNewName.substr(0, 32);
+	else sName = "Unnamed Player";
 }
 
 // allocate memory for all the players
@@ -987,7 +997,10 @@ void PlayerInit()
 {
 	for (int iLoop1 = 0; iLoop1 < 32; iLoop1++)
 	{
-		if (oPlayers[iLoop1] != NULL) delete oPlayers[iLoop1];
+		if (oPlayers[iLoop1] != NULL) {
+			delete oPlayers[iLoop1];
+			oPlayers[iLoop1] = NULL;
+		}
 
 		if (iLoop1 < nPlayerCount)
 		{

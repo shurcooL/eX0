@@ -30,7 +30,7 @@
 
 		TEXMANAGER.FreeTexture (WALL_TEXTURE);
 		TEXMANAGER.LoadTexture ("Wall2.bmp", WALL_TEXTURE);
-		  
+
 		TEXMANAGER.FreeAll ();
 
 	In Conclusion :

@@ -1,2 +1,12 @@
-eX0ds: mmgr/mmgr.cpp:1449: void m_deallocator(const char*, unsigned int, const char*, unsigned int, const void*): Assertion `au != __null' failed.
+*** glibc detected *** double free or corruption (!prev): 0x08079978 ***
+Abort
+
+*** glibc detected *** free(): invalid next size (fast): 0x080790f0 ***
+eX0ds: src/mmgr/mmgr.cpp:1449: void m_deallocator(const char*, unsigned int, const char*, unsigned int, const void*): Assertion `au != __null' failed.
+Abort
+
+eX0ds: src/mmgr/mmgr.cpp:1580: bool m_validateAllocUnit(const sAllocUnit*): Assertion `*post == static_cast<long>(postfixPattern)' failed.
+Abort
+
+eX0ds: src/mmgr/mmgr.cpp:1449: void m_deallocator(const char*, unsigned int, const char*, unsigned int, const void*): Assertion `au != __null' failed.
 Abort

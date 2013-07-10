@@ -1,7 +1,0 @@
-eX0 To Do List
-¯¯¯¯¯¯¯¯¯¯¯¯¯¯
--Keep clocks in sync by periodically sending time-correcting ping packets.
--Have the server know its ping time to the clients too, and broadcast it to all clients.
--Design a better time->state determinant system.
--Make spawning/joining a new team a timed event in the future, in case old UDP command packets arrive late.
--Add a time out for non-ACCEPTED connected sockets, ie. to get rid of connected non-clients.

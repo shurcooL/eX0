@@ -45,14 +45,14 @@ UINT32 math_N(UINT32 n, UINT32 h)
 /*  Initilialise the query structure (Q) and the trapezoid table (T)
 when the first segment is added to start the trapezoidation. The
 query-tree starts out with 4 trapezoids, one S-node and 2 Y-nodes
-  
+
                        t4 - i2
      --------i1-------------------------
     		  \
     t1 - i6    i5      t2 - i7
     		    \
      ------------i3---------------------
-  
+
                   t3 - i4
 */
 
@@ -81,8 +81,8 @@ QNODE *TRIAGLOBS::InitQueryStructure(VNODE2 *s)
     t2 = newtrap(); /* middle r */
     t3 = newtrap(); /* bottom-most */
     t4 = newtrap(); /* topmost */
-    
-    t1->hi = t2->hi = t4->lo = i1->yn.y;    
+
+    t1->hi = t2->hi = t4->lo = i1->yn.y;
     t3->hi = t2->lo = t1->lo = i3->yn.y;
 
     t4->hi = &GRID2::PosInfinity;
@@ -321,7 +321,7 @@ void fresh_segm(TRAP *t, TRAP *tn, const GRID2 & v0)
         ud = &u->d1;
 
     assert(ud != NULL);
-    
+
     if      (pt_on_vn(t->l, v0))
         *ud = tn, t->u0 = NULL;
     else if (pt_on_vn(t->r, v0))
@@ -394,7 +394,7 @@ void last_segm(TRAP *t, TRAP *tn, const GRID2 & v1)
         du = &d->u1;
 
     assert(du != NULL);
-    
+
     if      (pt_on_vn(t->l, v1))
         *du = tn, t->d0 = NULL;
     else if (pt_on_vn(t->r, v1))
@@ -547,7 +547,7 @@ void TRIAGLOBS::ConstructTrapezoids()
 
         for (i = prevN + 1; i <= curN; i++)
             AddSegment(choose_segment());
-        
+
         for (i = m_choose_idx; i < n; i++)
             find_new_roots(m_rndv[i]);
     }

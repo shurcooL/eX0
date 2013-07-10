@@ -185,7 +185,7 @@ bool PLINE2::Prepare()
 	
 	if (nArea == 0)
 		return false;
-    
+
 	Flags = SETBITS(this, ORIENT, (nArea < 0) ? INV : DIR);
 	return true;
 } // PLINE2::Prepare
@@ -310,7 +310,7 @@ void PAREA::InsertHoles(PAREA ** area, PLINE2 ** holes)
 		return;
     if (*area == NULL)
 		error(err_bad_parm);
-    
+
     while (*holes != NULL)
     {
 		PLINE2 * next = (*holes)->next;
@@ -457,9 +457,9 @@ bool PAREA::CheckDomain()
 	do {
 		for (PLINE2 * pline = pa->cntr; pline != NULL; pline = pline->next)
 		{
-			if (Chk(pline->gMin.x) or 
-				Chk(pline->gMin.y) or 
-				Chk(pline->gMax.x) or 
+			if (Chk(pline->gMin.x) or
+				Chk(pline->gMin.y) or
+				Chk(pline->gMax.x) or
 				Chk(pline->gMax.y))
 				return false;
 		}

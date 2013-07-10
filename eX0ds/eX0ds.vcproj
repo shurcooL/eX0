@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8.00"
+	Version="9.00"
 	Name="eX0ds"
-	ProjectGUID="{C549CD4A-3E84-48A5-A48E-4BD7190C0851}"
+	ProjectGUID="{7B3188D5-A5C8-4EDE-9F2A-D06A94290658}"
 	RootNamespace="eX0ds"
 	Keyword="Win32Proj"
+	TargetFrameworkVersion="196613"
 	>
 	<Platforms>
 		<Platform
@@ -40,13 +41,13 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS"
 				MinimalRebuild="true"
+				ExceptionHandling="1"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -60,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Ws2_32.lib glfw.lib opengl32.lib"
+				AdditionalDependencies="ws2_32.lib glfw.lib opengl32.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -83,9 +84,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -116,11 +114,13 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE"
+				Optimization="2"
+				EnableIntrinsicFunctions="true"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS"
 				RuntimeLibrary="2"
+				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -134,7 +134,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Ws2_32.lib glfw.lib opengl32.lib"
+				AdditionalDependencies="ws2_32.lib glfw.lib opengl32.lib"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -161,9 +161,6 @@
 				Name="VCAppVerifierTool"
 			/>
 			<Tool
-				Name="VCWebDeploymentTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
@@ -177,198 +174,234 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\CClient.cpp"
+				RelativePath=".\src\CClient.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\CClient.h"
+				RelativePath=".\src\CClient.h"
 				>
 			</File>
 			<File
-				RelativePath=".\col_hand.cpp"
+				RelativePath="..\shared\col_hand.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\col_hand.h"
+				RelativePath="..\shared\col_hand.h"
 				>
 			</File>
 			<File
-				RelativePath=".\CPacket.cpp"
+				RelativePath="..\shared\CPacket.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\CPacket.h"
+				RelativePath="..\shared\CPacket.h"
 				>
 			</File>
 			<File
-				RelativePath=".\CTimedEvent.cpp"
+				RelativePath="..\shared\CTimedEvent.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\CTimedEvent.h"
+				RelativePath="..\shared\CTimedEvent.h"
 				>
 			</File>
 			<File
-				RelativePath=".\CTimedEventScheduler.cpp"
+				RelativePath="..\shared\CTimedEventScheduler.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\CTimedEventScheduler.h"
+				RelativePath="..\shared\CTimedEventScheduler.h"
 				>
 			</File>
 			<File
-				RelativePath=".\game_data.cpp"
+				RelativePath=".\src\game_data.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\game_data.h"
+				RelativePath=".\src\game_data.h"
 				>
 			</File>
 			<File
-				RelativePath=".\globals.h"
+				RelativePath=".\src\globals.h"
 				>
 			</File>
 			<File
-				RelativePath=".\Main.cpp"
+				RelativePath="..\shared\HashMatcher.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\shared\HashMatcher.h"
 				>
 			</File>
 			<File
-				RelativePath=".\Main.h"
+				RelativePath=".\src\Main.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\math.cpp"
+				RelativePath=".\src\Main.h"
 				>
 			</File>
 			<File
-				RelativePath=".\math.h"
+				RelativePath="..\shared\math.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\Network.cpp"
+				RelativePath="..\shared\math.h"
 				>
 			</File>
 			<File
-				RelativePath=".\Network.h"
+				RelativePath=".\src\Network.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\NetworkIncludes.h"
+				RelativePath="..\shared\Network.h"
 				>
 			</File>
 			<File
-				RelativePath=".\particle.cpp"
+				RelativePath="..\shared\NetworkIncludes.h"
 				>
 			</File>
 			<File
-				RelativePath=".\particle.h"
+				RelativePath=".\src\particle.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\player.cpp"
+				RelativePath=".\src\particle.h"
 				>
 			</File>
 			<File
-				RelativePath=".\player.h"
+				RelativePath=".\src\player.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\Server.cpp"
+				RelativePath=".\src\player.h"
 				>
 			</File>
 			<File
-				RelativePath=".\Server.h"
+				RelativePath=".\src\Server.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\weapon.cpp"
+				RelativePath=".\src\Server.h"
 				>
 			</File>
 			<File
-				RelativePath=".\weapon.h"
+				RelativePath=".\src\weapon.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\ws-util.cpp"
+				RelativePath=".\src\weapon.h"
 				>
 			</File>
 			<File
-				RelativePath=".\ws-util.h"
+				RelativePath="..\shared\ws-util.cpp"
 				>
 			</File>
+			<File
+				RelativePath="..\shared\ws-util.h"
+				>
+			</File>
+			<Filter
+				Name="gpc"
+				>
+				<File
+					RelativePath=".\src\gpc\gpc.c"
+					>
+				</File>
+				<File
+					RelativePath=".\src\gpc\gpc.h"
+					>
+				</File>
+			</Filter>
 			<Filter
 				Name="Mgc"
 				>
 				<File
-					RelativePath=".\Mgc\MagicFMLibType.h"
+					RelativePath=".\src\Mgc\MagicFMLibType.h"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcDist2DVecLin.cpp"
+					RelativePath=".\src\Mgc\MgcDist2DVecLin.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcDist2DVecLin.h"
+					RelativePath=".\src\Mgc\MgcDist2DVecLin.h"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcIntr2DLinLin.cpp"
+					RelativePath=".\src\Mgc\MgcIntr2DLinLin.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcIntr2DLinLin.h"
+					RelativePath=".\src\Mgc\MgcIntr2DLinLin.h"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcLine2.h"
+					RelativePath=".\src\Mgc\MgcLine2.h"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcLine2.inl"
+					RelativePath=".\src\Mgc\MgcLine2.inl"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcMath.cpp"
+					RelativePath=".\src\Mgc\MgcMath.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcMath.h"
+					RelativePath=".\src\Mgc\MgcMath.h"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcMath.inl"
+					RelativePath=".\src\Mgc\MgcMath.inl"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcRay2.h"
+					RelativePath=".\src\Mgc\MgcRay2.h"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcRay2.inl"
+					RelativePath=".\src\Mgc\MgcRay2.inl"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcRTLib.h"
+					RelativePath=".\src\Mgc\MgcRTLib.h"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcSegment2.h"
+					RelativePath=".\src\Mgc\MgcSegment2.h"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcSegment2.inl"
+					RelativePath=".\src\Mgc\MgcSegment2.inl"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcVector2.cpp"
+					RelativePath=".\src\Mgc\MgcVector2.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcVector2.h"
+					RelativePath=".\src\Mgc\MgcVector2.h"
 					>
 				</File>
 				<File
-					RelativePath=".\Mgc\MgcVector2.inl"
+					RelativePath=".\src\Mgc\MgcVector2.inl"
 					>
 				</File>
 			</Filter>
@@ -376,36 +409,25 @@
 				Name="mmgr"
 				>
 				<File
-					RelativePath=".\mmgr\mmgr.cpp"
+					RelativePath=".\src\mmgr\mmgr.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\src\mmgr\mmgr.h"
 					>
 				</File>
 				<File
-					RelativePath=".\mmgr\mmgr.h"
-					>
-				</File>
-				<File
-					RelativePath=".\mmgr\nommgr.h"
+					RelativePath=".\src\mmgr\nommgr.h"
 					>
 				</File>
 			</Filter>
-			<Filter
-				Name="gpc"
-				>
-				<File
-					RelativePath=".\gpc\gpc.c"
-					>
-				</File>
-				<File
-					RelativePath=".\gpc\gpc.h"
-					>
-				</File>
-			</Filter>
-		</Filter>
-		<Filter
-			Name="Resource Files"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
-			>
 		</Filter>
 	</Files>
 	<Globals>

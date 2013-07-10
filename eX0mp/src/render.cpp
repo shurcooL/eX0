@@ -137,11 +137,11 @@ void RenderHUD(void)
 	{
 		glColor3d(0.2, 0.95, 0.2);
 		OglUtilsPrint(0, 250 + 15 * 0, 0, false, "Choose your team:");
-		glColor3d(0.2, PlayerGet(iLocalPlayerID)->GetTeam() != 0 ? 0.95 : 0.2, 0.2);
+		glColor3d(0.2, PlayerGet(iLocalPlayerID)->GetTeam() != 0 ? 0.95 : 0.3, 0.2);
 		OglUtilsPrint(0, 250 + 15 * 1, 0, false, "1. Red");
-		glColor3d(0.2, PlayerGet(iLocalPlayerID)->GetTeam() != 1 ? 0.95 : 0.2, 0.2);
+		glColor3d(0.2, PlayerGet(iLocalPlayerID)->GetTeam() != 1 ? 0.95 : 0.3, 0.2);
 		OglUtilsPrint(0, 250 + 15 * 2, 0, false, "2. Blue");
-		glColor3d(0.2, PlayerGet(iLocalPlayerID)->GetTeam() != 2 ? 0.95 : 0.2, 0.2);
+		glColor3d(0.2, PlayerGet(iLocalPlayerID)->GetTeam() != 2 ? 0.95 : 0.3, 0.2);
 		OglUtilsPrint(0, 250 + 15 * 3, 0, false, "3. Spectator");
 		glColor3d(0.2, 0.95, 0.2);
 		OglUtilsPrint(0, 250 + 15 * 4, 0, false, "0. Cancel");
@@ -189,9 +189,9 @@ void RenderHUD(void)
 				glLoadIdentity();
 				sTempString = (string)"pl#" + itos(iLoop1) + " name: '" + oPlayers[iLoop1]->GetName()
 					+ "' hp: " + itos((int)oPlayers[iLoop1]->GetHealth())
+					+ " lat: " + ftos(oPlayers[iLoop1]->GetLastLatency() * 0.1f)
 					//+ " ccsn: " + itos(oPlayers[iLoop1]->cCurrentCommandSequenceNumber)
-					+ " lacsn: " + itos(oPlayers[iLoop1]->cLastAckedCommandSequenceNumber)
-					+ " vel: " + ftos(oPlayers[iLoop1]->GetVelocity());
+					+ " lacsn: " + itos(oPlayers[iLoop1]->cLastAckedCommandSequenceNumber);
 				OglUtilsPrint(0, 50 + iLoop1 * 10, 0, false, (char *)sTempString.c_str());
 			}
 		}

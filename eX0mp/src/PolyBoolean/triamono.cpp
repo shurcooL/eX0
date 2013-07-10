@@ -390,7 +390,7 @@ void TRIAGLOBS::TriangulateMonPolys()
         const   GRID2 *ymax, *ymin;
 
         ymax = ymin = &vfirst->g;
-        posmax->marked = true;        
+        posmax->marked = true;
         for (vcount = 1, p = posmax->n;
              p->vn != vfirst;
              p = p->n, vcount++)

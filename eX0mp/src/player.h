@@ -1,3 +1,7 @@
+#pragma once
+#ifndef __CPlayer_H__
+#define __CPlayer_H__
+
 #define		PLAYER_WIDTH			15.49193f
 #define		PLAYER_HALF_WIDTH		7.74597f
 #define		PLAYER_WIDTH_SQR		240.0f
@@ -17,25 +21,36 @@ typedef struct {
 	State_t	oState;
 } SequencedState_t;
 
+typedef struct {
+	char	cMoveDirection;
+	float	fZ;
+	//char	cStealth;
+} Input_t;
+
+typedef struct {
+	Input_t	oInput;
+	State_t	oState;
+} Move_t;
+
 class CPlayer
 {
 public:
-	CPlayer(void);
-	~CPlayer(void);
+	CPlayer();
+	~CPlayer();
 
 	void MoveDirection(int nDirection);
 	void Rotate(float fAmount);
-	void CalcTrajs(void);
-	void CalcColResp(void);
-	void Render(void);
+	void CalcTrajs();
+	void CalcColResp();
+	void Render();
 	void RenderInPast(float fTimeAgo);
 	void SetTeam(int nTeam);
-	int GetTeam(void);
+	int GetTeam();
 	void SetStealth(bool bOn);
-	float GetX(void);
-	float GetY(void);
-	float GetOldX(void);
-	float GetOldY(void);
+	float GetX();
+	float GetY();
+	float GetOldX();
+	float GetOldY();
 	void PushStateHistory(SequencedState_t &oSequencedState);
 	void SetX(float fValue);
 	void SetY(float fValue);
@@ -43,31 +58,33 @@ public:
 	void SetOldY(float fValue);
 	void Position(float fNewX, float fNewY, float fNewZ);
 	void Position(float fNewX, float fNewY, float fNewZ, u_char cSequenceNumber);
-	float GetVelX(void);
-	float GetVelY(void);
+	float GetVelX();
+	float GetVelY();
 	void SetVelX(float fValue);
 	void SetVelY(float fValue);
-	float GetVelocity(void);
-	float GetIntX(void);
-	float GetIntY(void);
+	float GetVelocity();
+	float GetIntX();
+	float GetIntY();
 	void SetZ(float fValue);
-	float GetZ(void);
-	void UpdateInterpolatedPos(void);
-	void Fire(void);
-	void Reload(void);
-	int GetSelClips(void);
-	int GetSelClipAmmo(void);
-	void InitWeapons(void);
-	void BuyClip(void);
-	void Tick(void);
-	void FakeTick(void);
-	bool IsReloading(void);
-	float GetHealth(void);
+	float GetZ();
+	void UpdateInterpolatedPos();
+	void Fire();
+	void Reload();
+	int GetSelClips();
+	int GetSelClipAmmo();
+	void InitWeapons();
+	void BuyClip();
+	void Tick();
+	void FakeTick();
+	bool IsReloading();
+	float GetHealth();
 	void GiveHealth(float fValue);
-	bool IsDead(void);
-	string & GetName(void);
+	bool IsDead();
+	string & GetName();
 	void SetName(string &sNewName);
-	void RespawnReset(void);
+	void RespawnReset();
+	short unsigned int GetLastLatency();
+	void SetLastLatency(short unsigned int nLastLatency);
 
 	int			iID;
 	bool		bEmptyClicked;
@@ -101,15 +118,19 @@ private:
 	list<SequencedState_t>		oStateHistory;
 	State_t						oOnlyKnownState;
 
+	unsigned short int	m_nLastLatency;
+
 	State_t GetStateInPast(float fTimeAgo);
 };
 
 // allocate memory for all the players
-void PlayerInit(void);
+void PlayerInit();
 
 // Returns a player
 CPlayer * PlayerGet(int nPlayerID);
 
-void PlayerTick(void);
+void PlayerTick();
 
-int PlayerGetFreePlayerID(void);
+int PlayerGetFreePlayerID();
+
+#endif // __CPlayer_H__

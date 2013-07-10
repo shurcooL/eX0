@@ -44,7 +44,7 @@ struct VECT2
 #define INT20_MAX			+524287
 #define INT20_MIN			-524288
 
-// error codes thrown by the library 
+// error codes thrown by the library
 enum {
 	err_ok = 0,		// never thrown
 	err_no_memory,	// not enough memory

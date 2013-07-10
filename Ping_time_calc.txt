@@ -1,0 +1,63 @@
+eX0 Ping time calculation protocol
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+Server can send first message in 2 ways:
+-send to all clients all at once, one by one (might not be good, since it produces a spike in bandwidth req.)
+-send to each client one by one, with a fixed interval in between (e.g. interval = 3 seconds / num players)
+
+S		C
+-----------------
+>t_chk, prev. ping of all clients (PingSentTimes)
+		>
+		t_chk< (t1)
+<
+s knows c ping
+>t_chk, t
+		> (t2)
+		c knows its ping
+		client time correction possible: (t1+t2)/2 ~> t
+
+... wait 3 seconds,
+repeat
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------ (reverse approach, doesn't seem to be benefitial)
+		< (t1)
+<
+>t
+		> (t2)		(t1+t2)/2 ~> t
+		c knows its ping
+		<
+<
+s knows c ping

@@ -449,7 +449,7 @@ void BOCTX::Intercept(LIST_TSEL * tsel, SEGM2 * segm, INT32 cx)
 				break;
 			if (++ts == tsel->rend())
 				return;
-		} 
+		}
 		while (ts->y >= ry and ts->y <= ly)
 		{
 			InsNewNode(segm, &*ts, cx);

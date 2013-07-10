@@ -29,7 +29,7 @@ void CWeapon::Tick()
 	}
 
 	if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
-		oPlayers[iOwnerID]->bEmptyClicked = false;
+		PlayerGet(iOwnerID)->bEmptyClicked = false;
 }
 
 void CWeapon::GiveClip()
@@ -85,24 +85,24 @@ void CWeapon::Fire()
 				fTimer += oWeaponSpecs[iWhatWeapon].fROF;// * PARTICLE_TICK_TIME / fPlayerTickTime;
 
 				// make a projectile particle
-				oParticleEngine.AddParticle(oPlayers[iOwnerID]->GetIntX(), oPlayers[iOwnerID]->GetIntY(),
-					Math::Sin(oPlayers[iOwnerID]->GetZ()) * oWeaponSpecs[iWhatWeapon].fProjSpeed + oPlayers[iOwnerID]->GetVelX(),
-					Math::Cos(oPlayers[iOwnerID]->GetZ()) * oWeaponSpecs[iWhatWeapon].fProjSpeed + oPlayers[iOwnerID]->GetVelY(),
+				oParticleEngine.AddParticle(PlayerGet(iOwnerID)->GetIntX(), PlayerGet(iOwnerID)->GetIntY(),
+					Math::Sin(PlayerGet(iOwnerID)->GetZ()) * oWeaponSpecs[iWhatWeapon].fProjSpeed + PlayerGet(iOwnerID)->GetVelX(),
+					Math::Cos(PlayerGet(iOwnerID)->GetZ()) * oWeaponSpecs[iWhatWeapon].fProjSpeed + PlayerGet(iOwnerID)->GetVelY(),
 					oWeaponSpecs[iWhatWeapon].iWhatType, oWeaponSpecs[iWhatWeapon].fMaxDamage,
 					oWeaponSpecs[iWhatWeapon].fMaxLife, iOwnerID);
 
 				// inaccuracy
 				// ... rotate the player
 				// DEBUG: A temporary hack for recoil
-				//oPlayers[iOwnerID]->Rotate(((rand() % 1000)/1000.0f * 0.25f - 0.125) * oWeaponSpecs[iWhatWeapon].fInaccuracy);
+				//PlayerGet(iOwnerID)->Rotate(((rand() % 1000)/1000.0f * 0.25f - 0.125) * oWeaponSpecs[iWhatWeapon].fInaccuracy);
 			}
 			else if (iClipAmmo <= 0)
 			{
-				if (!oPlayers[iOwnerID]->bEmptyClicked)
+				if (!PlayerGet(iOwnerID)->bEmptyClicked)
 				{
 					// play dry fire sound
 					// ...
-					oPlayers[iOwnerID]->bEmptyClicked = true;
+					PlayerGet(iOwnerID)->bEmptyClicked = true;
 				}
 
 				fTimer = 0.0;

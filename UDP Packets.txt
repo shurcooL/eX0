@@ -1,13 +1,32 @@
-Client Command
-Packet Type 1:
-¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-type (char) = 1
+UDP Packets
+===========
 
+Data Types:
+¯¯¯¯¯¯¯¯¯¯¯
+char - char, 1 byte
+short - short int, 2 bytes
+int - int, 4 bytes
+float - float, 4 bytes
+double - double, 8 bytes
 
-Server Update
-Update Others Position Packet (Type 2):
-¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-type (char) = 2
+Common UDP Packet Header:
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+Packet Type (char) - 1 byte
+
+Client -> Server TCP Packets:
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+1. Client Command:
+>>>TODO: FILL ME IN<<<
+
+100. Handshake Packet:
+Signature (SIGNATURE_SIZE = 8 char)
+
+11. Pong Packet:
+cPingData (4 char)
+
+Server -> Client TCP Packets:
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+2. Server Update:
 cCurrentUpdateSequenceNumber (char)
 [
 	active_player (char) = 1
@@ -20,8 +39,12 @@ cCurrentUpdateSequenceNumber (char)
 	active_player (char) = 0
 ]
 
+10. Ping Packet:
+cPingData (4 char)
+[ for each player
+	nLastLatency (short)
+]
 
-Handshake Packet (Type 100):
-¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-type (char) = 100
-signature (8 char)
+12. Pung Packet (size == 1 + 12 == 13):
+cPingData (4 char)
+dTime (double)

@@ -4,7 +4,7 @@ TCP Packets
 Data Types:
 ¯¯¯¯¯¯¯¯¯¯¯
 char - char, 1 byte
-short - short int, 2 byte
+short - short int, 2 bytes
 int - int, 4 bytes
 float - float, 4 bytes
 double - double, 8 bytes

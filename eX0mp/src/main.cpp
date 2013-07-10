@@ -33,7 +33,7 @@ u_long counter2 = 0;
 void eX0_assert(bool expression, string message)
 {
 	if (!expression)
-		printf("Assertion '%s' failed.\n", message.c_str());
+		printf("\nAssertion FAILED: '%s'\n\n", message.c_str());
 }
 
 // initialization
@@ -63,11 +63,10 @@ bool Init(int argc, char *argv[])
 	//glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
 	glfwSetWindowPos(oDesktopMode.Width - 650, oDesktopMode.Height / 2 - 240);
 	glfwSetWindowTitle(((string)"eX0 v0.0 (Built on " + __DATE__ + " at " + __TIME__ + ")").c_str());	// set the window title
-	glfwSwapInterval(0);		// Turn V-Sync off
+	glfwSwapInterval(1);		// Turn V-Sync on
 
 	// init OpenGL
 	if (!OglUtilsInitGL()) {
-		//ERROR_HANDLER.SetLastError("OpenGL initilization failed.");
 		printf("OpenGL initilization failed.\n");
 		return false;
 	}
@@ -88,7 +87,7 @@ bool Init(int argc, char *argv[])
 	SetGlfwCallbacks();
 	GameDataLoad();						// load game data
 	WeaponInitSpecs();
-	pChatMessages = new CHudMessageQueue(0, 480 - 150, 5, 5.0f);
+	pChatMessages = new CHudMessageQueue(0, 480 - 150, 5, 7.5f);
 	//nPlayerCount = 0; PlayerInit();		// Initialize the players
 	pTimedEventScheduler = new CTimedEventScheduler();
 	if (!NetworkInit())					// Initialize the networking
@@ -139,7 +138,7 @@ void Terminate(int nExitCode)
 	Deinit();
 
 	// DEBUG: Print out the memory usage stats
-	m_dumpMemoryReport();
+	//m_dumpMemoryReport();
 
 	if (counter1 != counter2) printf("WARNING!!!!: counter1 = %d != counter2 = %d\n", counter1, counter2);
 
@@ -219,7 +218,7 @@ void sigint_handler(int sig)
 #endif
 
 // main function
-int main(int argc, char *argv[]) 
+int main(int argc, char *argv[])
 {
 	// Add a Ctrl+C signal handler, for abrupt termination
 #ifdef WIN32
@@ -227,6 +226,57 @@ int main(int argc, char *argv[])
 #else
 	signal(SIGINT, sigint_handler);
 #endif
+
+
+
+	/*multimap<int, int> myset;
+	multimap<int, int>::iterator it1;
+	vector<multimap<int, int>::iterator> its;
+
+	// insert some values:
+	for (int i=1; i<10; i++) myset.insert(pair<int, int>(i*10, i));  // 10 20 30 40 50 60 70 80 90
+
+	for (it1 = myset.begin(); it1 != myset.end(); ++it1) {
+		its.push_back(it1);
+	}
+
+	printf("myset contains:"); for (it1 = myset.begin(); it1 != myset.end(); ++it1) printf(" %d", it1->first); printf("\n");
+	printf("  its point to:"); for (vector<multimap<int, int>::iterator>::iterator it2 = its.begin(); it2 != its.end(); ++it2) printf(" %d", (*it2)->first); printf("\n");
+
+	printf("removing 5th elem..\n");
+	myset.erase(its.at(4));
+	its.erase(its.begin() + 4);
+
+	printf("myset contains:"); for (it1 = myset.begin(); it1 != myset.end(); ++it1) printf(" %d", it1->first); printf("\n");
+	printf("  its point to:"); for (vector<multimap<int, int>::iterator>::iterator it2 = its.begin(); it2 != its.end(); ++it2) printf(" %d", (*it2)->first); printf("\n");
+
+	printf("removing 2nd elem..\n");
+	myset.erase(its.at(1));
+	its.erase(its.begin() + 1);
+
+	printf("removing 6th elem..\n");
+	myset.erase(its.at(5));
+	its.erase(its.begin() + 5);
+
+	printf("myset contains:"); for (it1 = myset.begin(); it1 != myset.end(); ++it1) printf(" %d", it1->first); printf("\n");
+	printf("  its point to:"); for (vector<multimap<int, int>::iterator>::iterator it2 = its.begin(); it2 != its.end(); ++it2) printf(" %d", (*it2)->first); printf("\n");*/
+
+
+
+	/*MovingAverage	avg(60.0, 5);
+	int myints[] = { 10, 21, 30, 40, 50, 90 };
+	list<int> mylist (myints,myints + 6);
+	list<int>::iterator it1;
+	for (list<int>::iterator it=mylist.begin(); it != mylist.end(); ++it)
+		avg.push(*it, *it);
+	avg.Print();
+
+	printf("%.5lf\n", avg.WeightedMovingAverage());
+	printf("%d\n", avg.Signum());
+
+
+return 0;*/
+
 
 	// Print the version and date/time built
 	printf("eX0 v0.0 - Built on %s at %s.\n\n", __DATE__, __TIME__);
@@ -299,7 +349,7 @@ int main(int argc, char *argv[])
 			InputMouseHold();
 
 			// player tick
-			if (bPaused) { fTempFloat = dTimePassed; dTimePassed = 0; }
+			if (bPaused) { fTempFloat = (float)dTimePassed; dTimePassed = 0; }
 			//PlayerTick();
 			if (PlayerGet(iLocalPlayerID)->GetTeam() != 2 && !PlayerGet(iLocalPlayerID)->IsDead()) {
 				PlayerGet(iLocalPlayerID)->Tick();
