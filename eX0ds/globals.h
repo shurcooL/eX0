@@ -34,40 +34,43 @@ p = pointer
 #include <time.h>		// for date and time functions (used in log)
 #include <math.h>
 #include <list>
+#include <map>
 #include <GL/glfw.h>	// the glfw header
 
-//#include "mmgr/mmgr.h"	// Fluid Studios Memory Manager
+#include "mmgr/mmgr.h"	// Fluid Studios Memory Manager
 
 
 ////////////////////
 // standard other //
 ////////////////////
 using namespace std;	// so that we can use string class
-//#pragma warning(once : 4244 4305 4996)
+#pragma warning(once : 4244 4305 4996)
 
 
 /////////////////////
 // custom includes //
 /////////////////////
-/*extern "C"
+extern "C"
 {
 #include "gpc/gpc.h"		// the gpc library
 }
-#include "PolyBoolean/polybool.h"
+/*#include "PolyBoolean/polybool.h"
 #include "PolyBoolean/pbio.h"
-using namespace POLYBOOLEAN;
-#include "main.h"*/
+using namespace POLYBOOLEAN;*/
+#include "Main.h"
 #include "Mgc/MgcIntr2DLinLin.h"
 #include "Mgc/MgcDist2DVecLin.h"
 using namespace Mgc;
-/*#include "math.h"
-#include "col_hand.h"
-#include "input.h"
+#include "math.h"
+/*#include "input.h"
 #include "render.h"
-#include "ogl_utils.h"
+#include "ogl_utils.h"*/
+#include "col_hand.h"
 #include "game_data.h"
 #include "particle.h"
-#include "weapon.h"*/
+#include "weapon.h"
+#include "Packet.h"
+#include "Client.h"
 #include "player.h"
 #include "Network.h"
 //#include "OGLTextureManager/TextureManager.h"
@@ -118,15 +121,18 @@ extern string		sFpsString;
 
 extern string		sTempString;
 extern float		fTempFloat;
-extern int			iTempInt;
+extern int			iTempInt;*/
 
+extern string		sLevelName;
 extern gpc_polygon	oPolyLevel;
-extern gpc_tristrip	oTristripLevel;
-extern PAREA		*pPolyBooleanLevel;
+//extern gpc_tristrip	oTristripLevel;
+//extern PAREA		*pPolyBooleanLevel;
 
-extern TextureIDs_t	oTextureIDs;
+//extern TextureIDs_t	oTextureIDs;
 extern CParticle	oParticleEngine;
 
-extern GLUquadricObj	*oQuadricObj;*/
+//extern GLUquadricObj	*oQuadricObj;
+
+extern SOCKET		nUdpSocket;
 
 #endif // _globals_H_

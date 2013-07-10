@@ -1,5 +1,3 @@
-void eX0_assert(bool expression, string message);
-
 // initialization
 bool Init(int argc, char *argv[]);
 
@@ -7,10 +5,10 @@ bool Init(int argc, char *argv[]);
 void Deinit(void);
 
 // resize the window callback function
-void GLFWCALL ResizeWindow(int iWidth, int iHeight);
+//void GLFWCALL ResizeWindow(int iWidth, int iHeight);
 
 // set glfw callback functions
-void SetGlfwCallbacks(void);
+//void SetGlfwCallbacks(void);
 
 // quits
 void Terminate(int nExitCode);
@@ -19,4 +17,4 @@ void Terminate(int nExitCode);
 void SyncRandSeed(void);
 
 // Restarts the game
-void RestartGame(void);
+//void RestartGame(void);

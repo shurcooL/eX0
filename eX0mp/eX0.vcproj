@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -116,7 +116,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -238,6 +238,14 @@
 			</File>
 			<File
 				RelativePath=".\src\ogl_utils.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Packet.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Packet.h"
 				>
 			</File>
 			<File
@@ -369,7 +377,7 @@
 				</File>
 			</Filter>
 			<Filter
-				Name="MMGR"
+				Name="mmgr"
 				>
 				<File
 					RelativePath=".\src\MMGR\mmgr.cpp"

@@ -20,7 +20,7 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			CharacterSet="1"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -96,7 +96,7 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			CharacterSet="1"
+			CharacterSet="2"
 			WholeProgramOptimization="1"
 			>
 			<Tool
@@ -116,7 +116,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -177,7 +177,31 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\Client.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\col_hand.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\game_data.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\gpc\gpc.c"
+				>
+			</File>
+			<File
 				RelativePath=".\Main.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\math.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\mmgr\mmgr.cpp"
 				>
 			</File>
 			<File
@@ -185,7 +209,23 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Packet.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\particle.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\player.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\weapon.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ws-util.cpp"
 				>
 			</File>
 		</Filter>
@@ -195,7 +235,35 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\Client.h"
+				>
+			</File>
+			<File
+				RelativePath=".\col_hand.h"
+				>
+			</File>
+			<File
+				RelativePath=".\game_data.h"
+				>
+			</File>
+			<File
 				RelativePath=".\globals.h"
+				>
+			</File>
+			<File
+				RelativePath=".\gpc\gpc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Main.h"
+				>
+			</File>
+			<File
+				RelativePath=".\math.h"
+				>
+			</File>
+			<File
+				RelativePath=".\mmgr\mmgr.h"
 				>
 			</File>
 			<File
@@ -207,7 +275,27 @@
 				>
 			</File>
 			<File
+				RelativePath=".\mmgr\nommgr.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Packet.h"
+				>
+			</File>
+			<File
+				RelativePath=".\particle.h"
+				>
+			</File>
+			<File
 				RelativePath=".\player.h"
+				>
+			</File>
+			<File
+				RelativePath=".\weapon.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ws-util.h"
 				>
 			</File>
 		</Filter>

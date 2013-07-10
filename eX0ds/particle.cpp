@@ -4,7 +4,7 @@ CParticle	oParticleEngine;
 
 CParticle::CParticle()
 {
-	//printf("CParticle ctor\n");
+	printf("CParticle ctor\n");
 	oParticles = NULL;
 	iNumParticles = 0;
 	SetArraySize(PARTICLE_INITIAL_SIZE);
@@ -15,10 +15,10 @@ CParticle::~CParticle()
 	SetArraySize(0);
 	//printf("oParticles points to %d (should be NULL if realloc(0) worked)\n", (int)oParticles);
 	//free(oParticles);
-	//printf("CParticle ~dtor\n");
+	printf("CParticle ~dtor\n");
 }
 
-void CParticle::Render()
+/*void CParticle::Render()
 {
 	Vector2		fIntPos;
 
@@ -85,13 +85,13 @@ void CParticle::Render()
 				RenderSmokeFOVMask(oParticles[iLoop1].oPosition, oParticles[iLoop1].fMaxDamage);
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 				OglUtilsSetMaskingMode(WITH_MASKING_MODE);*/
-				break;
+/*				break;
 			default:
 				break;
 			}
 		}
 	}
-}
+}*/
 
 void CParticle::CollisionHandling(int iParticle)
 {
@@ -162,12 +162,12 @@ void CParticle::CollisionHandling(int iParticle)
 		for (iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 		{
 			// a bullet can't hit his owner
-			if (!PlayerGet(iLoop1)->bConnected || iLoop1 == oParticles[iParticle].iOwnerID
-			  || oPlayers[iLoop1]->IsDead())
+			if (PlayerGet(iLoop1)->pClient == NULL || iLoop1 == oParticles[iParticle].iOwnerID
+			  || PlayerGet(iLoop1)->IsDead())
 				continue;
 
-			oVector.x = oPlayers[iLoop1]->GetIntX();
-			oVector.y = oPlayers[iLoop1]->GetIntY();
+			oVector.x = PlayerGet(iLoop1)->GetIntX();
+			oVector.y = PlayerGet(iLoop1)->GetIntY();
 
 			oParams[1] = Distance(oVector, oSegment1, &oParams[0]);
 
@@ -256,12 +256,12 @@ void CParticle::CollisionHandling(int iParticle)
 
 		for (iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 		{
-			if (!PlayerGet(iLoop1)->bConnected || iLoop1 == oParticles[iParticle].iOwnerID
-			  || oPlayers[iLoop1]->IsDead())
+			if (PlayerGet(iLoop1)->pClient == NULL || iLoop1 == oParticles[iParticle].iOwnerID
+			  || PlayerGet(iLoop1)->IsDead())
 				continue;
 
-			oVector.x = oPlayers[iLoop1]->GetIntX();
-			oVector.y = oPlayers[iLoop1]->GetIntY();
+			oVector.x = PlayerGet(iLoop1)->GetIntX();
+			oVector.y = PlayerGet(iLoop1)->GetIntY();
 
 			oParams[1] = Distance(oVector, oSegment1, &oParams[0]);
 
@@ -296,18 +296,19 @@ void CParticle::Tick()
 		// is it an in-use particle?
 		if (oParticles[iLoop1].iWhatType)
 		{
-			oParticles[iLoop1].fTicks += fTimePassed;
-			oParticles[iLoop1].fLife -= fTimePassed;
+			// TODO: Implement time
+			//oParticles[iLoop1].fTicks += fTimePassed;
+			//oParticles[iLoop1].fLife -= fTimePassed;
 
 			// Kill the particle if it's supposed to die by hitting something
 			// and its life wasn't over at the time of impact
 			if ( (oParticles[iLoop1].fTicks / PARTICLE_TICK_TIME) >= oParticles[iLoop1].fDieAt
 				&& (oParticles[iLoop1].fLife > 0 ||													// Either still alive now
-					oParticles[iLoop1].fDieAt < (1 + oParticles[iLoop1].fLife / fTimePassed)) )		// Hit something before life ended
+					oParticles[iLoop1].fDieAt < (1 + oParticles[iLoop1].fLife / 1/*fTimePassed*/)) )		// Hit something before life ended
 			{
 				// give damage to whoever
 				if (oParticles[iLoop1].iWillHit != -1)
-					{oPlayers[oParticles[iLoop1].iWillHit]->GiveHealth(-oParticles[iLoop1].fMaxDamage);
+					{PlayerGet(oParticles[iLoop1].iWillHit)->GiveHealth(-oParticles[iLoop1].fMaxDamage);
 				printf("%i hit %i for %f dmg\n", oParticles[iLoop1].iOwnerID, oParticles[iLoop1].iWillHit, oParticles[iLoop1].fMaxDamage);
 				}
 				//else printf("%i missed\n", oParticles[iLoop1].iOwnerID);
@@ -326,15 +327,15 @@ void CParticle::Tick()
 					{
 						// a bullet can't hit his owner
 						// but a bouncy one can
-						if (!PlayerGet(iLoop2)->bConnected/* || iLoop2 == oParticles[iLoop1].iOwnerID*/
-						  || oPlayers[iLoop2]->IsDead())
+						if (PlayerGet(iLoop2)->pClient == NULL/* || iLoop2 == oParticles[iLoop1].iOwnerID*/
+						  || PlayerGet(iLoop2)->IsDead())
 							continue;
 
 						Vector2 oVector;
-						oVector.x = oPlayers[iLoop2]->GetIntX();
-						oVector.y = oPlayers[iLoop2]->GetIntY();
+						oVector.x = PlayerGet(iLoop2)->GetIntX();
+						oVector.y = PlayerGet(iLoop2)->GetIntY();
 
-						oVector -= oParticles[iLoop1].oPosition + (1 + oParticles[iLoop1].fLife / fTimePassed) * oParticles[iLoop1].oVelocity;
+						oVector -= oParticles[iLoop1].oPosition + (1 + oParticles[iLoop1].fLife / 1/*fTimePassed*/) * oParticles[iLoop1].oVelocity;
 
 						float fDistance = oVector.Length();
 
@@ -344,7 +345,7 @@ void CParticle::Tick()
 							float fDamage = 1.0f - (fDistance / (PLAYER_WIDTH * 10));
 							fDamage *= fDamage * 300.0f;		// Max 300 dmg at 0 distance, 0 dmg at max distance, 1/d^2 attenuation
 
-							oPlayers[iLoop2]->GiveHealth(-fDamage);
+							PlayerGet(iLoop2)->GiveHealth(-fDamage);
 							printf("%i hit %i for %f dmg [splash dmg from %lf away]\n", oParticles[iLoop1].iOwnerID, iLoop2, fDamage, fDistance);
 						}
 					}
@@ -378,7 +379,7 @@ void CParticle::Tick()
 	}
 }
 
-void CParticle::RenderFOVMask()
+/*void CParticle::RenderFOVMask()
 {
 	// Setup the rendering mode
 	//OglUtilsSetMaskingMode(RENDER_TO_MASK_MODE);
@@ -396,7 +397,7 @@ void CParticle::RenderFOVMask()
 			break;
 		}
 	}
-}
+}*/
 
 void CParticle::SetArraySize(int iSize)
 {
@@ -409,9 +410,6 @@ void CParticle::SetArraySize(int iSize)
 	{
 		oParticles[iLoop1].iWhatType = 0;
 	}
-
-	// DEBUG - just keeping track of the particle array size
-	//iTempInt = iSize;
 }
 
 // Resets the particle array, deleting all active particles and going back to the default array size

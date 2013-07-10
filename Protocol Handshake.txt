@@ -1,0 +1,43 @@
+eX0 Protocol Handshake Draft
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+ Client                                        | Server
+-----------------------------------------------+-----------------------------------------------
+					-- Connecting --
+1. Connect (tcp) to server,
+   Set nJoinStatus=TCP_CONN.
+						2. Accept tcp connection,
+						   Create CClient(nTcpSocket),
+						   nJoinStatus is TCP_CONN by default.
+3. Send Join Game Request packet (type 1)
+   with random unique signature.
+						4. Send Join Accept packet (type 2),
+						   Set nJoinStatus=ACCEPTED.
+5. Set nJoinStatus=ACCEPTED,
+   Send UDP packet (type 100) with same sig.
+						6. On UDP receive, set nJoinStatus=UDP_CONN,
+						   Send UDP Conn Established (5).
+7. Receive UDP Conn Established,
+   Set nJoinStatus=3.
+					-- Info Exchange --
+8. Send Local Player Info (30).
+						9. Receive Local Player Info,
+						   Send Load Level (20),
+						   Send Curr Player Info (21).
+   Receive Load Level,
+   Receive Curr Player Info.
+					-- Start Game --
+						10. Send Permission To Join (6).
+11. Receive Permission To Join,
+    Set nJoinStatus=IN_GAME,
+    Send Client Entered Game (7).
+						12. Receieve Client Entered Game,
+						    Set nJoinStatus=IN_GAME.
+						    Send Player Entered Game to all others (25).
+					-- Game Started --
+13. Send Own Position (1).
+						14. Receive Own Position,
+						    Send Other Players Position (2).
+					-- Client Leaves --
+15. Disconnect (TCP) gracefully.
+						16. Send Player Left Game to all others (26),
+						    Delete CClient().

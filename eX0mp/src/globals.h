@@ -34,6 +34,8 @@ p = pointer
 #include <time.h>		// for date and time functions (used in log)
 #include <math.h>
 #include <list>
+#include <map>
+#include <deque>
 #include <GL/glfw.h>	// the glfw header
 
 #include "mmgr/mmgr.h"	// Fluid Studios Memory Manager
@@ -70,6 +72,7 @@ using namespace Mgc;
 #include "weapon.h"
 #include "player.h"
 #include "Network.h"
+#include "Packet.h"
 #include "OGLTextureManager/TextureManager.h"
 
 
@@ -81,7 +84,7 @@ using namespace Mgc;
 //////////////////////
 // global variables //
 //////////////////////
-extern int			iGameState;
+extern volatile int	iGameState;
 extern bool			bPaused;
 
 // DEBUG: Debug state variables
@@ -106,6 +109,7 @@ extern string		sChatString;
 
 extern int			nPlayerCount;
 extern int			iLocalPlayerID;
+extern string		sLocalPlayerName;
 extern CPlayer		*oPlayers[32];
 
 extern int			iCameraType;
@@ -129,9 +133,17 @@ extern CParticle	oParticleEngine;
 
 extern GLUquadricObj	*oQuadricObj;
 
-extern SOCKET		nServerSocket;
+extern SOCKET			nServerTcpSocket;
+extern SOCKET			nServerUdpSocket;
+extern volatile int		nJoinStatus;
 
-extern GLFWthread	oNetworkThread;
+extern GLFWthread		oNetworkThread;
 extern volatile bool	bNetworkThreadRun;
+
+extern u_char			cLocalMovementSequenceNumber;
+extern u_char			cRemoteUpdateSequenceNumber;
+extern deque<Input_t>	oLocallyPredictedInputs;
+//extern deque<Input_t>	oUnconfirmedInputs;
+extern GLFWmutex		oPlayerTick;
 
 #endif // _globals_H_

@@ -76,14 +76,14 @@ void OglUtilsPrint(int iX, int iY, int iFont, bool bCentered, char *chText)
 	if (chText == NULL)
 		return;
 
-	char *chAsciiCodes = (char *)malloc(sizeof(char) * (strlen(chText) + 1));
+	//char *chAsciiCodes = (char *)malloc(sizeof(char) * (strlen(chText) + 1));
 
 	//glLoadIdentity();
 	glEnable(GL_BLEND);
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, oTextureIDs.iFonts[iFont]);
 
-	vsprintf(chAsciiCodes, chText, NULL);
+	//vsprintf(chAsciiCodes, chText, NULL);
 
 	if (!bCentered)
 		glTranslatef(iX, iY, 0.0);
@@ -91,13 +91,14 @@ void OglUtilsPrint(int iX, int iY, int iFont, bool bCentered, char *chText)
 		glTranslatef(iX - strlen(chText) * 5.0, iY, 0.0);
 
 	glListBase(oFontBase);
-	glCallLists(strlen(chAsciiCodes), GL_UNSIGNED_BYTE, chAsciiCodes);
+	//glCallLists(strlen(chAsciiCodes), GL_UNSIGNED_BYTE, chAsciiCodes);
+	glCallLists(strlen(chText), GL_UNSIGNED_BYTE, chText);
 
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_BLEND);
 	glLoadIdentity();
 
-	free(chAsciiCodes);
+	//free(chAsciiCodes);
 }
 
 // init the font

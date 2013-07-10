@@ -19,14 +19,13 @@ CPlayer::CPlayer()
 	iSelWeapon = 2;
 	fAimingDistance = 200.0;
 	fHealth = 100;
-	sName = "unnamed player";
+	sName = "Unnamed Player";
 	iTeam = 0;
 	bEmptyClicked = true;
 	fTicks = 0;
 
 	// Network related
-	bConnected = false;
-	nTcpSocket = INVALID_SOCKET;
+	pClient = NULL;
 }
 
 CPlayer::~CPlayer()
@@ -142,24 +141,24 @@ void CPlayer::CalcTrajs()
 	if (IsDead()) return;
 
 	// Update the player velocity (acceleration)
-	/*if (nMoveDirection == -1)
+	if (nMoveDirection == -1)
 	{
 		fVelX = 0.0;
 		fVelY = 0.0;
 	}
 	else
 	{
-		fVelX = Math::Sin((float)nMoveDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 2.0);
-		fVelY = Math::Cos((float)nMoveDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 2.0);
-	}*/
+		fVelX = (PLAYER_TICK_TIME / 0.050f) * Math::Sin((float)nMoveDirection * 0.785398f + fZ) * (3.5f - iIsStealth * 2.5f);
+		fVelY = (PLAYER_TICK_TIME / 0.050f) * Math::Cos((float)nMoveDirection * 0.785398f + fZ) * (3.5f - iIsStealth * 2.5f);
+	}
 	// DEBUG - this is STILL not finished, need to redo properly
 	// need to do linear acceleration and deceleration
-	if (nMoveDirection == -1)
+	/*if (nMoveDirection == -1)
 	{
 		Vector2 oVel(fVelX, fVelY);
 		float fLength = oVel.Unitize();
-		fLength -= 0.25;
-		if (fLength > 0.0) oVel *= fLength; else oVel *= 0;
+		fLength -= 0.25f;
+		if (fLength > 0) oVel *= fLength; else oVel *= 0;
 		fVelX = oVel.x;
 		fVelY = oVel.y;
 	}
@@ -169,17 +168,17 @@ void CPlayer::CalcTrajs()
 		fVelY += 0.25f * Math::Cos((float)nMoveDirection * 0.785398f + fZ);
 		Vector2 oVel(fVelX, fVelY);
 		float fLength = oVel.Unitize();
-		if (fLength - 0.5 > 3.5 - iIsStealth * 1.5) {
-			fLength -= 0.5;
+		if (fLength - 0.5f > 3.5f - iIsStealth * 1.5f) {
+			fLength -= 0.5f;
 			oVel *= fLength;
 			fVelX = oVel.x;
 			fVelY = oVel.y;
-		} else if (fLength > 3.5 - iIsStealth * 1.5) {
+		} else if (fLength > 3.5f - iIsStealth * 1.5f) {
 			oVel *= 3.5f - iIsStealth * 1.5f;
 			fVelX = oVel.x;
 			fVelY = oVel.y;
 		}
-	}
+	}*/
 
 	// Update the player positions
 	fOldX = fX;
@@ -191,7 +190,7 @@ void CPlayer::CalcTrajs()
 void CPlayer::CalcColResp()
 {
     // is the player dead?
-	/*if (IsDead()) return;
+	if (IsDead()) return;
 
 	int			iWhichCont, iWhichVert, iCounter = 0;
 	Vector2		oVector, oClosestPoint;
@@ -203,7 +202,7 @@ void CPlayer::CalcColResp()
 	{
 		// check for collision
 		if (!ColHandCheckPlayerPos(&fX, &fY, &oShortestDistance, &oClosestPoint, &iWhichCont, &iWhichVert))
-		{*/
+		{
 			// DEBUG - player-player collision
 			/*for (int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 			{
@@ -224,7 +223,7 @@ void CPlayer::CalcColResp()
 				}
 			}*/
 
-			/*oVector.x = oClosestPoint.x - fX;
+			oVector.x = oClosestPoint.x - fX;
 			oVector.y = oClosestPoint.y - fY;
 			//fX = fX - (oVector.x / (oShortestDistance / PLAYER_HALF_WIDTH) - oVector.x);
 			//fY = fY - (oVector.y / (oShortestDistance / PLAYER_HALF_WIDTH) - oVector.y);
@@ -233,7 +232,7 @@ void CPlayer::CalcColResp()
 		}
 		else
 			break;
-	}*/
+	}
 
 	// player-player collision - only check if we're moving
 	/*if (fVelX || fVelY)
@@ -312,6 +311,16 @@ float CPlayer::GetY()
 	return fY;
 }
 
+float CPlayer::GetOldX()
+{
+	return fOldX;
+}
+
+float CPlayer::GetOldY()
+{
+	return fOldY;
+}
+
 void CPlayer::SetX(float fValue)
 {
     // is the player dead?
@@ -328,17 +337,29 @@ void CPlayer::SetY(float fValue)
 	fY = fValue;
 }
 
+void CPlayer::SetOldX(float fValue)
+{
+    // is the player dead?
+	if (IsDead()) return;
+
+	fOldX = fValue;
+}
+
+void CPlayer::SetOldY(float fValue)
+{
+    // is the player dead?
+	if (IsDead()) return;
+
+	fOldY = fValue;
+}
+
 void CPlayer::Position(float fPosX, float fPosY)
 {
 	// is the player dead?
 	if (IsDead()) return;
 
-	fX = fPosX;
-	fOldX = fPosX;
-	fY = fPosY;
-	fOldY = fPosY;
-
-	UpdateInterpolatedPos();
+	fIntX = fOldX = fX = fPosX;
+	fIntY = fOldY = fY = fPosY;
 }
 
 float CPlayer::GetVelX()
@@ -386,8 +407,8 @@ void CPlayer::SetZ(float fValue)
 	if (IsDead()) return;
 
 	fZ = fValue;
-	if (fZ >= Math::TWO_PI) fZ -= Math::TWO_PI;
-	if (fZ < 0.0) fZ += Math::TWO_PI;
+	while (fZ >= Math::TWO_PI) fZ -= Math::TWO_PI;
+	while (fZ < 0.0) fZ += Math::TWO_PI;
 }
 
 void CPlayer::Render()
@@ -555,6 +576,12 @@ void CPlayer::UpdateInterpolatedPos()
 	//fIntY = fY;
 }
 
+string & CPlayer::GetName(void) { return sName; }
+void CPlayer::SetName(string & sNewName) {
+	if (sNewName.length() > 0 && sNewName.length() <= 32)
+		sName = sNewName;
+}
+
 // allocate memory for all the players
 void PlayerInit()
 {
@@ -575,18 +602,8 @@ void PlayerInit()
 // Returns a player
 CPlayer * PlayerGet(int nPlayerID)
 {
-	if (nPlayerID < nPlayerCount) return oPlayers[nPlayerID];
+	if (nPlayerID >= 0 &&nPlayerID < nPlayerCount) return oPlayers[nPlayerID];
 	else return NULL;
-}
-
-// Returns a player from their socket number
-CPlayer * PlayerGetFromSocket(SOCKET nSocket)
-{
-	for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
-		if (PlayerGet(nPlayer)->nTcpSocket == nSocket)
-			return PlayerGet(nPlayer);
-
-	return NULL;
 }
 
 void PlayerTick()
@@ -605,7 +622,7 @@ int PlayerGetFreePlayerID()
 	for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
 	{
 		// Check if we've found a free player ID
-		if (!oPlayers[iLoop1]->bConnected)
+		if (oPlayers[iLoop1]->pClient == NULL)
 		{
 			return iLoop1;
 		}

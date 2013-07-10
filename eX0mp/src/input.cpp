@@ -67,9 +67,9 @@ void InputKeyHold()
 
 		// Rotate left/right using arrow keys
 		if (glfwGetKey(GLFW_KEY_LEFT) && !glfwGetKey(GLFW_KEY_RIGHT))
-			oPlayers[iLocalPlayerID]->Rotate(fTimePassed * -1.5);
+			oPlayers[iLocalPlayerID]->Rotate(fTimePassed * -1.5f);
 		else if (glfwGetKey(GLFW_KEY_RIGHT) && !glfwGetKey(GLFW_KEY_LEFT))
-			oPlayers[iLocalPlayerID]->Rotate(fTimePassed * 1.5);
+			oPlayers[iLocalPlayerID]->Rotate(fTimePassed * 1.5f);
 
 		if (glfwGetKey('A') && !glfwGetKey('D'))
 		{
@@ -139,15 +139,10 @@ void InputProcessKey(int iKey, int iAction)
 				// DEBUG: Finish
 				if (sChatString.length() > 0) {
 					// Send the text message packet
-					struct TcpPacketSendTextMessage_t oSendMessagePacket;
-					oSendMessagePacket.snPacketSize = htons((short)(4 + sChatString.length()));
-					oSendMessagePacket.snPacketType = htons((short)10);
-					memcpy(&oSendMessagePacket.chTextMessage, sChatString.c_str(), sChatString.length());
-
-					if (sendall(nServerSocket, (char *)&oSendMessagePacket, 4 + sChatString.length(), 0) == SOCKET_ERROR) {
-						NetworkPrintError("sendall");
-					}
-					printf("Sent: \"%s\"\n", sChatString.c_str());
+					CPacket oSendMessagePacket;
+					oSendMessagePacket.pack("hht", 0, 10, &sChatString);
+					oSendMessagePacket.CompleteTpcPacketSize();
+					oSendMessagePacket.SendTcp();
 				}
 				break;
 			// Escape key
@@ -190,9 +185,9 @@ void InputProcessKey(int iKey, int iAction)
 			OglUtilsSetMaskingMode(NO_MASKING_MODE);
 			break;
 		// restart the game
-		case GLFW_KEY_F1:
+		/*case GLFW_KEY_F1:
 			RestartGame();
-			break;
+			break;*/
 		// pause the game
 		case 'P':
 			bPaused = !bPaused;
@@ -222,6 +217,11 @@ void InputProcessKey(int iKey, int iAction)
 		case GLFW_KEY_F4:
 			bStencilOperations = !bStencilOperations;
 			printf("Turned %s stencil operations.\n", bStencilOperations ? "ON" : "OFF");
+			break;
+		// chat
+		case GLFW_KEY_ENTER:
+			sChatString = "";
+			nChatMode = 2;
 			break;
 		// chat
 		case 'T':
@@ -270,14 +270,14 @@ void InputMouseMoved()
 	if (!iGameState)
 	// if we're actally in game
 	{
-		oPlayers[iLocalPlayerID]->fAimingDistance -= fFilteredMouseMovedY * fMouseSensitivity * 2;
+		/*oPlayers[iLocalPlayerID]->fAimingDistance -= fFilteredMouseMovedY * fMouseSensitivity * 2;
 		if (oPlayers[iLocalPlayerID]->fAimingDistance > 500.0)
 			oPlayers[iLocalPlayerID]->fAimingDistance = 500.0;
 		if (oPlayers[iLocalPlayerID]->fAimingDistance < 25.0)
-			oPlayers[iLocalPlayerID]->fAimingDistance = 25.0;
+			oPlayers[iLocalPlayerID]->fAimingDistance = 25.0;*/
 
-		oPlayers[iLocalPlayerID]->Rotate(fFilteredMouseMovedX * fMouseSensitivity / 100.0
-			* (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? 0.5 : 1.0));
+		oPlayers[iLocalPlayerID]->Rotate(fFilteredMouseMovedX * fMouseSensitivity / 100.0f
+			* (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? 0.5f : 1.0f));
 			//* 200.0 / oPlayers[iLocalPlayerID]->fAimingDistance);
 	}
 }
@@ -304,7 +304,7 @@ void InputMouseHold()
 	if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	// left mouse button is held down
 	{
-		oPlayers[iLocalPlayerID]->Fire();
+		//oPlayers[iLocalPlayerID]->Fire();
 	}
 	else
 	// left mouse button is NOT held down
@@ -338,14 +338,14 @@ void GLFWCALL InputProcessMouse(int iButton, int iAction)
 	{
 		switch (iButton) {
 		case GLFW_MOUSE_BUTTON_LEFT:
-			//iMouseButtonsDown |= 1;
+			if (iGameState == 0) oPlayers[iLocalPlayerID]->Fire();
 			break;
 		case GLFW_MOUSE_BUTTON_RIGHT:
 			//iMouseButtonsDown |= 2;
 			break;
 		case GLFW_MOUSE_BUTTON_MIDDLE:
 			//iMouseButtonsDown |= 4;
-			oPlayers[iLocalPlayerID]->iSelWeapon =
+			if (iGameState == 0) oPlayers[iLocalPlayerID]->iSelWeapon =
 				((oPlayers[iLocalPlayerID]->iSelWeapon == 3) ? 2 : 3);
 			break;
 		default:

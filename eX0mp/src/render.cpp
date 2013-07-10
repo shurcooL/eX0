@@ -140,9 +140,10 @@ void RenderHUD(void)
 // render all players
 void RenderPlayers()
 {
-	for (int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
+	for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
 	{
-		oPlayers[iLoop1]->Render();
+		if (oPlayers[iLoop1]->bConnected)
+			oPlayers[iLoop1]->Render();
 	}
 }
 

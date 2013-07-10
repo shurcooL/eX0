@@ -1,5 +1,6 @@
-#define		PLAYER_TICK_TIME		0.045f
-//#define		PLAYER_TICK_TIME		0.25f
+#define		PLAYER_TICK_TIME		0.025f
+//#define		PLAYER_TICK_TIME		0.050f
+//#define		PLAYER_TICK_TIME		0.100f
 //#define		PLAYER_TICK_TIME		1.0f
 #define		PLAYER_WIDTH			15.49193f
 #define		PLAYER_HALF_WIDTH		7.74597f
@@ -22,8 +23,12 @@ public:
 	void SetStealth(bool bOn);
 	float GetX();
 	float GetY();
+	float GetOldX();
+	float GetOldY();
 	void SetX(float fValue);
 	void SetY(float fValue);
+	void SetOldX(float fValue);
+	void SetOldY(float fValue);
 	void Position(float fPosX, float fPosY);
 	float GetVelX();
 	float GetVelY();
@@ -44,14 +49,15 @@ public:
 	float GetHealth();
 	void GiveHealth(float fValue);
 	bool IsDead();
+	string & GetName(void);
+	void SetName(string & sNewName);
 
 	int			iID;
 	bool		bEmptyClicked;
 	int			iSelWeapon;
 	float		fAimingDistance;
 
-	bool		bConnected;
-	SOCKET		nTcpSocket;
+	CClient		*pClient;
 
 private:
 	float		fX, fY;
@@ -74,9 +80,6 @@ void PlayerInit();
 
 // Returns a player
 CPlayer * PlayerGet(int nPlayerID);
-
-// Returns a player from their socket number
-CPlayer * PlayerGetFromSocket(SOCKET nSocket);
 
 void PlayerTick();
 

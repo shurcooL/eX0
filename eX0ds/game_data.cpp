@@ -1,21 +1,28 @@
 #include "globals.h"
 
+string			sLevelName = "test_orientation"; // "test3"
+
 gpc_polygon		oPolyLevel;
-gpc_tristrip	oTristripLevel;
+//gpc_tristrip	oTristripLevel;
 
 // DEBUG: PolyBoolean level
-PAREA			*pPolyBooleanLevel = NULL;
+//PAREA			*pPolyBooleanLevel = NULL;
 
-TextureIDs_t oTextureIDs;
+//TextureIDs_t oTextureIDs;
 
-void GameDataLoad()
+bool GameDataLoad()
 {
 	// load all textures
-	GameDataLoadTextures();
+	//GameDataLoadTextures();
 
 	// DEBUG - temporarily just open a level right away
-	//GameDataOpenLevel("levels/test3.wwl");
-	//GameDataOpenLevel("levels/test_orientation.wwl");
+	printf("Loading level '%s'.\n", sLevelName.c_str());
+	string sLevelPath = "../eX0mp/levels/" + sLevelName + ".wwl";
+	if (!GameDataOpenLevel(sLevelPath.c_str()))
+		return false;
+	else printf("Successfully loaded '%s'.\n", sLevelPath.c_str());
+
+	return true;
 }
 
 void GameDataUnload()
@@ -24,11 +31,11 @@ void GameDataUnload()
 	GameDataEndLevel();
 
 	// unload all textures
-	DESTROY_TEXMANAGER
+	//DESTROY_TEXMANAGER
 }
 
 // load all textures
-bool GameDataLoadTextures()
+/*bool GameDataLoadTextures()
 {
 	// load 1st font texture
 	oTextureIDs.iFonts[0] = TEXMANAGER.LoadTexture("data/fonts/font1.tga");
@@ -37,10 +44,10 @@ bool GameDataLoadTextures()
 
 	// no error checking just yet
 	return true;
-}
+}*/
 
 // load a level in memory
-void GameDataOpenLevel(const char *chFileName)
+bool GameDataOpenLevel(const char *chFileName)
 {
 	FILE	*pFile;
 
@@ -50,7 +57,7 @@ void GameDataOpenLevel(const char *chFileName)
 	if ((pFile = fopen(chFileName, "r")) != NULL)
 	{
 		gpc_read_polygon(pFile, 0, &oPolyLevel);
-		gpc_polygon_to_tristrip(&oPolyLevel, &oTristripLevel);
+		//gpc_polygon_to_tristrip(&oPolyLevel, &oTristripLevel);
 		fclose(pFile);
 	}
 	else
@@ -62,11 +69,11 @@ void GameDataOpenLevel(const char *chFileName)
 #else
 		printf("%s\n", sMessage.c_str());
 #endif
-		Terminate(1);
+		return false;
 	}
 
 	// DEBUG: Open the same level with PolyBoolean
-	LoadParea2(chFileName, &pPolyBooleanLevel);
+	/*LoadParea2(chFileName, &pPolyBooleanLevel);
 	if (pPolyBooleanLevel == NULL)
 		{ printf("Failed to load the PolyBoolean level.\n"); Terminate(2); }
 	if (PAREA::Triangulate(pPolyBooleanLevel) != 0)
@@ -80,15 +87,17 @@ void GameDataOpenLevel(const char *chFileName)
 		nTotalTriangles += oTristripLevel.strip[nLoop1].num_vertices - 2;
 	}
 	printf("gpc tri: triangle count = %d; vertex count = %d; tristrips = %d\n", nTotalTriangles, nTotalVertices, oTristripLevel.num_strips);
-	printf("PB tri: triangle count = %d; vertex count = %d\n", pPolyBooleanLevel->tnum, 3 * pPolyBooleanLevel->tnum);
+	printf("PB tri: triangle count = %d; vertex count = %d\n", pPolyBooleanLevel->tnum, 3 * pPolyBooleanLevel->tnum);*/
+
+	return true;
 }
 
 // close currently opened level, free memory, reset vars
 void GameDataEndLevel()
 {
 	gpc_free_polygon(&oPolyLevel);
-	gpc_free_tristrip(&oTristripLevel);
+	//gpc_free_tristrip(&oTristripLevel);
 
 	// DEBUG: Close the PolyBoolean level
-	PAREA::Del(&pPolyBooleanLevel);
+	//PAREA::Del(&pPolyBooleanLevel);
 }

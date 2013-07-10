@@ -5,12 +5,12 @@
 #pragma comment(linker, "/NODEFAULTLIB:\"LIBCMT\"")
 //#pragma comment(linker, "/NODEFAULTLIB:\"LIBC\"")
 
-int				iGameState = 1;
+volatile int	iGameState = 1;
 bool			bPaused = false;
 
 bool			bWireframe = false;
-bool			bUseDefaultTriangulation = true;
-bool			bStencilOperations = true;
+bool			bUseDefaultTriangulation = false;
+bool			bStencilOperations = false;
 
 GLFWvidmode		oDesktopMode;
 bool			bFullscreen = false;
@@ -27,11 +27,18 @@ string			sTempString = (string)"";
 float			fTempFloat = 0;
 int				iTempInt = 0;
 
+void eX0_assert(bool expression, string message)
+{
+	if (!expression)
+		printf("Assertion '%s' failed.\n", message.c_str());
+}
+
 // initialization
-void Init(int argc, char *argv[])
+bool Init(int argc, char *argv[])
 {
 	// init glfw
-	glfwInit();
+	if (!glfwInit())
+		return false;
 
 	// let the use choose whether to run in fullscreen mode
 	bFullscreen = false;
@@ -44,8 +51,9 @@ void Init(int argc, char *argv[])
 	glfwGetDesktopMode(&oDesktopMode);
 	//if (!glfwOpenWindow(640, 480, 5, 6, 5, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW))
 	if (!glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW))
-		Terminate(1);
-	glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
+		return false;
+	//glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
+	glfwSetWindowPos(oDesktopMode.Width - 640, oDesktopMode.Height / 2 - 240);
 	glfwSetWindowTitle(((string)"eX0 v0.0 (Built on " + __DATE__ + " at " + __TIME__ + ")").c_str());	// set the window title
 
 	glfwSwapInterval(0);		// Turn V-Sync off
@@ -67,20 +75,19 @@ void Init(int argc, char *argv[])
 	glfwSetMousePos(320, 240);
 
 	// sub-init
-	SyncRandSeed();
 	SetGlfwCallbacks();
 	GameDataLoad();						// load game data
 	WeaponInitSpecs();
-	nPlayerCount = 2; PlayerInit();		// Initialize the players
+	//nPlayerCount = 0; PlayerInit();		// Initialize the players
 	if (!NetworkInit())					// Initialize the networking
-		Terminate(1);
+		return false;
+	SyncRandSeed();
 
 	// init OpenGL
-	if (!OglUtilsInitGL())
-	{
+	if (!OglUtilsInitGL()) {
 		//ERROR_HANDLER.SetLastError("OpenGL initilization failed.");
 		printf("OpenGL initilization failed.\n");
-		Terminate(1);
+		return false;
 	}
 
 	// set global variables
@@ -88,11 +95,15 @@ void Init(int argc, char *argv[])
 
 	// make sure that the physics won't count all the time passed during init
 	fBaseTime = static_cast<float>(glfwGetTime());
+
+	return true;
 }
 
 // deinitialization
 void Deinit()
 {
+	printf("Deinit\n");
+
 	// show the mouse cursor
 	glfwEnable(GLFW_MOUSE_CURSOR);
 
@@ -111,6 +122,18 @@ void Deinit()
 	glfwTerminate();
 }
 
+// quits
+void Terminate(int nExitCode)
+{
+	// deinit
+	Deinit();
+
+	// DEBUG: Print out the memory usage stats
+	m_dumpMemoryReport();
+
+	exit(nExitCode);
+}
+
 // resize the window callback function
 void GLFWCALL ResizeWindow(int iWidth, int iHeight)
 {
@@ -127,31 +150,11 @@ void SetGlfwCallbacks()
 	glfwSetMouseButtonCallback(InputProcessMouse);
 }
 
-// quits
-void Terminate(int iExitCode)
-{
-	// deinit
-	Deinit();
-
-	// DEBUG: Print out the memory usage stats
-	m_dumpMemoryReport();
-
-	exit(iExitCode);
-}
-
-// syncronizes random seed with all clients
-void SyncRandSeed()
-{
-	// DEBUG: This has no effect, due to PolyBoolean doing srand(clock()) anyway
-	//srand(237);
-	srand(static_cast<unsigned int>(time(NULL)));
-}
-
 // Restarts the game
 void RestartGame()
 {
 	// Reset the players
-	PlayerInit();
+	//PlayerInit();
 
 	// Reset the particle engine
 	oParticleEngine.Reset();
@@ -174,21 +177,30 @@ void RestartGame()
 	printf("Game restarted. ============================\n");
 }
 
+// syncronizes random seed with all clients
+void SyncRandSeed(void)
+{
+	// DEBUG: This has no effect, due to PolyBoolean doing srand(clock()) anyway
+	//srand(237);
+	//srand(static_cast<unsigned int>(time(NULL)));
+}
+
 // main function
 int main(int argc, char *argv[]) 
 {
-	// DEBUG vars
-	static float fTempTimer = 0;
-	static int iWhere;
-
 	// Print the version and date/time built
 	printf("eX0 v0.0 - Built on %s at %s.\n\n", __DATE__, __TIME__);
 
 	// initialize
-	Init(argc, argv);
+	if (!Init(argc, argv))
+		Terminate(1);
 
 	// DEBUG - This is a hack - we only need to position the players here... But I called RestartGame() to do that
 	//RestartGame();
+
+	// DEBUG: Set the local player name through the 2nd command line param
+	if (argc >= 3)
+		sLocalPlayerName = argv[2];
 
 	// Connect to the server
 	if (argc >= 2)
@@ -208,7 +220,7 @@ int main(int argc, char *argv[])
 			if (glfwGetWindowParam(GLFW_ACTIVE)) {
 				glfwDisable(GLFW_MOUSE_CURSOR);
 				glfwSetMousePos(320, 240);
-				fBaseTime = glfwGetTime();
+				fBaseTime = (float)glfwGetTime();
 			}
 			continue;
 		}
@@ -246,7 +258,8 @@ int main(int argc, char *argv[])
 			InputMouseHold();
 
 			// player tick
-			PlayerTick();
+			//PlayerTick();
+			PlayerGet(iLocalPlayerID)->Tick();
 
 			// particle engine tick
 			if (bPaused) { fTempFloat = fTimePassed; fTimePassed = 0; }
