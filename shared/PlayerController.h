@@ -11,6 +11,7 @@ public:
 	void RequestNextCommand();
 	u_int GetCommandRequests();
 	void UseUpCommandRequest();
+	//bool TryUseUpCommandRequest();
 
 	void Reset();
 

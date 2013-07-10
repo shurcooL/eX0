@@ -16,11 +16,11 @@ Thread *		pNetworkThread;
 GLFWmutex		oTcpSendMutex;
 GLFWmutex		oUdpSendMutex;
 
-u_char			g_cCurrentCommandSequenceNumber = 0;
+//u_char			g_cCurrentCommandSequenceNumber = 0;
 double			g_dNextTickTime = GLFW_INFINITY;
 GLFWmutex		oPlayerTick;
 
-IndexedCircularBuffer<Move_t, u_char>	oUnconfirmedMoves;
+//IndexedCircularBuffer<Move_t, u_char>	oUnconfirmedMoves;
 
 MovingAverage	oRecentLatency(60.0, 10);
 MovingAverage	oRecentTimeDifference(60.0, 10);
@@ -34,7 +34,7 @@ u_int			nTrpReceived = 0;
 u_int			nSendTimeRequestPacketEventId = 0;
 
 u_char			g_cCommandRate = 20;
-u_char			g_cUpdateRate = 20;
+u_char			g_cUpdateRate = 19;
 
 const float		kfInterpolate = 0.1f;
 const float		kfMaxExtrapolate = 0.5f;
@@ -298,7 +298,6 @@ bool NetworkProcessTcpPacket(CPacket & oPacket)
 			u_char cPlayerCount;
 			oPacket.unpack("cc", &cLocalPlayerId, (char *)&cPlayerCount);
 
-			iLocalPlayerID = (int)cLocalPlayerId;
 			nPlayerCount = (int)cPlayerCount + 1;
 
 			//PlayerInit();
@@ -314,7 +313,7 @@ bool NetworkProcessTcpPacket(CPacket & oPacket)
 
 			// Got successfully accepted in game by the server
 			pServer->SetJoinStatus(ACCEPTED);
-			printf("Got accepted in game: local player id = %d, player count = %d\n", iLocalPlayerID, nPlayerCount);
+			printf("Got accepted in game: local player id = %d, player count = %d\n", pLocalPlayer->iID, nPlayerCount);
 
 			// Bind the UDP socket to the server
 			// This will have to be done in ServerConnection, if at all... Gotta think if it's worth having two different SendUdp()s
@@ -476,7 +475,7 @@ bool NetworkProcessTcpPacket(CPacket & oPacket)
 					// Active in-game player
 					oPacket.unpack("etc", (int)cNameLength, &sName, &cTeam);
 
-					if (nPlayer != iLocalPlayerID) {
+					if (nPlayer != pLocalPlayer->iID) {
 						new CPlayer(nPlayer);
 						PlayerGet(nPlayer)->m_pController = NULL;		// No player controller
 						PlayerGet(nPlayer)->m_pStateAuther = new NetworkStateAuther(*PlayerGet(nPlayer));
@@ -488,24 +487,22 @@ bool NetworkProcessTcpPacket(CPacket & oPacket)
 					PlayerGet(nPlayer)->SetTeam((int)cTeam);
 					if (cTeam != 2)
 					{
+						eX0_assert(nPlayer != pLocalPlayer->iID, "local player can't be on a non-spectator team already!");
+
 						oPacket.unpack("cfff", &cLastCommandSequenceNumber, &fX, &fY, &fZ);
 						//cCurrentCommandSequenceNumber = cLastCommandSequenceNumber;
-						PlayerGet(nPlayer)->cLatestAuthStateSequenceNumber = cLastCommandSequenceNumber;
-						static_cast<NetworkStateAuther *>(PlayerGet(nPlayer)->m_pStateAuther)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
-						if (nPlayer == iLocalPlayerID) {
-							eX0_assert(false, "local player can't be on a non-spectator team already!");
-						} else {
-							PlayerGet(nPlayer)->Position(fX, fY, fZ, PlayerGet(nPlayer)->cLatestAuthStateSequenceNumber);
-						}
+						//PlayerGet(nPlayer)->oLatestAuthStateTEST.cSequenceNumber = cLastCommandSequenceNumber;
+						//static_cast<NetworkStateAuther *>(PlayerGet(nPlayer)->m_pStateAuther)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
+
+						PlayerGet(nPlayer)->Position(fX, fY, fZ, cLastCommandSequenceNumber);
 					}
 					// Set the player tick time
-					PlayerGet(nPlayer)->fTickTime = 1.0f / g_cCommandRate;
-					if (nPlayer == iLocalPlayerID)
+					//PlayerGet(nPlayer)->fTickTime = 1.0f / g_cCommandRate;
+					if (nPlayer == pLocalPlayer->iID)
 					{
 						// Reset the sequence numbers for the local player
-						oUnconfirmedMoves.clear();
 					} else {
-						PlayerGet(nPlayer)->fTicks = 0.0f;
+						//PlayerGet(nPlayer)->fTicks = 0.0f;
 					}
 
 					++nActivePlayers;
@@ -532,8 +529,8 @@ glfwLockMutex(oPlayerTick);
 			string sName;
 			oPacket.unpack("cc", &cPlayerId, &cNameLength);
 			oPacket.unpack("et", (int)cNameLength, &sName);
-			if (cPlayerId == iLocalPlayerID)
-				printf("Got a Player Joined Server packet, with the local player ID %d.", iLocalPlayerID);
+			if (cPlayerId == pLocalPlayer->iID)
+				printf("Got a Player Joined Server packet, with the local player ID %d.", pLocalPlayer->iID);
 
 			if (false == pServer->IsLocal())
 			{
@@ -550,9 +547,6 @@ glfwLockMutex(oPlayerTick);
 
 				PlayerGet(cPlayerId)->SetName(sName);
 				PlayerGet(cPlayerId)->SetTeam(2);
-
-				// Set the other player tick time
-				PlayerGet(cPlayerId)->fTickTime = 1.0f / g_cCommandRate;
 			}
 
 			printf("Player #%d (name '%s') is connecting (in Info Exchange)...\n", cPlayerId, sName.c_str());
@@ -579,8 +573,8 @@ glfwLockMutex(oPlayerTick);
 			u_char cPlayerID;
 			oPacket.unpack("c", &cPlayerID);
 
-			if (cPlayerID == iLocalPlayerID)
-				printf("WARNING: Got a Player Left Server packet, with the local player ID %d.", iLocalPlayerID);
+			if (cPlayerID == pLocalPlayer->iID)
+				printf("WARNING: Got a Player Left Server packet, with the local player ID %d.", pLocalPlayer->iID);
 			if (PlayerGet(cPlayerID) == NULL) {
 				printf("WARNING: Got a Player Left Server packet, but player %d was not in game.\n", cPlayerID);
 				return false;
@@ -614,8 +608,10 @@ glfwLockMutex(oPlayerTick);
 			float fX, fY, fZ;
 			oPacket.unpack("cc", &cPlayerID, &cTeam);
 
-			eX0_assert(pServer->GetJoinStatus() >= IN_GAME || cPlayerID != iLocalPlayerID, "We should be IN_GAME if we receive a Player Joined Team packet about us.");
+			eX0_assert(pServer->GetJoinStatus() >= IN_GAME || cPlayerID != pLocalPlayer->iID, "We should be IN_GAME if we receive a Player Joined Team packet about us.");
 			if (PlayerGet(cPlayerID) == NULL) { printf("ERROR: Got a Player Joined Team packet, but player %d was not connected.\n", cPlayerID); return false; }
+
+			printf("Pl#%d ('%s') joined team %d at logic time %f/%d [client].\n", cPlayerID, PlayerGet(cPlayerID)->GetName().c_str(), cTeam, g_pGameSession->LogicTimer().GetGameTime(), g_pGameSession->GlobalStateSequenceNumberTEST);
 
 			if (false == pServer->IsLocal()) {
 				PlayerGet(cPlayerID)->SetTeam(cTeam);
@@ -628,23 +624,23 @@ glfwLockMutex(oPlayerTick);
 					static_cast<NetworkStateAuther *>(PlayerGet(cPlayerID)->m_pStateAuther)->cCurrentCommandSeriesNumber += 1;
 
 					oPacket.unpack("cfff", &cLastCommandSequenceNumber, &fX, &fY, &fZ);
-					PlayerGet(cPlayerID)->cLatestAuthStateSequenceNumber = cLastCommandSequenceNumber;
-					static_cast<NetworkStateAuther *>(PlayerGet(cPlayerID)->m_pStateAuther)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
-					PlayerGet(cPlayerID)->m_oInputCmdsTEST.clear();			// DEBUG: Can't do this from this thread really
-					PlayerGet(cPlayerID)->m_oAuthUpdatesTEST.clear();		// DEBUG: Can't do this from this thread really
-//printf("cLastAckedCommandSequenceNumber (in packet 28) = %d, while cCurrentCommandSequenceNumber = %d\n", cLastCommandSequenceNumber, cCurrentCommandSequenceNumber);
-					PlayerGet(cPlayerID)->Position(fX, fY, fZ, PlayerGet(cPlayerID)->cLatestAuthStateSequenceNumber);
+					//static_cast<NetworkStateAuther *>(PlayerGet(cPlayerID)->m_pStateAuther)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
+					PlayerGet(cPlayerID)->GlobalStateSequenceNumberTEST = cLastCommandSequenceNumber;
+
+					// Safe to do this here, because we're in Network thread (so can't be pushing into Queue),
+					// and using PlayerTickMutex, so Logic thread can't be popping from Queue
+					PlayerGet(cPlayerID)->m_oCommandsQueue.clear();
+					PlayerGet(cPlayerID)->m_oUpdatesQueue.clear();
+
+					PlayerGet(cPlayerID)->Position(fX, fY, fZ, cLastCommandSequenceNumber);
 				}
 			}
 
-double d = g_pGameSession->LogicTimer().GetTime() / (256.0 / g_cCommandRate); d -= static_cast<int32>(d); d *= 256;
-			printf("Player #%d (name '%s') joined team %d at logic time %f [client].\n", cPlayerID, PlayerGet(cPlayerID)->GetName().c_str(), cTeam, d);
-			pChatMessages->AddMessage(((int)cPlayerID == iLocalPlayerID ? "Joined " : PlayerGet(cPlayerID)->GetName() + " joined ")
+			pChatMessages->AddMessage(((int)cPlayerID == pLocalPlayer->iID ? "Joined " : PlayerGet(cPlayerID)->GetName() + " joined ")
 				+ (cTeam == 0 ? "team Red" : (cTeam == 1 ? "team Blue" : "Spectators")) + ".");
 
-			if (cPlayerID == iLocalPlayerID)
+			if (cPlayerID == pLocalPlayer->iID)
 			{
-				oUnconfirmedMoves.clear();
 				bSelectTeamReady = true;
 			}
 
@@ -664,15 +660,14 @@ void NetworkJoinGame()
 {
 	// DEBUG: Perform the cCurrentCommandSequenceNumber synchronization
 	double d = g_pGameSession->LogicTimer().GetRealTime() / (256.0 / g_cCommandRate);
-	d -= static_cast<int32>(d);
+	d -= static_cast<uint32>(d);
 	d *= 256;
-	g_cCurrentCommandSequenceNumber = (u_char)d + 1;
-	g_dNextTickTime = floor(g_pGameSession->LogicTimer().GetRealTime() / (1.0 / g_cCommandRate)) * (1.0 / g_cCommandRate);
-	printf("abc: %f, %d\n", d, g_cCurrentCommandSequenceNumber);
+	g_pGameSession->GlobalStateSequenceNumberTEST = (u_char)d + 1;
+	g_dNextTickTime = ceil(g_pGameSession->LogicTimer().GetRealTime() / (1.0 / g_cCommandRate)) * (1.0 / g_cCommandRate);
+	printf("abc: %f, %d, %f/%f\n", d, g_pGameSession->GlobalStateSequenceNumberTEST, g_dNextTickTime, g_pGameSession->LogicTimer().GetRealTime());
 	d -= floor(d);
 	printf("tick %% = %f, nextTickAt = %.10lf\n", d*100, g_dNextTickTime);
 	printf("%.8lf sec: NxtTk=%.15lf, NxtTk/12.8=%.15lf\n", g_pGameSession->LogicTimer().GetRealTime(), g_dNextTickTime, g_dNextTickTime / (256.0 / g_cCommandRate));
-	pLocalPlayer->fTicks = (float)(d * pLocalPlayer->fTickTime);
 	pLocalPlayer->GlobalStateSequenceNumberTEST = (u_char)d;
 
 	pServer->SetJoinStatus(IN_GAME);
@@ -790,6 +785,12 @@ glfwUnlockMutex(oPlayerTick);
 			oPongPacket.pack("ccccc", (u_char)11, oPingData.cPingData[0], oPingData.cPingData[1], oPingData.cPingData[2], oPingData.cPingData[3]);
 			pServer->SendUdp(oPongPacket);
 
+/*double t2d=0, t2=glfwGetTime();
+printf("test message nothing more\n");
+double t3d=0, t3=glfwGetTime();
+printf("\nt3-t2 = %f ms\n", (t3-t2)*1000);
+printf("t-t = %f ms\n", -(glfwGetTime()-glfwGetTime())*1000);*/
+//double t1=glfwGetTime();
 			// Update the last latency for all players
 			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 			{
@@ -797,10 +798,14 @@ glfwUnlockMutex(oPlayerTick);
 
 				oPacket.unpack("h", &nLastLatency);
 
-				if (PlayerGet(nPlayer) != NULL && nPlayer != iLocalPlayerID) {
+				if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer) != pLocalPlayer) {
 					PlayerGet(nPlayer)->pConnection->SetLastLatency(nLastLatency);
 				}
 			}
+//double t1d=glfwGetTime()-t1;
+//printf("wasted %f ms\n", t1d*1000);
+/*printf(" of those %f ms in t2\n", t2d*1000);
+printf("      and %f ms in t3\n", t3d*1000);*/
 		}
 		break;
 	// Pung Packet

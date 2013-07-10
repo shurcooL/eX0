@@ -1,75 +1,369 @@
-Solved.
+Solved. I couldn't use the new TryUseUpCommandRequest() fn with the new non-sequenced contents of m_oInputCmdsTEST.
 
 Client:
-Joining team Red.
-cLastAckedCommandSequenceNumber (in packet 28) = 78, while cCurrentCommandSequen
-ceNumber = 78
-Player #0 (name 'shurcooL`') joined team 0.
-Joining team Blue.
-cLastAckedCommandSequenceNumber (in packet 28) = 87, while cCurrentCommandSequen
-ceNumber = 87
-Player #0 (name 'shurcooL`') joined team 1.
-Joining team Red.
-cLastAckedCommandSequenceNumber (in packet 28) = 99, while cCurrentCommandSequen
-ceNumber = 99
-Player #0 (name 'shurcooL`') joined team 0.
-Joining team Blue.
-cLastAckedCommandSequenceNumber (in packet 28) = 113, while cCurrentCommandSeque
-nceNumber = 112
-WARNING!!!!!: I predict a mismatch!!
-Player #0 (name 'shurcooL`') joined team 1.
-Snapping-A to server's position (0.500000 difference).
-Snapping-A to server's position (0.249999 difference).
-Snapping-A to server's position (0.250001 difference).
-Snapping-A to server's position (0.249999 difference).
-Snapping-A to server's position (0.250001 difference).
-Snapping-A to server's position (0.250000 difference).
-Joining team Red.
-cLastAckedCommandSequenceNumber (in packet 28) = 120, while cCurrentCommandSeque
-nceNumber = 119
-WARNING!!!!!: I predict a mismatch!!
-Player #0 (name 'shurcooL`') joined team 0.
-Snapping-A to server's position (0.499999 difference).
-Snapping-A to server's position (0.249999 difference).
-Snapping-A to server's position (0.250004 difference).
-Snapping-A to server's position (0.249999 difference).
-Snapping-A to server's position (0.249999 difference).
-Snapping-A to server's position (0.249999 difference).
-Snapping-A to server's position (0.249999 difference).
-Snapping-A to server's position (0.249999 difference).
-Snapping-A to server's position (0.249996 difference).
-Snapping-A to server's position (0.250007 difference).
-Snapping-A to server's position (0.249999 difference).
-Snapping-A to server's position (0.249999 difference).
-Snapping-A to server's position (0.249999 difference).
-51.16645600 sec: NxtTk=51.199999999999235, NxtTk/12.8=3.999999999999940
+eX0 v0.001 (Debug Build with Debug options, built on Jan 16 2009 at 23:33:43)
+
+c
+Main thread tid = 0.
+Opened a window (try 1)...
+ResizeWindow to 640x480.
+CPU Count: 4
+GL Renderer: NVIDIA Corporation GeForce 8800 GTX/PCI/SSE2 v2.1.2
+GLFW_ACCELERATED: 1
+GLFW_RED_BITS: 8
+GLFW_GREEN_BITS: 8
+GLFW_BLUE_BITS: 8
+GLFW_ALPHA_BITS: 0
+GLFW_DEPTH_BITS: 24
+GLFW_STENCIL_BITS: 8
+GLFW_REFRESH_RATE: 100
+GLFW_FSAA_SAMPLES: 8
+Loading level 'test_orientation'.
+opened level ./levels/test_orientation.wwl
+gpc tri: triangle count = 24; vertex count = 48; tristrips = 12
+PB tri: triangle count = 26; vertex count = 78
+0 joysticks initialized.
+Scheduler thread (tid = 1) created.
+GameLogic thread (tid = 2) created.
+Created a disconnected NetworkConnection.
+ServerConnection(DISCONNECTED) Ctor.
+Connecting to localhost.
+Established a TCP connection (local port 3273), attempting to join the game.
+Network thread (tid = 3) created.
+Created a disconnected NetworkConnection.
+ClientConnection() Ctor.
+RemoteClientConnection() Ctor.
+Associated player id 0 with socket -1.
+Got accepted in game: local player id = 0, player count = 256
+Sending a UDP Handshake packet...
+Established a UDP connection with the server.
+Loading level 'test_orientation'.
+opened level levels/test_orientation.wwl
+gpc tri: triangle count = 24; vertex count = 48; tristrips = 12
+PB tri: triangle count = 26; vertex count = 78
+0 players already in game.
+abc: 200.800671, 201, -1717986918/1076107673
+tick % = 80.067128, nextTickAt = 10.0500000000
+10.04048694 sec: NxtTk=10.050000000000001, NxtTk/12.8=0.785156250000000
+Entered the game.
+
+Assertion FAILED: 'something's wrong, cuz oStateHistory.size() is == 0!'
+
+Positioning player 0 at 40.000000, -58.000000, 1.658761.
+Pl #0 (name 'shurcooL`') joined team 1 at logic time 234.955892/235 [client].
 Deinit
+GameLogic thread has ended.
+Scheduler thread has ended.
+RemoteClientConnection() ~Dtor.
+CPlayer(01990870) ~Dtor.
+ClientConnection(-1) ~Dtor.
+Deleted a NetworkConnection (socket -1 closed).
+Network thread has ended.
+ServerConnection(1524) ~Dtor.
+Deleted a NetworkConnection (socket 1524 closed).
+Removing a counter 'Scheduler'.
+Removing a counter 'GameLogic'.
+Removing a counter 'Network'.
+Removing a counter 'Main'.
+Returning 0 from main().                       :) :) :) :) :) :)))
+Press any key to continue . . .
 
 Server:
-Player #0 (name 'shurcooL`') joined team 0.
-Positioning player 0 at -107.000000, 100.000000.
-Got first command from client 79, last 78, with 1 moves
-Player #0 (name 'shurcooL`') joined team 1.
-Positioning player 0 at -68.000000, -157.000000.
-Got first command from client 88, last 87, with 1 moves
-#0 RTT = 9.2470 ms -> 93
-Player #0 (name 'shurcooL`') joined team 0.
-Positioning player 0 at 182.000000, -23.000000.
-Got first command from client 100, last 99, with 1 moves
-Player #0 (name 'shurcooL`') joined team 1.
-Positioning player 0 at -15.000000, -54.000000.
-Got first command from client 113, last 113, with 1 moves
-Got a duplicate UDP command packet from player 0, discarding.
-Player #0 (name 'shurcooL`') joined team 0.
-Positioning player 0 at -202.000000, -122.000000.
-Got first command from client 120, last 120, with 1 moves
-Got a duplicate UDP command packet from player 0, discarding.
-#0 RTT = 12.1230 ms -> 122
-#0 RTT = 8.8710 ms -> 89
-===================== 50.000071
-#0 RTT = 9.5150 ms -> 96
-#0 RTT = 10.3790 ms -> 104
+eX0 v0.001 (Debug Build with Debug options, built on Jan 16 2009 at 23:33:43)
+
+s
+Main thread tid = 0.
+Opened a window (try 1)...
+ResizeWindow to 640x480.
+CPU Count: 4
+GL Renderer: NVIDIA Corporation GeForce 8800 GTX/PCI/SSE2 v2.1.2
+GLFW_ACCELERATED: 1
+GLFW_RED_BITS: 8
+GLFW_GREEN_BITS: 8
+GLFW_BLUE_BITS: 8
+GLFW_ALPHA_BITS: 0
+GLFW_DEPTH_BITS: 24
+GLFW_STENCIL_BITS: 8
+GLFW_REFRESH_RATE: 100
+GLFW_FSAA_SAMPLES: 8
+Loading level 'test_orientation'.
+opened level ./levels/test_orientation.wwl
+gpc tri: triangle count = 24; vertex count = 48; tristrips = 12
+PB tri: triangle count = 26; vertex count = 78
+0 joysticks initialized.
+Scheduler thread (tid = 1) created.
+GameLogic thread (tid = 2) created.
+GameServer thread (tid = 3) created.
+The game server has been started.
+Created TCP listener socket #1560.
+Created UDP socket #1556.
+Created a NetworkConnection (socket 1508 opened).
+ClientConnection(1508) Ctor.
+eX0ds: new connection from 127.0.0.1:3273 on socket 1508
+Got a valid Join Server Request packet! yay.. yay... ;/
+Accepting this player (now 1/256).
+Associated player id 0 with socket 1508.
+Established UDP connection with player 0 (127.0.0.1:3274 on socket 1508).
+Player #0 (name 'shurcooL`') has entered the game.
+Pl #0 (name 'shurcooL`') joined team 1 at logic time 234.955120/235 [server].
+Positioning player 0 at 40.000000, -58.000000, 1.658761.
+NC: got 1 cmds (now 235)
+NC: pushed 234
+popped a command 234
+NC: got 2 cmds (now 236)
+NC: pushed 234
+NC: pushed 235
+popped a command 234
+NC: got 2 cmds (now 236)
+NC: pushed 235
+NC: pushed 236
+popped a command 235
+popped a command 235
+NC: got 2 cmds (now 238)
+NC: pushed 236
+NC: pushed 237
+popped a command 236
+NC: got 3 cmds (now 239)
+NC: pushed 236
+NC: pushed 237
+NC: pushed 238
+NC: got 3 cmds (now 239)
+NC: pushed 237
+NC: pushed 238
+NC: pushed 239
+popped a command 236
+future 3 2
+future 3 2
+future 3 2
+popped a command 237
+NC: got 4 cmds (now 241)
+NC: pushed 237
+NC: pushed 238
+NC: pushed 239
+NC: pushed 240
+future 3 2
+future 3 2
+future 3 2
+future 3 2
+popped a command 236
+NC: got 4 cmds (now 242)
+NC: pushed 238
+NC: pushed 239
+NC: pushed 240
+NC: pushed 241
+future 4 2
+future 4 2
+future 4 2
+popped a command 237
+NC: got 5 cmds (now 243)
+NC: pushed 238
+NC: pushed 239
+NC: pushed 240
+NC: pushed 241
+NC: pushed 242
+future 5 2
+future 5 2
+future 5 2
+popped a command 238
+NC: got 6 cmds (now 244)
+NC: pushed 238
+NC: pushed 239
+NC: pushed 240
+NC: pushed 241
+NC: pushed 242
+NC: pushed 243
+future 5 2
+future 5 2
+future 5 2
+NC: got 6 cmds (now 244)
+NC: pushed 239
+NC: pushed 240
+NC: pushed 241
+NC: pushed 242
+NC: pushed 243
+NC: pushed 244
+popped a command 237
+future 6 2
+future 6 2
+future 6 2
+popped a command 238
+NC: got 7 cmds (now 246)
+NC: pushed 239
+NC: pushed 240
+NC: pushed 241
+NC: pushed 242
+NC: pushed 243
+NC: pushed 244
+NC: pushed 245
+future 7 2
+future 7 2
+future 7 2
+future 7 2
+NC: got 8 cmds (now 246)
+NC: pushed 239
+NC: pushed 240
+NC: pushed 241
+NC: pushed 242
+NC: pushed 243
+NC: pushed 244
+NC: pushed 245
+NC: pushed 246
+popped a command 239
+future 7 2
+future 7 2
+future 7 2
+popped a command 237
+NC: got 8 cmds (now 248)
+NC: pushed 240
+NC: pushed 241
+NC: pushed 242
+NC: pushed 243
+NC: pushed 244
+NC: pushed 245
+NC: pushed 246
+NC: pushed 247
+future 8 2
+future 8 2
+future 8 2
+popped a command 238
+NC: got 9 cmds (now 249)
+NC: pushed 240
+NC: pushed 241
+NC: pushed 242
+NC: pushed 243
+NC: pushed 244
+NC: pushed 245
+NC: pushed 246
+NC: pushed 247
+NC: pushed 248
+future 9 2
+future 9 2
+future 9 2
+NC: got 10 cmds (now 249)
+NC: pushed 240
+NC: pushed 241
+NC: pushed 242
+NC: pushed 243
+NC: pushed 244
+NC: pushed 245
+NC: pushed 246
+NC: pushed 247
+NC: pushed 248
+NC: pushed 249
+popped a command 239
+future 10 2
+future 10 2
+future 10 2
+popped a command 240
+NC: got 11 cmds (now 251)
+NC: pushed 240
+NC: pushed 241
+NC: pushed 242
+NC: pushed 243
+NC: pushed 244
+NC: pushed 245
+NC: pushed 246
+NC: pushed 247
+NC: pushed 248
+NC: pushed 249
+NC: pushed 250
+future 10 2
+future 10 2
+future 10 2
+future 11 2
+NC: got 11 cmds (now 251)
+NC: pushed 241
+NC: pushed 242
+NC: pushed 243
+NC: pushed 244
+NC: pushed 245
+NC: pushed 246
+NC: pushed 247
+NC: pushed 248
+NC: pushed 249
+NC: pushed 250
+NC: pushed 251
+popped a command 238
+future 11 2
+future 11 2
+future 11 2
+popped a command 239
+NC: got 12 cmds (now 253)
+NC: pushed 241
+NC: pushed 242
+NC: pushed 243
+NC: pushed 244
+NC: pushed 245
+NC: pushed 246
+NC: pushed 247
+NC: pushed 248
+NC: pushed 249
+NC: pushed 250
+NC: pushed 251
+NC: pushed 252
+future 12 2
+future 12 2
+future 12 2
+NC: got 13 cmds (now 253)
+NC: pushed 241
+NC: pushed 242
+NC: pushed 243
+NC: pushed 244
+NC: pushed 245
+
+Assertion FAILED: 'm_oInputCmdsTEST.push(oCommand) failed, lost a command!!
+'
+
+NC: pushed 246
+
+Assertion FAILED: 'm_oInputCmdsTEST.push(oCommand) failed, lost a command!!
+'
+
+NC: pushed 247
+
+Assertion FAILED: 'm_oInputCmdsTEST.push(oCommand) failed, lost a command!!
+'
+
+NC: pushed 248
+
+Assertion FAILED: 'm_oInputCmdsTEST.push(oCommand) failed, lost a command!!
+'
+
+NC: pushed 249
+
+Assertion FAILED: 'm_oInputCmdsTEST.push(oCommand) failed, lost a command!!
+'
+
+NC: pushed 250
+
+Assertion FAILED: 'm_oInputCmdsTEST.push(oCommand) failed, lost a command!!
+'
+
+NC: pushed 251
+
+Assertion FAILED: 'm_oInputCmdsTEST.push(oCommand) failed, lost a command!!
+'
+
+NC: pushed 252
+
+Assertion FAILED: 'm_oInputCmdsTEST.push(oCommand) failed, lost a command!!
+'
+
+NC: pushed 253
+popped a command 240
+future 13 2
 Player #0 (name 'shurcooL`') has left the game (gracefully).
-Deleted a client (socket 5 closed).
-===================== 60.000369
+CPlayer(003C8D48) ~Dtor.
+ClientConnection(1508) ~Dtor.
+Deleted a NetworkConnection (socket 1508 closed).
 Deinit
+GameLogic thread has ended.
+Scheduler thread has ended.
+The game server has been ended.
+GameServer thread has ended.
+Removing a counter 'Scheduler'.
+Removing a counter 'GameLogic'.
+Removing a counter 'GameServer'.
+Removing a counter 'Main'.
+Returning 0 from main().                       :) :) :) :) :) :)))
+Press any key to continue . . .

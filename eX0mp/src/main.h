@@ -18,7 +18,7 @@ void SetNullptrAndDelete(T *& pPointer)
 }*/
 
 // DEBUG
-void DumpStateHistory(std::list<SequencedState_t> & oStateHistory);
+void DumpStateHistory(std::list<AuthState_t> & oStateHistory);
 
 // set glfw callback functions
 void SetGlfwCallbacks();

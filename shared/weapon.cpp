@@ -5,7 +5,7 @@
 #	include "../eX0ds/src/globals.h"
 #endif // EX0_CLIENT
 
-WeaponSpec_t	oWeaponSpecs[4];
+WeaponSpec_t	oWeaponSpecs[5];
 
 // implementation of the player class
 CWeapon::CWeapon()
@@ -64,9 +64,11 @@ void CWeapon::Fire()
 				dTimer += oWeaponSpecs[iWhatWeapon].fROF;// * PARTICLE_TICK_TIME / fPlayerTickTime;
 
 				// make a projectile particle
-				oParticleEngine.AddParticle(PlayerGet(iOwnerID)->GetIntX(), PlayerGet(iOwnerID)->GetIntY(),
-					Math::Sin(PlayerGet(iOwnerID)->GetZ()) * oWeaponSpecs[iWhatWeapon].fProjSpeed + PlayerGet(iOwnerID)->GetVelX(),
-					Math::Cos(PlayerGet(iOwnerID)->GetZ()) * oWeaponSpecs[iWhatWeapon].fProjSpeed + PlayerGet(iOwnerID)->GetVelY(),
+				State_t oRenderState = PlayerGet(iOwnerID)->GetRenderState();
+				oParticleEngine.AddParticle(oRenderState.fX, oRenderState.fY,
+					// DEBUG: I will need to re-add player's velocity to the equation eventually...
+					Math::Sin(oRenderState.fZ) * oWeaponSpecs[iWhatWeapon].fProjSpeed/* + PlayerGet(iOwnerID)->GetVelX()*/,
+					Math::Cos(oRenderState.fZ) * oWeaponSpecs[iWhatWeapon].fProjSpeed/* + PlayerGet(iOwnerID)->GetVelY()*/,
 					oWeaponSpecs[iWhatWeapon].iWhatType, oWeaponSpecs[iWhatWeapon].fMaxDamage,
 					oWeaponSpecs[iWhatWeapon].fMaxLife, iOwnerID);
 
@@ -124,7 +126,7 @@ void CWeapon::Render()
 {
 #ifdef EX0_CLIENT
 	// Draw the gun
-	if (iOwnerID == iLocalPlayerID) OglUtilsSetMaskingMode(NO_MASKING_MODE);
+	if (PlayerGet(iOwnerID) == pLocalPlayer) OglUtilsSetMaskingMode(NO_MASKING_MODE);
 	u_int nGunLength = iWhatWeapon == 1 ? 10 : 8;
 	glBegin(GL_QUADS);
 		glVertex2i(-1, 3 + nGunLength);
@@ -132,7 +134,7 @@ void CWeapon::Render()
 		glVertex2i(1, 3 - nGunLength > 8 ? 1 : 0);
 		glVertex2i(1, 3 + nGunLength);
 	glEnd();
-	if (iOwnerID == iLocalPlayerID) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
+	if (PlayerGet(iOwnerID) == pLocalPlayer) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
 
 	// Render the Muzzle Flash
 	if (m_oMuzzleFlashState == VISIBLE)
@@ -270,4 +272,17 @@ void WeaponInitSpecs()
 	oWeaponSpecs[3].fInaccuracy = 0.15f;
 	oWeaponSpecs[3].fMaxDamage = 180;
 	oWeaponSpecs[3].fMaxLife = 1000;
+
+	// networked gun TEST
+	oWeaponSpecs[4].sName = "network test gun";
+	oWeaponSpecs[4].iWhatType = CParticle::BULLET;		// bullets
+	oWeaponSpecs[4].iClips = 1;
+	oWeaponSpecs[4].iMaxClips = 1;
+	oWeaponSpecs[4].iClipAmmo = 250;
+	oWeaponSpecs[4].fROF = 1.000f;
+	oWeaponSpecs[4].fReloadTime = 2.000f;
+	oWeaponSpecs[4].fProjSpeed = 10;
+	oWeaponSpecs[4].fInaccuracy = 0.0f;
+	oWeaponSpecs[4].fMaxDamage = 10;
+	oWeaponSpecs[4].fMaxLife = 1000;
 }

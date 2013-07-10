@@ -92,7 +92,7 @@ bool ServerConnection::Connect(const char * szHostname, u_short nPort)
 
 void ServerConnection::GenerateSignature()
 {
-	double dSignature = g_pGameSession->LogicTimer().GetRealTime();
+	double dSignature = glfwGetTime();
 	//memcpy(m_cSignature, (void *)&dSignature, m_knSignatureSize);
 	SetSignature(reinterpret_cast<u_char *>(&dSignature));
 }

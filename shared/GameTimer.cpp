@@ -43,6 +43,13 @@ double GameTimer::GetRealTime()
 	return (glfwGetTime() + m_dTimeOffset);
 }
 
+double GameTimer::GetGameTime()
+{
+	double dGameTime = GetTime() / (256.0 / g_cCommandRate);
+	dGameTime -= static_cast<uint32>(dGameTime);
+	return (dGameTime * 256);
+}
+
 void GameTimer::UpdateTime()
 {
 	eX0_assert(m_bIsStarted);

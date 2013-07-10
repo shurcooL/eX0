@@ -13,7 +13,7 @@ template <typename T, typename Tp> IndexedCircularBuffer<T, Tp>::~IndexedCircula
 	delete[] m_pBuffer;
 }
 
-template <typename T, typename Tp> bool IndexedCircularBuffer<T, Tp>::push(T & oElement, Tp nPosition)
+template <typename T, typename Tp> bool IndexedCircularBuffer<T, Tp>::push_back(T & oElement, Tp nPosition)
 {
 	//eX0_assert(nPosition >= 0 && nPosition < m_knBufferSize, "nPosition >= 0 && nPosition < m_knBufferSize");
 
@@ -34,9 +34,9 @@ template <typename T, typename Tp> bool IndexedCircularBuffer<T, Tp>::push(T & o
 		return false;
 }
 
-template <typename T, typename Tp> void IndexedCircularBuffer<T, Tp>::pop()
+template <typename T, typename Tp> void IndexedCircularBuffer<T, Tp>::pop_front()
 {
-	eX0_assert(!empty(), "tried to pop() an empty buffer");
+	eX0_assert(!empty(), "tried to pop_front() an empty buffer");
 
 	m_nBufferHead = (m_nBufferHead + 1) % m_knBufferSize;
 }
@@ -67,7 +67,7 @@ template <typename T, typename Tp> T & IndexedCircularBuffer<T, Tp>::back()
 
 template <typename T, typename Tp> bool IndexedCircularBuffer<T, Tp>::empty() const
 {
-	return m_nBufferHead == m_nBufferTail;
+	return (m_nBufferHead == m_nBufferTail);
 }
 
 template <typename T, typename Tp> bool IndexedCircularBuffer<T, Tp>::full() const

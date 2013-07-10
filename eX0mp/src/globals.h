@@ -32,7 +32,7 @@ p = pointer
 #include <string>		// for std::string avaliablity
 #include <sstream>		// for string to int and back conversions
 #include <time.h>		// for date and time functions (used in log)
-#include <math.h>
+#include <cmath>
 #include <list>
 #include <map>
 #include <set>
@@ -153,7 +153,6 @@ extern string		sChatString;
 extern CHudMessageQueue		*pChatMessages;
 
 extern u_int		nPlayerCount;
-extern u_int		iLocalPlayerID;
 extern CPlayer *	pLocalPlayer;
 extern string		sLocalPlayerName;
 //extern CPlayer		*oPlayers[32];
@@ -189,9 +188,9 @@ extern InputManager *	g_pInputManager;
 
 extern GameSession *	g_pGameSession;
 
-extern u_char			g_cCurrentCommandSequenceNumber;
+//extern u_char			g_cCurrentCommandSequenceNumber;
 extern double			g_dNextTickTime;
-extern IndexedCircularBuffer<Move_t, u_char>	oUnconfirmedMoves;
+//extern IndexedCircularBuffer<Move_t, u_char>	oUnconfirmedMoves;
 extern GLFWmutex		oPlayerTick;
 
 extern u_char			g_cCommandRate;

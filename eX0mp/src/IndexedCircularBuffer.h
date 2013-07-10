@@ -8,8 +8,8 @@ public:
 	IndexedCircularBuffer();
 	~IndexedCircularBuffer();
 
-	bool push(T & oElement, Tp nPosition);
-	void pop();
+	bool push_back(T & oElement, Tp nPosition);
+	void pop_front();
 
 	T & operator [](Tp nPosition);
 
@@ -24,6 +24,8 @@ public:
 	u_int size() const;
 
 	void clear();
+
+	typedef Tp iterator;
 
 private:
 	IndexedCircularBuffer(const IndexedCircularBuffer &);

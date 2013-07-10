@@ -135,6 +135,7 @@ bool Init(int, char *[])
 	}
 	WeaponInitSpecs();
 	nPlayerCount = 256;					// Set the max player limit for this server
+	//nPlayerCount = 8;					// Set the max player limit for this server
 	if (bWindowModeDEBUG) pChatMessages = new CHudMessageQueue(0, 480 - 150, 5, 7.5f);
 	//FpsCounter::Initialize();
 	if (bWindowModeDEBUG)
@@ -288,7 +289,7 @@ void signal_handler(int sig)
 #endif
 
 // DEBUG
-void DumpStateHistory(std::list<SequencedState_t> & oStateHistory)
+void DumpStateHistory(std::list<AuthState_t> & oStateHistory)
 {
 	printf("=== oStateHistory DUMP ====================\n");
 
@@ -299,10 +300,9 @@ void DumpStateHistory(std::list<SequencedState_t> & oStateHistory)
 
 	printf("dCurrentTimepoint = %f\n", dCurrentTimepoint);
 	printf("size %d\n", oStateHistory.size());
-	printf("front 2nd %d: (%f, %f, %f)\n", oStateHistory.begin().operator ++().operator *().cSequenceNumber, oStateHistory.begin().operator ++().operator *().oState.fX, oStateHistory.begin().operator ++().operator *().oState.fY, oStateHistory.begin().operator ++().operator *().oState.fZ);
-	printf("front 1st %d: (%f, %f, %f)\n", oStateHistory.front().cSequenceNumber, oStateHistory.front().oState.fX, oStateHistory.front().oState.fY, oStateHistory.front().oState.fZ);
-	printf("g_cCurrentCommandSequenceNumber %d\n", g_cCurrentCommandSequenceNumber);
-	printf("g_pGameSession->cRenderCurrentCommandSequenceNumberTEST %d\n", g_pGameSession->cRenderCurrentCommandSequenceNumberTEST);
+	printf("front 2nd %d: (%f, %f, %f)\n", oStateHistory.begin().operator ++().operator *().oState.cSequenceNumber, oStateHistory.begin().operator ++().operator *().oState.oState.fX, oStateHistory.begin().operator ++().operator *().oState.oState.fY, oStateHistory.begin().operator ++().operator *().oState.oState.fZ);
+	printf("front 1st %d: (%f, %f, %f)\n", oStateHistory.front().oState.cSequenceNumber, oStateHistory.front().oState.oState.fX, oStateHistory.front().oState.oState.fY, oStateHistory.front().oState.oState.fZ);
+	printf("GameSession->GlobalStateSequenceNumberTEST %d\n", g_pGameSession->GlobalStateSequenceNumberTEST);
 
 	printf("\n");
 }
@@ -371,7 +371,7 @@ int main(int argc, char *argv[])
 		pServer->SetJoinStatus(IN_GAME);
 
 glfwLockMutex(oPlayerTick);
-		pLocalPlayer = new CPlayer(iLocalPlayerID);
+		pLocalPlayer = new CPlayer(0);
 		pLocalPlayer->SetName(sLocalPlayerName);
 		pLocalPlayer->m_pController = new HidController(*pLocalPlayer);
 		/*{
@@ -387,8 +387,6 @@ glfwLockMutex(oPlayerTick);
 		(new LocalClientConnection())->SetPlayer(pLocalPlayer);
 		pLocalPlayer->pConnection->SetJoinStatus(IN_GAME);
 
-		pLocalPlayer->fTickTime = 1.0f / g_cCommandRate;
-
 		for (int nBotNumber = 1; nBotNumber <= 0; ++nBotNumber)
 		{//Bot test
 			CPlayer * pTestPlayer = new CPlayer();
@@ -399,8 +397,6 @@ glfwLockMutex(oPlayerTick);
 			//(new LocalClientConnection())->SetPlayer(pTestPlayer);
 			//pTestPlayer->pConnection->SetJoinStatus(IN_GAME);
 			pLocalPlayer->pConnection->AddPlayer(pTestPlayer);
-
-			pTestPlayer->fTickTime = 1.0f / g_cCommandRate;
 
 glfwUnlockMutex(oPlayerTick);
 			// Send a Join Team Request packet
@@ -425,14 +421,12 @@ glfwUnlockMutex(oPlayerTick);
 		pServer->SetJoinStatus(IN_GAME);
 
 glfwLockMutex(oPlayerTick);
-		pLocalPlayer = new CPlayer(iLocalPlayerID);
+		pLocalPlayer = new CPlayer(0);
 		pLocalPlayer->SetName(sLocalPlayerName);
 		pLocalPlayer->m_pController = new HidController(*pLocalPlayer);
 		pLocalPlayer->m_pStateAuther = new LocalStateAuther(*pLocalPlayer);
 		(new LocalClientConnection())->SetPlayer(pLocalPlayer);
 		pLocalPlayer->pConnection->SetJoinStatus(IN_GAME);
-
-		pLocalPlayer->fTickTime = 1.0f / g_cCommandRate;
 
 		// Start the game
 		printf("Entered the game.\n");
@@ -475,7 +469,7 @@ glfwUnlockMutex(oPlayerTick);
 //if (glfwGetKey('O')) {CTimedEventScheduler * p = pTimedEventScheduler; pTimedEventScheduler = NULL; delete p;}
 
 // DEBUG
-//if (g_pGameSession->LogicTimer().GetTime() / 12.8 >= 50.005 / 256) InputProcessKey('1', GLFW_PRESS);
+//if (nRunModeDEBUG == 0 && g_pGameSession->LogicTimer().GetGameTime() >= 14.990) InputProcessKey('1', GLFW_PRESS);
 
 		if (bWindowModeDEBUG)
 		{
@@ -509,7 +503,7 @@ glfwUnlockMutex(oPlayerTick);
 glfwLockMutex(oPlayerTick);
 				// DEBUG: Do this first to make sure there's no mis-match between player position for scene and other player rendering
 				// But this should be done by a separate camera type of thing
-				if (pLocalPlayer != NULL) {
+				/*if (pLocalPlayer != NULL) {
 					// TODO: This needs to be worked on... need a better separation between rendering and logic timeframe/player location/etc.
 					pLocalPlayer->fTicks = (float)(g_pGameSession->RenderTimer().GetTime() - (g_dNextTickTime - 1.0 / g_cCommandRate));
 					g_pGameSession->cRenderCurrentCommandSequenceNumberTEST = g_cCurrentCommandSequenceNumber;
@@ -526,6 +520,10 @@ glfwLockMutex(oPlayerTick);
 							pLocalPlayer->UpdateInterpolatedPos();
 						}
 					}
+				}*/
+				for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+					if (PlayerGet(nPlayer) != NULL)
+						PlayerGet(nPlayer)->UpdateRenderState();
 				}
 glfwUnlockMutex(oPlayerTick);
 
@@ -539,7 +537,7 @@ glfwUnlockMutex(oPlayerTick);
 				if (bStencilOperations) RenderFOV();
 
 				// Enable the FOV masking
-				if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
+				if (bStencilOperations && pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
 
 				// render all players
 glfwLockMutex(oPlayerTick);
@@ -554,7 +552,7 @@ glfwUnlockMutex(oPlayerTick);
 				RenderParticles();
 
 				// Disable the masking
-				if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(NO_MASKING_MODE);
+				if (bStencilOperations && pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(NO_MASKING_MODE);
 
 				// render HUD
 glfwLockMutex(oPlayerTick);
@@ -570,7 +568,8 @@ glfwUnlockMutex(oPlayerTick);
 			}
 
 			// finish it up
-			glfwSwapBuffers();
+			if (!bPaused) glfwSwapBuffers();
+			else { glfwSleep(0.010); glfwPollEvents(); }
 
 			if (glfwGetWindowParam(GLFW_ACTIVE))
 			{

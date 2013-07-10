@@ -9,7 +9,7 @@
 GLFWmutex		oTcpSendMutex;
 GLFWmutex		oUdpSendMutex;
 
-u_char			g_cCurrentCommandSequenceNumber = 0;
+//u_char			g_cCurrentCommandSequenceNumber = 0;
 double			g_dNextTickTime = GLFW_INFINITY;
 GLFWmutex		oPlayerTick;
 
@@ -244,8 +244,7 @@ glfwUnlockMutex(oPlayerTick);
 
 glfwLockMutex(oPlayerTick);
 			pConnection->GetPlayer(cPlayerNumber)->SetTeam((int)cTeam);
-double d = g_pGameSession->LogicTimer().GetTime() / (256.0 / g_cCommandRate); d -= static_cast<int32>(d); d *= 256;
-			printf("Player #%d (name '%s') joined team %d at logic time %f [server].\n", pConnection->GetPlayerID(cPlayerNumber), pConnection->GetPlayer(cPlayerNumber)->GetName().c_str(), cTeam, d);
+			printf("Pl#%d ('%s') joined team %d at logic time %f/%d [server].\n", pConnection->GetPlayerID(cPlayerNumber), pConnection->GetPlayer(cPlayerNumber)->GetName().c_str(), cTeam, g_pGameSession->LogicTimer().GetGameTime(), g_pGameSession->GlobalStateSequenceNumberTEST);
 
 			// Create a Player Joined Team packet
 			CPacket oPlayerJoinedTeamPacket(CPacket::BOTH);
@@ -256,37 +255,33 @@ double d = g_pGameSession->LogicTimer().GetTime() / (256.0 / g_cCommandRate); d 
 			{
 				pConnection->GetPlayer(cPlayerNumber)->RespawnReset();
 
-				// DEBUG: Randomly position the player
-				float x, y;
-				do {
-					x = static_cast<float>(rand() % 2000 - 1000);
-					y = static_cast<float>(rand() % 2000 - 1000);
-				} while (ColHandIsPointInside((int)x, (int)y) || !ColHandCheckPlayerPos(&x, &y));
-				pConnection->GetPlayer(cPlayerNumber)->Position(x, y, 0.001f * (rand() % 1000) * Math::TWO_PI);
-				printf("Positioning player %d at %f, %f, %f.\n", pConnection->GetPlayerID(cPlayerNumber), x, y, pConnection->GetPlayer()->GetZ());
-
-				// DEBUG: Perform the cLastRecvedCommandSequenceNumber synchronization to time
-				double d = g_pGameSession->LogicTimer().GetRealTime() / (256.0 / g_cCommandRate);
-				d -= static_cast<int32>(d);
-				d *= 256;
-				if (false == pConnection->IsLocal()) {
-					static_cast<NetworkController *>(pConnection->GetPlayer(cPlayerNumber)->m_pController)->cLastRecvedCommandSequenceNumber = (u_char)d + 1;
-				}
-				pConnection->GetPlayer(cPlayerNumber)->cLatestAuthStateSequenceNumber = (u_char)d + 1;
-				pConnection->GetPlayer(cPlayerNumber)->GlobalStateSequenceNumberTEST = (u_char)d;
-
-				pConnection->GetPlayer(cPlayerNumber)->m_oInputCmdsTEST.clear();		// DEBUG: Is this the right thing to do? Right place to do it?
-				pConnection->GetPlayer(cPlayerNumber)->m_oAuthUpdatesTEST.clear();		// DEBUG: Is this the right thing to do? Right place to do it?
-
-				if (false == pConnection->IsLocal()) {
-					// Start expecting the first command packet from this player
+				// Increment the Command packet series
+				if (false == pConnection->IsLocal())
 					static_cast<NetworkController *>(pConnection->GetPlayer(cPlayerNumber)->m_pController)->cCurrentCommandSeriesNumber += 1;
-					static_cast<NetworkController *>(pConnection->GetPlayer(cPlayerNumber)->m_pController)->bFirstCommand = true;
-				}
 
-				oPlayerJoinedTeamPacket.pack("c", pConnection->GetPlayer(cPlayerNumber)->cLatestAuthStateSequenceNumber);
-				oPlayerJoinedTeamPacket.pack("fff", pConnection->GetPlayer(cPlayerNumber)->GetX(),
-					pConnection->GetPlayer(cPlayerNumber)->GetY(), pConnection->GetPlayer(cPlayerNumber)->GetZ());
+				/*if (false == pConnection->IsLocal()) {
+					static_cast<NetworkController *>(pConnection->GetPlayer(cPlayerNumber)->m_pController)->cLastRecvedCommandSequenceNumber = g_pGameSession->GlobalStateSequenceNumberTEST - 1;
+				}*/
+				pConnection->GetPlayer(cPlayerNumber)->GlobalStateSequenceNumberTEST = g_pGameSession->GlobalStateSequenceNumberTEST - 1;
+
+				// Safe to do this here, because we're in Network thread (so can't be pushing into Queue),
+				// and using PlayerTickMutex, so Logic thread can't be popping from Queue
+				pConnection->GetPlayer(cPlayerNumber)->m_oCommandsQueue.clear();
+				pConnection->GetPlayer(cPlayerNumber)->m_oUpdatesQueue.clear();
+
+				// DEBUG: Randomly position the player
+				SequencedState_t oSeqState;
+				do {
+					oSeqState.oState.fX = static_cast<float>(rand() % 2000 - 1000);
+					oSeqState.oState.fY = static_cast<float>(rand() % 2000 - 1000);
+				} while (ColHandIsPointInside((int)oSeqState.oState.fX, (int)oSeqState.oState.fY) || !ColHandCheckPlayerPos(&oSeqState.oState.fX, &oSeqState.oState.fY));
+				oSeqState.oState.fZ = 0.001f * (rand() % 1000) * Math::TWO_PI;
+				oSeqState.cSequenceNumber = pConnection->GetPlayer(cPlayerNumber)->GlobalStateSequenceNumberTEST;
+				pConnection->GetPlayer(cPlayerNumber)->Position(oSeqState);
+
+				oPlayerJoinedTeamPacket.pack("c", pConnection->GetPlayer(cPlayerNumber)->oLatestAuthStateTEST.cSequenceNumber);
+				oPlayerJoinedTeamPacket.pack("fff", pConnection->GetPlayer(cPlayerNumber)->oLatestAuthStateTEST.oState.fX,
+					pConnection->GetPlayer(cPlayerNumber)->oLatestAuthStateTEST.oState.fY, pConnection->GetPlayer(cPlayerNumber)->oLatestAuthStateTEST.oState.fZ);
 			}
 glfwUnlockMutex(oPlayerTick);
 
@@ -339,10 +334,6 @@ glfwUnlockMutex(oPlayerTick);
 				// Set team to Spectator by default
 				pConnection->GetPlayer()->SetTeam(2);
 
-				// Set the player tick time
-				// TODO: Do something about this, see if it's needed, and remove it if not, or make it useful, etc.
-				pConnection->GetPlayer()->fTickTime = 1.0f / g_cCommandRate;
-
 				// Send a Load Level packet to load the current level
 				CPacket oLoadLevelPacket;
 				oLoadLevelPacket.pack("hct", 0, (u_char)20, &sLevelName);
@@ -363,9 +354,9 @@ glfwUnlockMutex(oPlayerTick);
 						oCurrentPlayersInfoPacket.pack("c", (u_char)PlayerGet(nPlayer)->GetTeam());
 						if (PlayerGet(nPlayer)->GetTeam() != 2)
 						{
-							oCurrentPlayersInfoPacket.pack("c", PlayerGet(nPlayer)->cLatestAuthStateSequenceNumber);
-							oCurrentPlayersInfoPacket.pack("fff", PlayerGet(nPlayer)->GetX(),
-								PlayerGet(nPlayer)->GetY(), PlayerGet(nPlayer)->GetZ());
+							oCurrentPlayersInfoPacket.pack("c", PlayerGet(nPlayer)->oLatestAuthStateTEST.cSequenceNumber);
+							oCurrentPlayersInfoPacket.pack("fff", PlayerGet(nPlayer)->oLatestAuthStateTEST.oState.fX,
+								PlayerGet(nPlayer)->oLatestAuthStateTEST.oState.fY, PlayerGet(nPlayer)->oLatestAuthStateTEST.oState.fZ);
 						}
 					} else {
 						oCurrentPlayersInfoPacket.pack("c", (char)0);

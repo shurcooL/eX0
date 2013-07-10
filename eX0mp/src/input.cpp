@@ -171,8 +171,10 @@ glfwLockMutex(oPlayerTick);
 				if (!pLocalPlayer->IsDead()) {
 					for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1) {
 						if (PlayerGet(iLoop1) == NULL || PlayerGet(iLoop1) == pLocalPlayer) continue;
-						if (pow((pLocalPlayer->GetIntX() + Math::Sin(pLocalPlayer->GetZ()) * PLAYER_WIDTH) - PlayerGet(iLoop1)->GetX(), 2)
-						  + pow((pLocalPlayer->GetIntY() + Math::Cos(pLocalPlayer->GetZ()) * PLAYER_WIDTH) - PlayerGet(iLoop1)->GetY(), 2)
+						State_t oRenderState = pLocalPlayer->GetRenderState();
+						State_t oOtherPlayer = PlayerGet(iLoop1)->GetRenderState();
+						if (pow((oRenderState.fX + Math::Sin(oRenderState.fZ) * PLAYER_WIDTH) - oOtherPlayer.fX, 2)
+						  + pow((oRenderState.fY + Math::Cos(oRenderState.fZ) * PLAYER_WIDTH) - oOtherPlayer.fY, 2)
 						  <= PLAYER_HALF_WIDTH_SQR)
 							PlayerGet(iLoop1)->GiveHealth(-150);
 					}
@@ -259,10 +261,10 @@ glfwLockMutex(oPlayerTick);
 						pLocalPlayer->Position(x, y, 0.001f * (rand() % 1000) * Math::TWO_PI);
 						printf("Positioning player %d at %f, %f.\n", pLocalPlayer->iID, x, y);
 
-						pLocalPlayer->m_oInputCmdsTEST.clear();			// DEBUG: Is this the right thing to do? Right place to do it?
-						pLocalPlayer->m_oAuthUpdatesTEST.clear();		// DEBUG: Is this the right thing to do? Right place to do it?
+						pLocalPlayer->m_oCommandsQueue.clear();			// DEBUG: Is this the right thing to do? Right place to do it?
+						pLocalPlayer->m_oUpdatesQueue.clear();		// DEBUG: Is this the right thing to do? Right place to do it?
 
-						oPlayerJoinedTeamPacket.pack("c", pLocalPlayer->cLatestAuthStateSequenceNumber);
+						oPlayerJoinedTeamPacket.pack("c", pLocalPlayer->oLatestAuthStateTEST.cSequenceNumber);
 						oPlayerJoinedTeamPacket.pack("fff", pLocalPlayer->GetX(),
 							pLocalPlayer->GetY(), pLocalPlayer->GetZ());
 					}
@@ -333,13 +335,14 @@ glfwLockMutex(oPlayerTick);
 				CPlayer * pTestPlayer = new CPlayer();
 				std::string sName = "Test Mimic " + itos(nBotNumber);
 				pTestPlayer->SetName(sName);
-				pTestPlayer->m_pController = new AiController(*pTestPlayer);
+				if ((rand() % 100) >= 20)
+					pTestPlayer->m_pController = new AiController(*pTestPlayer);
+				else
+					pTestPlayer->m_pController = new HidController(*pTestPlayer);
 				pTestPlayer->m_pStateAuther = new LocalStateAuther(*pTestPlayer);
 				//(new LocalClientConnection())->SetPlayer(pTestPlayer);
 				//pTestPlayer->pConnection->SetJoinStatus(IN_GAME);
 				pLocalPlayer->pConnection->AddPlayer(pTestPlayer);
-
-				pTestPlayer->fTickTime = 1.0f / g_cCommandRate;
 glfwUnlockMutex(oPlayerTick);
 
 				// Send a Join Team Request packet

@@ -16,40 +16,26 @@ LocalStateAuther::~LocalStateAuther()
 
 void LocalStateAuther::AfterTick()
 {
-	while (!m_oPlayer.m_oInputCmdsTEST.empty() && m_oPlayer.m_pController->GetCommandRequests() > 0)
+	while (!m_oPlayer.m_oCommandsQueue.empty() && m_oPlayer.m_pController->GetCommandRequests() > 0)
 	{
-		//eX0_assert(m_oInputCmdsTEST.size() == 1, "m_oAuthUpdatesTEST.size() is != 1!!!!\n");
-
-		m_oPlayer.m_pController->UseUpCommandRequest();
-
 		SequencedCommand_t oSequencedCommand;
-		m_oPlayer.m_oInputCmdsTEST.pop(oSequencedCommand);
-		//static u_char cmdNum = 0; printf("popped a command %d\n", cmdNum++);
+		m_oPlayer.m_oCommandsQueue.pop(oSequencedCommand);
 
-		{//begin section from Network.cpp
-			// Set the inputs
-			m_oPlayer.MoveDirection(oSequencedCommand.oCommand.cMoveDirection);
-			m_oPlayer.SetStealth(oSequencedCommand.oCommand.cStealth != 0);
-			m_oPlayer.SetZ(oSequencedCommand.oCommand.fZ);
-
-			// Player tick
-			m_oPlayer.CalcTrajs();
-			m_oPlayer.CalcColResp();
-
-			m_oPlayer.cLatestAuthStateSequenceNumber = oSequencedCommand.cSequenceNumber;
-		}//end section from Network.cpp
-
-		// DEBUG: Used for server rendering purposes only, may not be needed later
+		// TODO: Check if we're missing some states, and fill in the blanks, instead of waiting for 255 more states
+		if (oSequencedCommand.cSequenceNumber == m_oPlayer.oLatestAuthStateTEST.cSequenceNumber)
 		{
-			SequencedState_t oSequencedState;
-			oSequencedState.oState.fX = m_oPlayer.GetX();
-			oSequencedState.oState.fY = m_oPlayer.GetY();
-			oSequencedState.oState.fZ = m_oPlayer.GetZ();
-			oSequencedState.cSequenceNumber = m_oPlayer.cLatestAuthStateSequenceNumber;
+			//printf("%f LSA: used command %d\n", g_pGameSession->LogicTimer().GetGameTime(), oSequencedCommand.cSequenceNumber);
+			m_oPlayer.m_pController->UseUpCommandRequest();
+
+			m_oPlayer.oLatestAuthStateTEST = m_oPlayer.PhysicsTickTEST(m_oPlayer.oLatestAuthStateTEST, oSequencedCommand);
 
 			// Add the new state to player's state history
-			m_oPlayer.PushStateHistory(oSequencedState);
+			AuthState_t oAuthState;
+			oAuthState.oState = m_oPlayer.oLatestAuthStateTEST;
+			oAuthState.bAuthed = true;
+			m_oPlayer.PushStateHistory(oAuthState);
 		}
+		//else printf("%f LSA: popped (ignored) command %d\n", g_pGameSession->LogicTimer().GetGameTime(), oSequencedCommand.cSequenceNumber);
 	}
 }
 
@@ -78,9 +64,9 @@ void LocalStateAuther::SendUpdate()
 			{
 				oServerUpdatePacket.pack("c", (u_char)1);
 
-				oServerUpdatePacket.pack("c", PlayerGet(nPlayer)->cLatestAuthStateSequenceNumber);
-				oServerUpdatePacket.pack("fff", PlayerGet(nPlayer)->GetX(),
-					PlayerGet(nPlayer)->GetY(), PlayerGet(nPlayer)->GetZ());
+				oServerUpdatePacket.pack("c", PlayerGet(nPlayer)->oLatestAuthStateTEST.cSequenceNumber);
+				oServerUpdatePacket.pack("fff", PlayerGet(nPlayer)->oLatestAuthStateTEST.oState.fX,
+					PlayerGet(nPlayer)->oLatestAuthStateTEST.oState.fY, PlayerGet(nPlayer)->oLatestAuthStateTEST.oState.fZ);
 			} else {
 				oServerUpdatePacket.pack("c", (u_char)0);
 			}

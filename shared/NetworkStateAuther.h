@@ -17,7 +17,7 @@ public:
 
 	static void ProcessUpdate(CPacket & oPacket);
 
-	u_char		cLastAckedCommandSequenceNumber;
+	//u_char		cLastAckedCommandSequenceNumber;
 	u_char		cCurrentCommandSeriesNumber;
 };
 

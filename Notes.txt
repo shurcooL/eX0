@@ -1,0 +1,7 @@
+eX0 Project Notes (newest on top)
+=================================
+
+Client's Latency Calculation Too High (Jan 21, 2009)
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+When both server and client applications are hosted on one machine, the client's ping time is always 0.5-1 ms or so higher than server (which is usually 0.1-0.2 ms).
+This is because of the "Update the last latency for all players" code takes about 0.5-1 ms to execute... "for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {}"

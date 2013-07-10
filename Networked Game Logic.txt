@@ -1,3 +1,12 @@
+Newest Changes [Jan 15, 2009]
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+-Naturally, bFirstCommand is phased out as well.
+-Also considering phasing out cLastRecvedCommandSequenceNumber. Do it for now. Actually, it might be a good idea to keep it, because otherwise it's hard to figure out if cmd with SN -1 is slighly old, or new but after 3+ sec of lag...
+-Phased out cLastAckedCommandSequenceNumber... Rethinking.
+-GameSession->GlobalStateSequenceNumberTEST replaces g_cCurrentCommandSequenceNumber.
+-Currently it takes State #0 and Command #1 to produce State #1. TODO: Change to St#0+Cmd#0=St#1
+-CPlayer::oLatestAuthStateTEST is replacing CPlayer::fX,fY,fZ and cLatestAuthStateSequenceNumber
+
 game logic loop
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 -time.++g_cCurrentCommandSequenceNumber (every 50 ms only)

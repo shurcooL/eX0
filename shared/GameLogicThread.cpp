@@ -44,8 +44,6 @@ void GLFWCALL GameLogicThread::ThreadFunction(void * pArgument)
 glfwLockMutex(oPlayerTick);
 			/*while (g_pGameSession->LogicTimer().GetTime() >= g_dNextTickTime)
 			{
-// CONTINUE: Ok, problem here is that the very first tick (when g_dNextTickTime == 0) happens before local player even joins the server,
-//           So, need to figure something out to fix that, or go back to not performing the 1st tick...
 //printf("tick(++%d) - logic_1 %f\n", g_cCurrentCommandSequenceNumber, g_pGameSession->LogicTimer().GetRealTime());
 
 				g_dNextTickTime += 1.0 / g_cCommandRate;
@@ -59,7 +57,7 @@ glfwLockMutex(oPlayerTick);
 			while (g_pGameSession->LogicTimer().GetTime() >= g_dNextTickTime)
 			{
 				g_dNextTickTime += 1.0 / g_cCommandRate;
-				++g_cCurrentCommandSequenceNumber;
+				//++g_cCurrentCommandSequenceNumber;
 				++g_pGameSession->GlobalStateSequenceNumberTEST;
 			}
 			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
@@ -93,7 +91,9 @@ glfwLockMutex(oPlayerTick);
 glfwUnlockMutex(oPlayerTick);
 
 			// particle engine tick
+glfwLockMutex(oPlayerTick);
 			oParticleEngine.Tick();
+glfwUnlockMutex(oPlayerTick);
 			//if (bPaused) dTimePassed = fTempFloat;
 
 //#ifndef EX0_CLIENT

@@ -33,6 +33,15 @@ void PlayerController::UseUpCommandRequest()
 
 	--m_nCommandRequests;
 }
+/*bool PlayerController::TryUseUpCommandRequest()
+{
+	if (m_nCommandRequests > 0) {
+		--m_nCommandRequests;
+		return true;
+	} else {
+		return false;
+	}
+}*/
 
 void PlayerController::Reset()
 {

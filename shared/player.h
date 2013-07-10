@@ -8,18 +8,32 @@
 #define		PLAYER_HALF_WIDTH_SQR	60.0f
 #define		PLAYER_COL_DET_TOLERANCE 0.005f
 
-typedef struct {
+typedef struct State_st {
 	float	fX;
 	float	fY;
 	float	fZ;
 	//float	fVelX;
 	//float	fVelY;
+
+	bool CloseTo(State_st oOtherState)
+	{
+		Vector2 oOwnPosition(fX, fY);
+		Vector2 oOtherPosition(oOtherState.fX, oOtherState.fY);
+
+		return ((oOwnPosition - oOtherPosition).SquaredLength() <= 0.001f &&
+				std::abs(fZ - oOtherState.fZ) <= 0.001f);
+	}
 } State_t;
 
-typedef struct SequencedState_st {
+typedef struct {
 	State_t	oState;
 	u_char	cSequenceNumber;
 } SequencedState_t;
+
+typedef struct {
+	SequencedState_t	oState;
+	bool				bAuthed;
+} AuthState_t;
 
 typedef struct {
 	char	cMoveDirection;
@@ -32,10 +46,10 @@ typedef struct {
 	u_char		cSequenceNumber;
 } SequencedCommand_t;
 
-typedef struct {
+/*typedef struct {
 	Command_t	oCommand;
-	State_t		oState;
-} Move_t;
+	State_t		oResultState;
+} Move_t;*/
 
 // Returns a player
 CPlayer * PlayerGet(u_int nPlayerId);
@@ -47,41 +61,20 @@ public:
 	CPlayer(u_int nPlayerId);
 	virtual ~CPlayer();
 
-	void MoveDirection(int nDirection);
-	int GetMoveDirection() const { return nMoveDirection; }
-	void Rotate(float fAmount);
-	void CalcTrajs();
-	void CalcColResp();
+	SequencedState_t PhysicsTickTEST(SequencedState_t oStartingState, SequencedCommand_t oCommand);
 	void Render();
 	void RenderInPast(double dTimeAgo);
+	void UpdateRenderState();
+	const State_t GetRenderState();
 	void SetTeam(int nTeam);
 	int GetTeam();
-	void SetStealth(bool bOn);
-	float GetX();
-	float GetY();
-	float GetOldX();
-	float GetOldY();
-//#ifdef EX0_CLIENT
-	void PushStateHistory(SequencedState_t & oSequencedState);
-//#endif // EX0_CLIENT
-	void SetX(float fValue);
-	void SetY(float fValue);
-	void SetOldX(float fValue);
-	void SetOldY(float fValue);
-	void Position(float fNewX, float fNewY, float fNewZ);
-#ifdef EX0_CLIENT
-	void Position(float fNewX, float fNewY, float fNewZ, u_char cSequenceNumber);
-#endif // EX0_CLIENT
-	float GetVelX();
-	float GetVelY();
-	void SetVelX(float fValue);
-	void SetVelY(float fValue);
-	float GetVelocity();
-	float GetIntX();
-	float GetIntY();
+	void PushStateHistory(AuthState_t oAuthState);
+	void Position(SequencedState_t oSequencedState);
+	void Position(float fX, float fY, float fZ, u_char cLastCommandSequenceNumber);
+	//float GetVelocity();
+	void Rotate(float fAmount);
 	void SetZ(float fValue);
 	float GetZ();
-	void UpdateInterpolatedPos();
 	void Fire();
 	void Reload();
 	int GetSelClips();
@@ -107,24 +100,24 @@ public:
 	double		m_dNextUpdateTime;
 
 #ifdef EX0_CLIENT
-	State_t GetStateInPastX(float fTimeAgo);
+	//State_t GetStateInPastX(float fTimeAgo);
 	State_t GetStateInPast(double dTimeAgo);
 #endif // EX0_CLIENT
 
-	int64		GlobalStateSequenceNumberTEST;
+	u_char		GlobalStateSequenceNumberTEST;
 
-	u_char		cLatestAuthStateSequenceNumber;
+	SequencedState_t	oLatestAuthStateTEST;
+	//u_char		cLatestAuthStateSequenceNumber;
 
-	ThreadSafeQueue<SequencedCommand_t, 100>	m_oInputCmdsTEST;
-	ThreadSafeQueue<SequencedState_t, 3>		m_oAuthUpdatesTEST;
+	std::list<AuthState_t>			oStateHistory;		// The front has the latest entries
+	IndexedCircularBuffer<Command_t, u_char>	oUnconfirmedCommands;		// The front has the oldest commands
+
+	ThreadSafeQueue<SequencedCommand_t, 100>	m_oCommandsQueue;
+	ThreadSafeQueue<SequencedState_t, 3>		m_oUpdatesQueue;		// Contains authed state updates
 
 	u_int		iID;
 	bool		bEmptyClicked;
 	int			iSelWeapon;
-	float		fAimingDistance;
-	float		fTicks;
-	float		fTickTime;
-	float		fOldZ;
 //#ifndef EX0_CLIENT
 	ClientConnection * pConnection;
 //#endif
@@ -138,21 +131,20 @@ private:
 	CPlayer(const CPlayer &);
 	CPlayer & operator =(const CPlayer &);
 
-	float		fX, fY;
-	float		fOldX, fOldY;
-	float		fVelX, fVelY;
-	float		fIntX, fIntY;
+	void CalcTrajs(State_t & oState);
+	void CalcColResp(State_t & oState);
+
+	Command_t	m_oCommand;
+	State_t		m_oRenderState;
 	float		fZ;
 	State_t		m_oDeadState;
-	int			iIsStealth;
-	int			nMoveDirection;
 	CWeapon		oWeapons[4];
 	float		fHealth;
 	string		sName;
 	int			m_nTeam;
 
-	std::list<SequencedState_t>		oStateHistory;		// The front has the latest entries
-	State_t							oOnlyKnownState;
+	//std::list<SequencedState_t>		oStateHistory;		// The front has the latest entries
+	//State_t							oOnlyKnownState;
 
 	static std::vector<CPlayer *>		m_oPlayers;
 	static u_int						m_nPlayerCount;

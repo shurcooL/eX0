@@ -7,11 +7,9 @@
 
 NetworkController::NetworkController(CPlayer & oPlayer)
 	: PlayerController(oPlayer),
+	  cCurrentCommandSeriesNumber(0),
 	  m_oMutex(glfwCreateMutex())
 {
-	cLastRecvedCommandSequenceNumber = 0;
-	bFirstCommand = true;
-	cCurrentCommandSeriesNumber = 0;
 }
 
 NetworkController::~NetworkController()
@@ -36,15 +34,30 @@ void NetworkController::ProcessCommand(CPacket & oPacket)
 	u_char cStealth;
 	float fZ;
 	oPacket.unpack("ccc", &cCommandSequenceNumber, &cCommandSeriesNumber, &cMovesCount);
-	cMovesCount += 1;
+	cMovesCount += 1;	// De-normalize back to 1 (min value)
 
 	NetworkController * pNetworkController = this;
 
 	if (cCommandSeriesNumber != pNetworkController->cCurrentCommandSeriesNumber) {
-		printf("Got a Command with mismatching series number, cCommandSequenceNumber = %d, cMovesCount = %d, ignoring.\n", cCommandSequenceNumber, cMovesCount);
+		printf("Got a Command with mismatching series number, ignoring. cCommandSequenceNumber = %d, cMovesCount = %d, ignoring.\n", cCommandSequenceNumber, cMovesCount);
 		return;
 	}
 
+	//printf("%f NC: got %d cmds\n", g_pGameSession->LogicTimer().GetGameTime(), (int)cMovesCount);
+	for (int nMove = 0; nMove < (int)cMovesCount; ++nMove)
+	{
+		oPacket.unpack("ccf", &cMoveDirection, &cStealth, &fZ);
+
+		SequencedCommand_t oSequencedCommand;
+		oSequencedCommand.oCommand.cMoveDirection = cMoveDirection;
+		oSequencedCommand.oCommand.cStealth = cStealth;
+		oSequencedCommand.oCommand.fZ = fZ;
+		oSequencedCommand.cSequenceNumber = static_cast<u_char>(cCommandSequenceNumber - (cMovesCount - 1) + nMove);
+
+		eX0_assert(m_oPlayer.m_oCommandsQueue.push(oSequencedCommand), "m_oCommandsQueue.push(oCommand) failed, lost a command!!\n");
+		//printf("%f NC: pushed %d\n", g_pGameSession->LogicTimer().GetGameTime(), oSequencedCommand.cSequenceNumber);
+	}
+	/* Outdated... Testing something else: pushing all the recvd commands into m_oCommandsQueue, and only the needed ones will be used from there
 	// A special case for the first command we receive from this client in this new series
 	if (pNetworkController->bFirstCommand) {
 		pNetworkController->cLastRecvedCommandSequenceNumber = (u_char)(cCommandSequenceNumber - cMovesCount);
@@ -83,8 +96,8 @@ void NetworkController::ProcessCommand(CPacket & oPacket)
 
 			oSequencedCommand.cSequenceNumber = static_cast<u_char>(cCommandSequenceNumber - (cMovesCount - 1) + nMove);
 
-			eX0_assert(m_oPlayer.m_oInputCmdsTEST.push(oSequencedCommand), "m_oInputCmdsTEST.push(oCommand) failed, lost a command!!\n");
+			eX0_assert(m_oPlayer.m_oCommandsQueue.push(oSequencedCommand), "m_oCommandsQueue.push(oCommand) failed, lost a command!!\n");
 			//printf("pushed %d\n", cCommandSequenceNumber - (cMovesCount - 1) + nMove);
 		}
-	}
+	}*/
 }

@@ -180,7 +180,7 @@ void CParticle::CollisionHandling(int iParticle)
 				|| PlayerGet(iLoop1)->IsDead())
 				continue;
 
-			State_t oPlayerState = PlayerGet(iLoop1)->GetStateInPast(PlayerGet(iLoop1)->pConnection->IsLocal() ? 0 : kfInterpolate);
+			State_t oPlayerState = PlayerGet(iLoop1)->GetStateInPast(nullptr != dynamic_cast<LocalController *>(PlayerGet(iLoop1)->m_pController) ? 0 : kfInterpolate);
 			oVector.x = oPlayerState.fX;
 			oVector.y = oPlayerState.fY;
 
@@ -280,7 +280,7 @@ void CParticle::CollisionHandling(int iParticle)
 				|| PlayerGet(iLoop1)->IsDead())
 				continue;
 
-			State_t oPlayerState = PlayerGet(iLoop1)->GetStateInPast(PlayerGet(iLoop1)->pConnection->IsLocal() ? 0 : kfInterpolate);
+			State_t oPlayerState = PlayerGet(iLoop1)->GetStateInPast(nullptr != dynamic_cast<LocalController *>(PlayerGet(iLoop1)->m_pController) ? 0 : kfInterpolate);
 			oVector.x = oPlayerState.fX;
 			oVector.y = oPlayerState.fY;
 
@@ -329,6 +329,7 @@ void CParticle::Tick()
 				// give damage to whoever
 				if (oParticles[iLoop1].iWillHit != -1) {
 					PlayerGet(oParticles[iLoop1].iWillHit)->GiveHealth(-oParticles[iLoop1].fMaxDamage);
+//if (oParticles[iLoop1].fMaxDamage < 100) bPaused = true;
 					printf("%i hit %i for %f dmg\n", oParticles[iLoop1].iOwnerID, oParticles[iLoop1].iWillHit, oParticles[iLoop1].fMaxDamage);
 				}
 				//else printf("%i missed\n", oParticles[iLoop1].iOwnerID);
@@ -356,8 +357,9 @@ void CParticle::Tick()
 							continue;
 
 						Vector2 oVector;
-						oVector.x = PlayerGet(iLoop2)->GetIntX();
-						oVector.y = PlayerGet(iLoop2)->GetIntY();
+						State_t oPlayerState = PlayerGet(iLoop2)->GetStateInPast(nullptr != dynamic_cast<LocalController *>(PlayerGet(iLoop2)->m_pController) ? 0 : kfInterpolate);
+						oVector.x = oPlayerState.fX;
+						oVector.y = oPlayerState.fY;
 
 						oVector -= oParticles[iLoop1].oPosition + (1 + oParticles[iLoop1].fLife / (float)g_pGameSession->LogicTimer().GetTimePassed()) * oParticles[iLoop1].oVelocity;
 

@@ -11,10 +11,7 @@ public:
 	GameTimer & LogicTimer(void);
 	GameTimer & RenderTimer(void);
 
-	int64		GlobalStateSequenceNumberTEST;
-
-	u_char		cRenderCurrentCommandSequenceNumberTEST;
-	double		dTickTimeTEST;
+	u_char		GlobalStateSequenceNumberTEST;
 
 private:
 	GameSession(const GameSession &);

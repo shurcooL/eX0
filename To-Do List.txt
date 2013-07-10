@@ -2,19 +2,19 @@ eX0 To-Do List (highest priority on top)
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 //-FIX[rare]: 0 <= 256.00015 <= 1; fHistoryTicks not in range: 256.00015. Fixed. It happens when fTicks >= fTickTime and from->to states are 0->1. Just added a (fCurrentTimepoint >= 256) check when fCurrentTimepoint is calculated. Done.
 -Establish a clear ownership relationship between Connection and Player classes (i.e. Connection owns its Players).
--Consider if PlayerController should go inside LocalStateAuther rather than CPlayer.
+xx-Consider if PlayerController should go inside LocalStateAuther rather than CPlayer. No, definitely not (b/c NSA also uses a controller).
 //-Refactor CPlayer class not to contain a redundant nLastLatency thing, rather use a dummy connection container for that type of stuff. Done.
 -Put a whole bunch of stuff in GameSession class, including players and connections, etc.
 -Add ability to add 'bots' on the server while clients are connected (notify them properly); this will require clients to be aware of >1 player per connection; also a way to kick/remove them.
 -Finish the Connect to Local Game Server protocol/handshake connection.
-//-Rename LocalServer class to GameServer and create some sort of offline server ('n'either) connection ability.
+//-Rename LocalServer class to GameServer and create some sort of offline server ('n'either) connection ability. Done.
 -Figure out if I need to close the UDP socket in ~NetworkConnection(), not just the TCP socket.
 -Camera class
 /-InputManager/InputListener classes
 -Console class
 /-GameSession class
 //-GameTimer class
--Still need a better separation between rendering and logic timeframe/player location/etc. system.
+//-Still need a better separation between rendering and logic timeframe/player location/etc. system. Accomplished by using two timers, with the Render timed synced to Logic timer. Done.
 //-FIX: Render thread should use RenderTimer for player positions; also fix the glitch that happens when g_cCurrentCommandSequenceNumber is incremented in logic thread, during player rendering (thus breaking RenderInPast()). Done.
 //-Refactor (and move to Thread class) and clean up the FpsCounter class
 //-FIX: When you are connecting (i.e. in the middle of clock sync), if another player changes/joins a team, you will not get that packet. Ok, now it's better, but make sure not to send PlayerJoinedTeam (packet 28) to UDP_CONNECTED clients that didn't send their local info (packet 21). I think I need to add another state in between UDP_CONN and IN_GAME, that indicates player got the current world state info packet (21). Only send player joined/left to players with >= PUBLIC_CLIENT state. Done, but could use more testing/verification (i.e. some code review).

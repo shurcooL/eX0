@@ -102,6 +102,8 @@ bool PlayerInputListener::ProcessButton(int nDevice, int nButton, bool bPressed)
 		{
 		case 'W':
 			// DEBUG: Test only, create ControlButton/Axis/etc. classes and use 'em
+			// DEBUG: Also, using += instead of = poses a problem, because if PlayerInputListener is created while
+			//        some buttons were pressed down (e.g. 'W'), the AxisState var should be set to appropriate value, not zero
 			m_dForwardAxisState += (bPressed ? 1 : -1);
 			break;
 		case 'S':
@@ -202,10 +204,14 @@ bool PlayerInputListener::ProcessAxis(int nDevice, int nAxis, double dPosition)
 
 void PlayerInputListener::TimePassed(double dTimePassed)
 {
-	m_dForwardAxis += m_dForwardAxisState * dTimePassed * 20;
-	m_dStrafeAxis += m_dStrafeAxisState * dTimePassed * 20;
-	m_dRotationAxis += m_dRotationAxisState * dTimePassed * 20;
-	m_dStealthHalfAxis += m_dStealthHalfAxisState * dTimePassed * 20;
+	if (m_dForwardAxis * m_dForwardAxisState < 0) m_dForwardAxis = 0;
+	if (m_dStrafeAxis * m_dStrafeAxisState < 0) m_dStrafeAxis = 0;
+	if (m_dRotationAxis * m_dRotationAxisState < 0) m_dRotationAxis = 0;
+
+	m_dForwardAxis += m_dForwardAxisState * dTimePassed * g_cCommandRate;
+	m_dStrafeAxis += m_dStrafeAxisState * dTimePassed * g_cCommandRate;
+	m_dRotationAxis += m_dRotationAxisState * dTimePassed * g_cCommandRate;
+	m_dStealthHalfAxis += m_dStealthHalfAxisState * dTimePassed * g_cCommandRate;
 }
 
 void PlayerInputListener::Reset()

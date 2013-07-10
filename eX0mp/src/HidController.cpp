@@ -9,7 +9,7 @@ HidController::HidController(CPlayer & oPlayer)
 
 HidController::~HidController()
 {
-	if (nullptr != g_pInputManager) g_pInputManager->UnregisterListener(m_pPlayerInputListener);
+	g_pInputManager->UnregisterListener(m_pPlayerInputListener);
 	delete m_pPlayerInputListener;
 }
 
@@ -27,9 +27,10 @@ void HidController::ProvideNextCommand()
 	oSequencedCommand.oCommand.cStealth = (m_pPlayerInputListener->GetStealth() ? 1 : 0);
 	oSequencedCommand.oCommand.fZ = m_oPlayer.GetZ();
 
-	oSequencedCommand.cSequenceNumber = g_cCurrentCommandSequenceNumber;
+	oSequencedCommand.cSequenceNumber = m_oPlayer.GlobalStateSequenceNumberTEST;
 
-	eX0_assert(m_oPlayer.m_oInputCmdsTEST.push(oSequencedCommand), "m_oInputCmdsTEST.push(oCommand) failed, lost a command!!\n");
+	//printf("ProvideNextCommand %d\n", oSequencedCommand.cSequenceNumber);
+	eX0_assert(m_oPlayer.m_oCommandsQueue.push(oSequencedCommand), "m_oCommandsQueue.push(oCommand) failed, lost a command!!\n");
 }
 
 void HidController::ChildReset()

@@ -6,20 +6,13 @@
 #endif // EX0_CLIENT
 
 u_int	nPlayerCount = 0;
-//CPlayer	*oPlayers[32] = { NULL };
 #ifdef EX0_CLIENT
-u_int		iLocalPlayerID = 0;
 CPlayer *	pLocalPlayer = NULL;
 string		sLocalPlayerName = "New Player";
 #endif
 
 std::vector<CPlayer *> CPlayer::m_oPlayers;
 u_int CPlayer::m_nPlayerCount = 0;
-
-//float	fPlayerTickTime;// = 0.025f;
-//float	fPlayerTickTime = 0.050f;
-//float	fPlayerTickTime = 0.100f;
-//float	fPlayerTickTime = 1.0f;
 
 // implementation of the player class
 CPlayer::CPlayer()
@@ -31,26 +24,10 @@ CPlayer::CPlayer()
 	//printf("CPlayer(%p) Ctor.\n", this);
 
 	// init vars
-	fX = 0;
-	fY = 0;
-	fOldX = 0;
-	fOldY = 0;
-	fVelX = 0;
-	fVelY = 0;
-	fIntX = 0;
-	fIntY = 0;
-	fZ = 0;
-	fOldZ = 0;
-	iIsStealth = 0;
-	nMoveDirection = -1;
-	iSelWeapon = 2;
-	fAimingDistance = 200.0;
-	fHealth = 100;
+	RespawnReset();
 	sName = "Unnamed Player";
 	m_nTeam = 2;
 	bEmptyClicked = true;
-	fTicks = 0;
-	fTickTime = 0;
 
 	// Network related
 	pConnection = NULL;
@@ -70,26 +47,10 @@ CPlayer::CPlayer(u_int nPlayerId)
 	//printf("CPlayer(%p) Ctor.\n", this);
 
 	// init vars
-	fX = 0;
-	fY = 0;
-	fOldX = 0;
-	fOldY = 0;
-	fVelX = 0;
-	fVelY = 0;
-	fIntX = 0;
-	fIntY = 0;
-	fZ = 0;
-	fOldZ = 0;
-	iIsStealth = 0;
-	nMoveDirection = -1;
-	iSelWeapon = 2;
-	fAimingDistance = 200.0;
-	fHealth = 100;
+	RespawnReset();
 	sName = "Unnamed Player";
 	m_nTeam = 2;
 	bEmptyClicked = true;
-	fTicks = 0;
-	fTickTime = 0;
 
 	// Network related
 	pConnection = NULL;
@@ -226,12 +187,16 @@ void CPlayer::Tick()
 	if (GetTeam() == 2 || IsDead())
 		return;
 
-	while (this->GlobalStateSequenceNumberTEST < g_pGameSession->GlobalStateSequenceNumberTEST)
+	if (m_pController != NULL)
 	{
-		if (m_pController != NULL)
+		// TODO: This is why it needed to be an uint64... Or does it?
+		//while (this->GlobalStateSequenceNumberTEST < g_pGameSession->GlobalStateSequenceNumberTEST)
+		while (static_cast<char>(g_pGameSession->GlobalStateSequenceNumberTEST - this->GlobalStateSequenceNumberTEST) > 0)
+		{
 			m_pController->RequestNextCommand();
 
-		++this->GlobalStateSequenceNumberTEST;
+			++this->GlobalStateSequenceNumberTEST;
+		}
 	}
 
 	/*
@@ -300,7 +265,7 @@ void CPlayer::Tick()
 
 			oSequencedInput.cSequenceNumber = g_cCurrentCommandSequenceNumber;
 
-			eX0_assert(m_oInputCmdsTEST.push(oSequencedInput), "m_oInputCmdsTEST.push(oInput) failed, lost input!!\n");
+			eX0_assert(m_oCommandsQueue.push(oSequencedInput), "m_oCommandsQueue.push(oInput) failed, lost input!!\n");
 		}
 	} else {
 		// calculate player trajectory
@@ -379,31 +344,12 @@ int CPlayer::GetTeam()
 	return m_nTeam;
 }
 
-void CPlayer::SetStealth(bool bOn)
-{
-	// is the player dead?
-	if (IsDead()) return;
-
-	iIsStealth = (int)bOn;
-}
-
 // A partial reset of the player state that happens when the player respawns (or changes team, etc.)
 void CPlayer::RespawnReset()
 {
-	fX = 0;
-	fY = 0;
-	fOldX = 0;
-	fOldY = 0;
-	fVelX = 0;
-	fVelY = 0;
-	fIntX = 0;
-	fIntY = 0;
 	fZ = 0;
-	fOldZ = 0;
-	//iIsStealth = 0;
-	nMoveDirection = -1;
-	iSelWeapon = 2;
-	fHealth = 100.0f;
+	iSelWeapon = 0;
+	fHealth = 100;
 
 	bWeaponFireTEST = false;
 
@@ -428,8 +374,11 @@ void CPlayer::GiveHealth(float fValue)
 	// is the player dead?
 	if (IsDead()) return;
 
-	if (fHealth + fValue <= 0) {
-		m_oDeadState = GetStateInPast(pConnection->IsLocal() ? 0 : kfInterpolate);
+	if (GetTeam() != 2 && fHealth + fValue <= 0) {
+		if (nullptr != dynamic_cast<LocalController *>(m_pController))
+			m_oDeadState = GetStateInPast(0);
+		else
+			m_oDeadState = GetStateInPast(kfInterpolate);
 		m_oDeadState.fZ = GetZ();
 	}
 
@@ -437,23 +386,39 @@ void CPlayer::GiveHealth(float fValue)
 	if (fHealth < 0) fHealth = 0;
 }
 
-void CPlayer::CalcTrajs()
+SequencedState_t CPlayer::PhysicsTickTEST(SequencedState_t oStartingState, SequencedCommand_t oCommand)
 {
-	// is the player dead?
-	if (IsDead()) return;
+	eX0_assert(oStartingState.cSequenceNumber == oCommand.cSequenceNumber, "PhysicsTickTEST(): StateSN and CmdSN don't match");
 
-#define TOP_SPEED (3.5f)
-#if 0
+	// Set inputs (command)
+	m_oCommand = oCommand.oCommand;
+
+	// Calculate the next resulting state:
+	// Starting State + Associated Command => Next State
+	CalcTrajs(oStartingState.oState);
+	CalcColResp(oStartingState.oState);
+
+	oStartingState.cSequenceNumber += 1;		// Next state has the sequence number one higher
+
+	return oStartingState;
+}
+
+void CPlayer::CalcTrajs(State_t & oState)
+{
+	float fVelX, fVelY;
+
+	#define TOP_SPEED (3.5f)
+#if 1
 	// Update the player velocity (acceleration)
-	if (nMoveDirection == -1)
+	if (m_oCommand.cMoveDirection == -1)
 	{
 		fVelX = 0.0;
 		fVelY = 0.0;
 	}
 	else
 	{
-		fVelX = (fTickTime / 0.050f) * Math::Sin((float)nMoveDirection * 0.785398f + fZ) * (TOP_SPEED - iIsStealth * 1.5f);
-		fVelY = (fTickTime / 0.050f) * Math::Cos((float)nMoveDirection * 0.785398f + fZ) * (TOP_SPEED - iIsStealth * 1.5f);
+		fVelX = (20.0f / g_cCommandRate) * Math::Sin((float)m_oCommand.cMoveDirection * 0.785398f + m_oCommand.fZ) * (TOP_SPEED - m_oCommand.cStealth * 1.5f);
+		fVelY = (20.0f / g_cCommandRate) * Math::Cos((float)m_oCommand.cMoveDirection * 0.785398f + m_oCommand.fZ) * (TOP_SPEED - m_oCommand.cStealth * 1.5f);
 	}
 #else
 	// DEBUG - this is STILL not finished, need to redo properly
@@ -488,28 +453,26 @@ void CPlayer::CalcTrajs()
 #endif
 
 	// Update the player positions
-	fOldX = fX;
-	fOldY = fY;
-	fX += fVelX;
-	fY += fVelY;
+	oState.fX += fVelX;
+	oState.fY += fVelY;
+	oState.fZ = m_oCommand.fZ;
 }
 
-void CPlayer::CalcColResp()
+void CPlayer::CalcColResp(State_t & oState)
 {
-	// is the player dead?
-	if (IsDead()) return;
-
 	int			iWhichCont, iWhichVert;
 	Vector2		oVector, oClosestPoint;
 	Real		oShortestDistance;
 	//Real		oDistance;
 	//float		fVelXPercentage, fVelYPercentage;
 
+	State_t		oOriginalStateTEST = oState;
+
 	int nTries = 10;
 	while (nTries-- > 0)
 	{
 		// check for collision
-		if (!ColHandCheckPlayerPos(&fX, &fY, &oShortestDistance, &oClosestPoint, &iWhichCont, &iWhichVert))
+		if (!ColHandCheckPlayerPos(&oState.fX, &oState.fY, &oShortestDistance, &oClosestPoint, &iWhichCont, &iWhichVert))
 		{
 			// DEBUG - player-player collision
 			/*for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
@@ -542,36 +505,35 @@ void CPlayer::CalcColResp()
 				// TODO: This can be optimized by using IsLeft() of the closest wall, instead of the expensive IsInside()
 				//if (ColHandIsLeft
 
-				oVector.x = fX - oClosestPoint.x;
-				oVector.y = fY - oClosestPoint.y;
-				fX += (float)(oVector.x * PLAYER_HALF_WIDTH / oShortestDistance - oVector.x);
-				fY += (float)(oVector.y * PLAYER_HALF_WIDTH / oShortestDistance - oVector.y);
+				oVector.x = oState.fX - oClosestPoint.x;
+				oVector.y = oState.fY - oClosestPoint.y;
+				oState.fX += (float)(oVector.x * PLAYER_HALF_WIDTH / oShortestDistance - oVector.x);
+				oState.fY += (float)(oVector.y * PLAYER_HALF_WIDTH / oShortestDistance - oVector.y);
 
-				if (ColHandIsPointInside(static_cast<int>(fX), static_cast<int>(fY)))
+				if (ColHandIsPointInside(static_cast<int>(oState.fX), static_cast<int>(oState.fY)))
 				{
 					// Outside, move back
 					oVector.Unitize();
-					fX -= (float)(oVector.x * PLAYER_WIDTH);
-					fY -= (float)(oVector.y * PLAYER_WIDTH);
+					oState.fX -= (float)(oVector.x * PLAYER_WIDTH);
+					oState.fY -= (float)(oVector.y * PLAYER_WIDTH);
 				}
 			}
 			// Closest to another player
 			else
 			{
-				oVector.x = fX - oClosestPoint.x;
-				oVector.y = fY - oClosestPoint.y;
-				//fX = fX - (oVector.x / (oShortestDistance / PLAYER_HALF_WIDTH) - oVector.x);
-				//fY = fY - (oVector.y / (oShortestDistance / PLAYER_HALF_WIDTH) - oVector.y);
-				fX += (float)(oVector.x * PLAYER_HALF_WIDTH / oShortestDistance - oVector.x);
-				fY += (float)(oVector.y * PLAYER_HALF_WIDTH / oShortestDistance - oVector.y);
+				oVector.x = oState.fX - oClosestPoint.x;
+				oVector.y = oState.fY - oClosestPoint.y;
+				//oState.fX = fX - (oVector.x / (oShortestDistance / PLAYER_HALF_WIDTH) - oVector.x);
+				//oState.fY = fY - (oVector.y / (oShortestDistance / PLAYER_HALF_WIDTH) - oVector.y);
+				oState.fX += (float)(oVector.x * PLAYER_HALF_WIDTH / oShortestDistance - oVector.x);
+				oState.fY += (float)(oVector.y * PLAYER_HALF_WIDTH / oShortestDistance - oVector.y);
 			}
 		}
 		else
 			break;
 	}
 	if (nTries <= -1) {
-		fX = fOldX;
-		fY = fOldY;
+		oState = oOriginalStateTEST;
 	}
 
 	// player-player collision - only check if we're moving
@@ -615,14 +577,14 @@ void CPlayer::CalcColResp()
 				// we're colliding with the other player
 				{
 					// move us back
-					fX += oVector.x * PLAYER_WIDTH / oShortestDistance - oVector.x;
-					fY += oVector.y * PLAYER_WIDTH / oShortestDistance - oVector.y;
+					oState.fX += oVector.x * PLAYER_WIDTH / oShortestDistance - oVector.x;
+					oState.fY += oVector.y * PLAYER_WIDTH / oShortestDistance - oVector.y;
 
 					// check for collision
-					if (!ColHandCheckPlayerPos(&fX, &fY))
+					if (!ColHandCheckPlayerPos(&oState.fX, &oState.fY))
 					{
-						//fX = fOldX;
-						//fY = fOldY;
+						//oState.fX = fOldX;
+						//oState.fY = fOldY;
 						CalcColResp();
 					}
 				}
@@ -631,188 +593,71 @@ void CPlayer::CalcColResp()
 	}*/
 
 	// Update the velocity (based on collisions with things)
-	fVelX = fX - fOldX;
-	fVelY = fY - fOldY;
+	/*fVelX = oState.fX - fOldX;
+	fVelY = oState.fY - fOldY;*/
 }
 
-float CPlayer::GetIntX()
+void CPlayer::Position(SequencedState_t oSequencedState)
 {
-	if (!IsDead()) return fIntX;
-	else return m_oDeadState.fX;
-}
+	printf("Positioning player %d at %f, %f, %f [state=%d].\n", iID, oSequencedState.oState.fX, oSequencedState.oState.fY, oSequencedState.oState.fZ, oSequencedState.cSequenceNumber);
 
-float CPlayer::GetIntY()
-{
-	if (!IsDead()) return fIntY;
-	else return m_oDeadState.fY;
-}
+	eX0_assert(GlobalStateSequenceNumberTEST == oSequencedState.cSequenceNumber, "CPlayer::Position(): GlobalStateSequenceNumberTEST == oSequencedState.cSequenceNumber");
 
-float CPlayer::GetX()
-{
-	return fX;
-}
+	SetZ(oSequencedState.oState.fZ);
 
-float CPlayer::GetY()
-{
-	return fY;
-}
+	oLatestAuthStateTEST = oSequencedState;
 
-float CPlayer::GetOldX()
-{
-	return fOldX;
-}
-
-float CPlayer::GetOldY()
-{
-	return fOldY;
-}
-
-void CPlayer::SetX(float fValue)
-{
-	// is the player dead?
-	if (IsDead()) return;
-
-	fX = fValue;
-}
-
-void CPlayer::SetY(float fValue)
-{
-	// is the player dead?
-	if (IsDead()) return;
-
-	fY = fValue;
-}
-
-void CPlayer::SetOldX(float fValue)
-{
-	// is the player dead?
-	if (IsDead()) return;
-
-	fOldX = fValue;
-}
-
-void CPlayer::SetOldY(float fValue)
-{
-	// is the player dead?
-	if (IsDead()) return;
-
-	fOldY = fValue;
-}
-
-void CPlayer::Position(float fNewX, float fNewY, float fNewZ)
-{
-	// is the player dead?
-	if (IsDead()) return;
-
-	fIntX = fOldX = fX = fNewX;
-	fIntY = fOldY = fY = fNewY;
-	fZ = fOldZ = fNewZ;
-
-	fVelX = 0.0f;
-	fVelY = 0.0f;
-
-#ifdef EX0_CLIENT
-	// Reset state history
-	oStateHistory.clear();
-	oOnlyKnownState.fX = fNewX;
-	oOnlyKnownState.fY = fNewY;
-	oOnlyKnownState.fZ = fNewZ;
-#endif
-}
-
-#ifdef EX0_CLIENT
-void CPlayer::Position(float fNewX, float fNewY, float fNewZ, u_char cSequenceNumber)
-{
-	// is the player dead?
-	if (IsDead()) return;
-
-	fIntX = fOldX = fX = fNewX;
-	fIntY = fOldY = fY = fNewY;
-	fZ = fOldZ = fNewZ;
-
-	fVelX = 0.0f;
-	fVelY = 0.0f;
+	// TODO: Merge this with StateHistory? Maybe?
+	// Reset unconfirmed commands
+	oUnconfirmedCommands.clear();
 
 	// Reset state history
 	oStateHistory.clear();
+	AuthState_t oAuthState;
+	oAuthState.oState = oLatestAuthStateTEST;
+	oAuthState.bAuthed = true;
+	oStateHistory.push_front(oAuthState);
+}
+
+void CPlayer::Position(float fX, float fY, float fZ, u_char cLastCommandSequenceNumber)
+{
 	SequencedState_t oSequencedState;
-	oSequencedState.cSequenceNumber = cSequenceNumber;
-	oSequencedState.oState.fX = fNewX;
-	oSequencedState.oState.fY = fNewY;
-	oSequencedState.oState.fZ = fNewZ;
-	oStateHistory.push_front(oSequencedState);
-}
-#endif
+	oSequencedState.oState.fX = fX;
+	oSequencedState.oState.fY = fY;
+	oSequencedState.oState.fZ = fZ;
+	oSequencedState.cSequenceNumber = cLastCommandSequenceNumber;
 
-float CPlayer::GetVelX()
-{
-	return fVelX;
+	Position(oSequencedState);
 }
 
-float CPlayer::GetVelY()
-{
-	return fVelY;
-}
-
-void CPlayer::SetVelX(float fValue)
+/*float CPlayer::GetVelocity()
 {
 	// is the player dead?
-	if (IsDead()) return;
-
-	fVelX = fValue;
-}
-
-void CPlayer::SetVelY(float fValue)
-{
-	// is the player dead?
-	if (IsDead()) return;
-
-	fVelY = fValue;
-}
-
-float CPlayer::GetZ()
-{
-	if (!IsDead()) {
-		// DEBUG - yet another hack.. replace it with some proper network-syncronyzed view bobbing
-		//return fZ + Math::Sin(glfwGetTime() * 7.5) * GetVelocity() * 0.005;
-		return fZ;
-	} else
-		return m_oDeadState.fZ;
-}
-
-float CPlayer::GetVelocity()
-{
-	// is the player dead?
-	if (fHealth <= 0.0f) return 0.0f;
+	/*if (fHealth <= 0.0f) return 0.0f;
 
 	//return (fVelX || fVelY) ? 3.5f - iIsStealth * 2.0f : 0.0f;
-	return Math::Sqrt(fVelX * fVelX + fVelY * fVelY);
-}
-
-void CPlayer::MoveDirection(int nDirection)
-{
-	eX0_assert(nDirection >= -1 && nDirection < 8, "nDirection >= -1 && nDirection < 8");
-
-	nMoveDirection = nDirection;
-}
+	return Math::Sqrt(fVelX * fVelX + fVelY * fVelY);* /
+	eX0_assert(false, "CPlayer::GetVelocity() is not implemented");
+	return 123;
+}*/
 
 void CPlayer::Rotate(float fAmount)
 {
-	// is the player dead?
-	//if (IsDead()) return;
-	eX0_assert(!IsDead(), "CPlayer::Rotate() called on a dead player");
-
 	SetZ(fZ + fAmount);
 }
 
 void CPlayer::SetZ(float fValue)
 {
-	// is the player dead?
-	if (IsDead()) return;
-
 	fZ = fValue;
-	if (fZ >= Math::TWO_PI) fZ -= Math::TWO_PI;
-	if (fZ < 0.0) fZ += Math::TWO_PI;
+	while (fZ >= Math::TWO_PI) fZ -= Math::TWO_PI;
+	while (fZ < 0.0) fZ += Math::TWO_PI;
+}
+
+float CPlayer::GetZ()
+{
+	// DEBUG - yet another hack.. replace it with some proper network-syncronyzed view bobbing
+	//return fZ + Math::Sin(glfwGetTime() * 7.5) * GetVelocity() * 0.005;
+	return fZ;
 }
 
 //void CPlayer::SetLastLatency(u_short nLastLatency) { eX0_assert(pConnection == NULL || dynamic_cast<RemoteClientConnection *>(pConnection), "called CPlayer::SetLastLatency(u_short) when pConnection != NULL"); m_nLastLatency = nLastLatency; }
@@ -834,7 +679,7 @@ void CPlayer::Render()
 		glColor3f(0, 1, 0);
 
 	if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	if (iID == iLocalPlayerID)
+	if (this == pLocalPlayer)
 	// local player
 	{
 		//OglUtilsSetMaskingMode(NO_MASKING_MODE);
@@ -868,7 +713,6 @@ void CPlayer::Render()
 			glVertex2i(5, fAimingDistance);
 		glEnd();*/
 
-
 		RenderOffsetCamera(false);
 	}
 	else
@@ -879,8 +723,8 @@ void CPlayer::Render()
 			glPushMatrix();
 
 			RenderOffsetCamera(false);
-			glTranslatef(fIntX, fIntY, 0);
-			glRotatef(this->GetZ() * Math::RAD_TO_DEG, 0, 0, -1);
+			glTranslatef(GetRenderState().fX, GetRenderState().fY, 0);
+			glRotatef(GetRenderState().fZ * Math::RAD_TO_DEG, 0, 0, -1);
 			gluPartialDisk(oQuadricObj, 6, 8, 12, 1, 30.0, 300.0);
 
 			// Render the weapon
@@ -911,24 +755,73 @@ void CPlayer::Render()
 #endif
 }
 
-void CPlayer::PushStateHistory(SequencedState_t & oSequencedState)
+void CPlayer::PushStateHistory(AuthState_t oAuthState)
 {
-	// Insert the only known state if history is empty
-	if (oStateHistory.empty()) {
-		SequencedState_t oFirstSequencedState;
-		oFirstSequencedState.cSequenceNumber = (u_char)(oSequencedState.cSequenceNumber - 1);
-		oFirstSequencedState.oState = oOnlyKnownState;
-		oStateHistory.push_front(oFirstSequencedState);
-	}
+	//printf("PushStateHistory(): %d (%c)\n", oAuthState.oState.cSequenceNumber, oAuthState.bAuthed ? 'a' : 'p');
 
-	if (oSequencedState.cSequenceNumber != oStateHistory.front().cSequenceNumber)
+	// TODO: Any way to fix/improve the if cast<char>() > 0 or <= 0) thing?
+	if (static_cast<char>(oAuthState.oState.cSequenceNumber - oStateHistory.front().oState.cSequenceNumber) > 0)
 	{
 		if (oStateHistory.size() >= 1000) oStateHistory.pop_back();
-		oStateHistory.push_front(oSequencedState);
+		oStateHistory.push_front(oAuthState);
+	}
+	else
+	{
+		std::list<AuthState_t>::iterator it1 = oStateHistory.begin();
+		for (; it1 != oStateHistory.end(); ++it1)
+		{
+			if (it1->bAuthed)
+				break;
+			else if (it1->oState.cSequenceNumber == oAuthState.oState.cSequenceNumber)
+			{
+				/// assert: false == it1->bAuthed
+
+				if (true == oAuthState.bAuthed)
+				{
+					// All older unconfirmed commands are now superseded by this update, remove them
+					while (oUnconfirmedCommands.begin() != oAuthState.oState.cSequenceNumber)
+						oUnconfirmedCommands.pop_front();
+
+					// Check if our prediction was close, if not, we'll need to redo all predictions since then
+					bool bPredictionWasClose = it1->oState.oState.CloseTo(oAuthState.oState.oState);
+
+					// Update the old non-authed state with the new authed one
+					*it1 = oAuthState;
+
+					if (false == bPredictionWasClose)
+					// Redo all predictions since the new latest auth update
+					{
+						if (oUnconfirmedCommands.empty()) printf("Snapping-A to server's position (no unconfirmed commands left).\n");
+						else printf("Snapping-B to server's position (need to do rewind&replay for %d cmds).\n", oUnconfirmedCommands.size());
+
+						// Redo each remaining unconfirmed command
+						for (IndexedCircularBuffer<Command_t, u_char>::iterator it2 = oUnconfirmedCommands.begin(); it2 != oUnconfirmedCommands.end(); ++it2)
+						{
+							SequencedState_t oStartingState = it1->oState;
+							SequencedCommand_t oCommand;
+							oCommand.oCommand = oUnconfirmedCommands[it2];
+							oCommand.cSequenceNumber = it2;
+
+							--it1;
+							it1->oState = PhysicsTickTEST(oStartingState, oCommand);
+						}
+
+						eX0_assert(it1 == oStateHistory.begin(), "after re-doing the predictions, we ended up at the right place");
+					}
+				}
+				else
+				{
+					eX0_assert(false, "pushing duplicate non-authed state sn #" + itos(oAuthState.oState.cSequenceNumber));
+				}
+
+				break;
+			}
+		}
+		eX0_assert(it1 != oStateHistory.end(), "PushStateHistory(): couldn't find an old state in oStateHistory");
 	}
 }
 
-#ifdef EX0_CLIENT
+#if 0
 State_t CPlayer::GetStateInPastX(float fTimeAgo)
 {
 	if (IsDead()) {
@@ -1020,11 +913,11 @@ State_t CPlayer::GetStateInPastX(float fTimeAgo)
 			State_t oStateTo = oHistoryTo->oState;
 			State_t oStateFrom = oHistoryFrom->oState;
 
-			float fHistoryTicks = fHistoryPoint - oHistoryFrom->cSequenceNumber;
-			if (fHistoryTicks < 0) fHistoryTicks += 256;
-			if (fHistoryTicks > ((u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber) + fTicks + kfMaxExtrapolate) / fTickTime) {
+			float dHistoryTicks = fHistoryPoint - oHistoryFrom->oState.cSequenceNumber;
+			if (dHistoryTicks < 0) dHistoryTicks += 256;
+			if (dHistoryTicks > ((u_char)(oHistoryTo->oState.cSequenceNumber - oHistoryFrom->oState.cSequenceNumber) + fTicks + kfMaxExtrapolate) / fTickTime) {
 				// Max forward extrapolation time
-				fHistoryTicks = ((u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber) + fTicks + kfMaxExtrapolate) / fTickTime;
+				dHistoryTicks = ((u_char)(oHistoryTo->oState.cSequenceNumber - oHistoryFrom->oState.cSequenceNumber) + fTicks + kfMaxExtrapolate) / fTickTime;
 
 				printf("Exceeding max EXTERP time (player %d).\n", iID);
 				printf("cur state = %d; last known state = %d\n", g_cCurrentCommandSequenceNumber, oStateHistory.front().cSequenceNumber);
@@ -1032,15 +925,15 @@ State_t CPlayer::GetStateInPastX(float fTimeAgo)
 			}// else
 			//	printf("Exterping into the future (player %d).\n", iID);
 
-			u_char cHistoryTickTime = (u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber);
-			fHistoryX = oStateFrom.fX + (oStateTo.fX - oStateFrom.fX) * fHistoryTicks / cHistoryTickTime;
-			fHistoryY = oStateFrom.fY + (oStateTo.fY - oStateFrom.fY) * fHistoryTicks / cHistoryTickTime;
+			u_char cHistoryTickTime = (u_char)(oHistoryTo->oState.cSequenceNumber - oHistoryFrom->oState.cSequenceNumber);
+			fHistoryX = oStateFrom.fX + (oStateTo.fX - oStateFrom.fX) * dHistoryTicks / cHistoryTickTime;
+			fHistoryY = oStateFrom.fY + (oStateTo.fY - oStateFrom.fY) * dHistoryTicks / cHistoryTickTime;
 
 			float fDiffZ = oStateTo.fZ - oStateFrom.fZ;
 			if (fDiffZ >= Math::PI) fDiffZ -= Math::TWO_PI;
 			if (fDiffZ < -Math::PI) fDiffZ += Math::TWO_PI;
-			if (fHistoryTicks > 1.0f) fHistoryTicks = sqrtf(fHistoryTicks);
-			fHistoryZ = oStateFrom.fZ + fDiffZ * fHistoryTicks / cHistoryTickTime;
+			if (dHistoryTicks > 1.0f) dHistoryTicks = sqrtf(dHistoryTicks);
+			fHistoryZ = oStateFrom.fZ + fDiffZ * dHistoryTicks / cHistoryTickTime;
 		}
 		/*else if ((char)((u_char)floorf(fHistoryPoint) - oStateHistory.back().cSequenceNumber) < 0)
 		// DEBUG: Need a better way to figure out if outside history range (for > 256 values
@@ -1057,8 +950,8 @@ State_t CPlayer::GetStateInPastX(float fTimeAgo)
 			u_char cPeriodLength = 0;
 			nTicksAgo -= cLastKnownTickAgo;
 			while (oHistoryFrom != oStateHistory.end() &&
-				//(char)((u_char)floorf(fHistoryPoint) - oHistoryFrom->cSequenceNumber) < 0) {
-				nTicksAgo >= (cPeriodLength = (u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber))) {
+				//(char)((u_char)floorf(fHistoryPoint) - oHistoryFrom->oState.cSequenceNumber) < 0) {
+				nTicksAgo >= (cPeriodLength = (u_char)(oHistoryTo->oState.cSequenceNumber - oHistoryFrom->oState.cSequenceNumber))) {
 				/*if (oHistoryFrom == oStateHistory.end()) {
 					fHistoryX = oStateHistory.back().oState.fX;
 					fHistoryY = oStateHistory.back().oState.fY;
@@ -1079,42 +972,42 @@ State_t CPlayer::GetStateInPastX(float fTimeAgo)
 				fHistoryY = oStateHistory.back().oState.fY;
 				fHistoryZ = oStateHistory.back().oState.fZ;
 			} else {
-				eX0_assert(oHistoryFrom->cSequenceNumber != oHistoryTo->cSequenceNumber, "dup!");
-				if (oHistoryFrom->cSequenceNumber < oHistoryTo->cSequenceNumber)
+				eX0_assert(oHistoryFrom->oState.cSequenceNumber != oHistoryTo->oState.cSequenceNumber, "dup!");
+				if (oHistoryFrom->oState.cSequenceNumber < oHistoryTo->oState.cSequenceNumber)
 				{
-					/*eX0_assert(oHistoryFrom->cSequenceNumber <= fHistoryPoint
-						&& fHistoryPoint <= oHistoryTo->cSequenceNumber,
+					/*eX0_assert(oHistoryFrom->oState.cSequenceNumber <= fHistoryPoint
+						&& fHistoryPoint <= oHistoryTo->oState.cSequenceNumber,
 						"not in seq");*/
-					if (!(oHistoryFrom->cSequenceNumber <= fHistoryPoint
-						&& fHistoryPoint <= oHistoryTo->cSequenceNumber))
-					printf("%d <= %f <= %d\n", oHistoryFrom->cSequenceNumber,
+					if (!(oHistoryFrom->oState.cSequenceNumber <= fHistoryPoint
+						&& fHistoryPoint <= oHistoryTo->oState.cSequenceNumber))
+					printf("%d <= %f <= %d\n", oHistoryFrom->oState.cSequenceNumber,
 											   fHistoryPoint,
-											   oHistoryTo->cSequenceNumber);
+											   oHistoryTo->oState.cSequenceNumber);
 					//else
-					//	printf("%d <= %f <= %d ALL OK\n", oHistoryFrom->cSequenceNumber,
+					//	printf("%d <= %f <= %d ALL OK\n", oHistoryFrom->oState.cSequenceNumber,
 					//						   fHistoryPoint,
-					//						   oHistoryTo->cSequenceNumber);
+					//						   oHistoryTo->oState.cSequenceNumber);
 				}
 
 				State_t oStateTo = oHistoryTo->oState;
 				State_t oStateFrom = oHistoryFrom->oState;
 
-				//float fHistoryTicks = fHistoryPoint - oHistoryFrom->cSequenceNumber;
-				float fHistoryTicks = fHistoryPoint - oHistoryFrom->cSequenceNumber;
-				if (fHistoryTicks < 0) fHistoryTicks += 256;
-				u_char cHistoryTickTime = (u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber);
-				//eX0_assert(fHistoryTicks < cHistoryTickTime, "fHistoryTicks not in range");
-				if (!(fHistoryTicks <= cHistoryTickTime))
-					printf("fHistoryTicks not in range: %f\n", fHistoryTicks / cHistoryTickTime);
+				//float dHistoryTicks = fHistoryPoint - oHistoryFrom->oState.cSequenceNumber;
+				float dHistoryTicks = fHistoryPoint - oHistoryFrom->oState.cSequenceNumber;
+				if (dHistoryTicks < 0) dHistoryTicks += 256;
+				u_char cHistoryTickTime = (u_char)(oHistoryTo->oState.cSequenceNumber - oHistoryFrom->oState.cSequenceNumber);
+				//eX0_assert(dHistoryTicks < cHistoryTickTime, "dHistoryTicks not in range");
+				if (!(dHistoryTicks <= cHistoryTickTime))
+					printf("dHistoryTicks not in range: %f\n", dHistoryTicks / cHistoryTickTime);
 				//else
-				//	printf("fHistoryTicks IS OK: %f\n", fHistoryTicks / cHistoryTickTime);
-				fHistoryX = oStateFrom.fX + (oStateTo.fX - oStateFrom.fX) * fHistoryTicks / cHistoryTickTime;
-				fHistoryY = oStateFrom.fY + (oStateTo.fY - oStateFrom.fY) * fHistoryTicks / cHistoryTickTime;
+				//	printf("dHistoryTicks IS OK: %f\n", dHistoryTicks / cHistoryTickTime);
+				fHistoryX = oStateFrom.fX + (oStateTo.fX - oStateFrom.fX) * dHistoryTicks / cHistoryTickTime;
+				fHistoryY = oStateFrom.fY + (oStateTo.fY - oStateFrom.fY) * dHistoryTicks / cHistoryTickTime;
 
 				float fDiffZ = oStateTo.fZ - oStateFrom.fZ;
 				if (fDiffZ >= Math::PI) fDiffZ -= Math::TWO_PI;
 				if (fDiffZ < -Math::PI) fDiffZ += Math::TWO_PI;
-				fHistoryZ = oStateFrom.fZ + fDiffZ * fHistoryTicks / cHistoryTickTime;
+				fHistoryZ = oStateFrom.fZ + fDiffZ * dHistoryTicks / cHistoryTickTime;
 			}
 		}
 	}
@@ -1125,7 +1018,33 @@ State_t CPlayer::GetStateInPastX(float fTimeAgo)
 	oState.fZ = fHistoryZ;
 	return oState;
 }
+#endif // 0
 
+void CPlayer::UpdateRenderState()
+{
+	if (GetTeam() == 2) return;
+
+	if (!IsDead()) {
+		//m_oRenderState = GetStateInPast(0);
+		if (nullptr != dynamic_cast<LocalController *>(m_pController))
+			m_oRenderState = GetStateInPast(0);
+		else
+			m_oRenderState = GetStateInPast(kfInterpolate);
+	} else
+		m_oRenderState = m_oDeadState;
+}
+
+const State_t CPlayer::GetRenderState()
+{
+	if (nullptr != dynamic_cast<LocalController *>(m_pController))
+	{
+		m_oRenderState.fZ = GetZ();
+	}
+
+	return m_oRenderState;
+}
+
+// TODO: Rewrite this func...
 State_t CPlayer::GetStateInPast(double dTimeAgo)
 {
 eX0_assert(dTimeAgo >= 0, "dTimeAgo can only be positive (for now)");
@@ -1146,9 +1065,12 @@ eX0_assert(dTimeAgo >= 0, "dTimeAgo can only be positive (for now)");
 	State_t oStateInPast;
 
 	if (oStateHistory.size() == 0) {
-		oStateInPast = oOnlyKnownState;
+		oStateInPast.fX = 0;
+		oStateInPast.fY = 0;
+		oStateInPast.fZ = 0;
+		eX0_assert(false, "something's wrong, cuz oStateHistory.size() is == 0!");
 	} else if (oStateHistory.size() == 1) {
-		oStateInPast = oStateHistory.front().oState;
+		oStateInPast = oStateHistory.front().oState.oState;
 	} else {
 		double dCurrentTimepoint = dCurrentTime / (256.0 / g_cCommandRate);
 		dCurrentTimepoint -= static_cast<uint32>(dCurrentTimepoint);
@@ -1159,6 +1081,7 @@ eX0_assert(dCurrentTimepoint < 256, "dCurrentTimepoint < 256");
 		double dTicks = dCurrentTimepoint - cCurrentTimepoint;
 eX0_assert(dTicks >= 0, "dTicks >= 0");
 eX0_assert(dTicks < 1, "dTicks < 1");
+		double dTickTime = 1.0 / g_cCommandRate;
 		double dHistoryPoint = dCurrentTimepoint - dTimeAgo * g_cCommandRate;
 		if (dHistoryPoint < 0) dHistoryPoint += 256;
 		//int		nTicksAgo = (int)floor(dTimeAgo * g_cCommandRate - fTicks * g_cCommandRate) + 1 + (u_char)(g_cCurrentCommandSequenceNumber - g_pGameSession->cRenderCurrentCommandSequenceNumberTEST);
@@ -1171,56 +1094,48 @@ if(dTimeAgo * g_c == dTicks)
 then nTicksAgo = 1;
 else if(dTimeAgo * g_c < dTicks)
 then nTicksAgo = 0;*/
-		char	cLastKnownTickAgo = (char)(cCurrentTimepoint + 1 - oStateHistory.front().cSequenceNumber);
-if (glfwGetKey('Y') == GLFW_PRESS){
-/*printf("dCurrentTimepoint = %f\n", dCurrentTimepoint);
-printf("size %d\n", oStateHistory.size());
-printf("front 2nd %d\n", oStateHistory.begin().operator ++().operator *().cSequenceNumber);
-printf("front 1st %d\n", oStateHistory.front().cSequenceNumber);
-printf("g_cCurrentCommandSequenceNumber %d\n", g_cCurrentCommandSequenceNumber);
-printf("g_pGameSession->cRenderCurrentCommandSequenceNumberTEST %d\n", g_pGameSession->cRenderCurrentCommandSequenceNumberTEST);
-if(GetTeam() == 0) {
-	printf("");
-}*/
+		char	cLastKnownTickAgo = (char)(cCurrentTimepoint + 1 - oStateHistory.front().oState.cSequenceNumber);
+if (glfwGetKey('I') == GLFW_PRESS){
 DumpStateHistory(oStateHistory);
 }
-static int c = 30;
-if(GetTeam() == 0 && c-- > 0)DumpStateHistory(oStateHistory);
-		std::list<SequencedState_t>::iterator oHistoryTo = oStateHistory.begin();
-		std::list<SequencedState_t>::iterator oHistoryFrom = oStateHistory.begin(); ++oHistoryFrom;
+//static int c = 30;
+//if(GetTeam() == 0 && c-- > 0)DumpStateHistory(oStateHistory);
+		std::list<AuthState_t>::iterator oHistoryTo = oStateHistory.begin();
+		std::list<AuthState_t>::iterator oHistoryFrom = oStateHistory.begin(); ++oHistoryFrom;
 		//if ((char)((u_char)floorf(fHistoryPoint) - oStateHistory.front().cSequenceNumber) >= 5)
 		if (cLastKnownTickAgo > nTicksAgo)
 		// Extrapolate into the future
 		{
-			printf("future %d %d\n", cLastKnownTickAgo, nTicksAgo);
+			if (!((cLastKnownTickAgo == 1 || cLastKnownTickAgo == 2) && nTicksAgo == 0))
+				printf("future %d %d\n", cLastKnownTickAgo, nTicksAgo);
 			/*fHistoryX = GetIntX();
 			fHistoryY = GetIntY();
 			fHistoryZ = GetZ();*/
 
-			State_t oStateTo = oHistoryTo->oState;
-			State_t oStateFrom = oHistoryFrom->oState;
+			State_t oStateTo = oHistoryTo->oState.oState;
+			State_t oStateFrom = oHistoryFrom->oState.oState;
 
-			float fHistoryTicks = dHistoryPoint - oHistoryFrom->cSequenceNumber;
-			if (fHistoryTicks < 0) fHistoryTicks += 256;
-			if (fHistoryTicks > ((u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber) + fTicks + kfMaxExtrapolate) / fTickTime) {
+			double dHistoryTicks = dHistoryPoint - oHistoryFrom->oState.cSequenceNumber;
+			if (dHistoryTicks < 0) dHistoryTicks += 256;
+			if (dHistoryTicks > ((u_char)(oHistoryTo->oState.cSequenceNumber - oHistoryFrom->oState.cSequenceNumber) + dTicks + kfMaxExtrapolate) / dTickTime) {
 				// Max forward extrapolation time
-				fHistoryTicks = ((u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber) + fTicks + kfMaxExtrapolate) / fTickTime;
+				dHistoryTicks = ((u_char)(oHistoryTo->oState.cSequenceNumber - oHistoryFrom->oState.cSequenceNumber) + dTicks + kfMaxExtrapolate) / dTickTime;
 
 				printf("Exceeding max EXTERP time (player %d).\n", iID);
-				printf("cur state = %d; last known state = %d\n", g_cCurrentCommandSequenceNumber, oStateHistory.front().cSequenceNumber);
+				printf("cur state = %d; last known state = %d\n", g_pGameSession->GlobalStateSequenceNumberTEST, oStateHistory.front().oState.cSequenceNumber);
 				printf("cLastKnownTickAgo %d > nTicksAgo %d\n", cLastKnownTickAgo, nTicksAgo);
 			}// else
 			//	printf("Exterping into the future (player %d).\n", iID);
 
-			u_char cHistoryTickTime = (u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber);
-			oStateInPast.fX = oStateFrom.fX + (oStateTo.fX - oStateFrom.fX) * fHistoryTicks / cHistoryTickTime;
-			oStateInPast.fY = oStateFrom.fY + (oStateTo.fY - oStateFrom.fY) * fHistoryTicks / cHistoryTickTime;
+			u_char cHistoryTickTime = (u_char)(oHistoryTo->oState.cSequenceNumber - oHistoryFrom->oState.cSequenceNumber);
+			oStateInPast.fX = oStateFrom.fX + (oStateTo.fX - oStateFrom.fX) * (float)dHistoryTicks / cHistoryTickTime;
+			oStateInPast.fY = oStateFrom.fY + (oStateTo.fY - oStateFrom.fY) * (float)dHistoryTicks / cHistoryTickTime;
 
 			float fDiffZ = oStateTo.fZ - oStateFrom.fZ;
 			if (fDiffZ >= Math::PI) fDiffZ -= Math::TWO_PI;
 			if (fDiffZ < -Math::PI) fDiffZ += Math::TWO_PI;
-			if (fHistoryTicks > 1.0f) fHistoryTicks = sqrtf(fHistoryTicks);
-			oStateInPast.fZ = oStateFrom.fZ + fDiffZ * fHistoryTicks / cHistoryTickTime;
+			if (dHistoryTicks > 1.0) dHistoryTicks = std::sqrt(dHistoryTicks);
+			oStateInPast.fZ = oStateFrom.fZ + fDiffZ * (float)dHistoryTicks / cHistoryTickTime;
 		}
 		/*else if ((char)((u_char)floorf(fHistoryPoint) - oStateHistory.back().cSequenceNumber) < 0)
 		// DEBUG: Need a better way to figure out if outside history range (for > 256 values
@@ -1237,64 +1152,55 @@ if(GetTeam() == 0 && c-- > 0)DumpStateHistory(oStateHistory);
 			u_char cPeriodLength = 0;
 			nTicksAgo -= cLastKnownTickAgo;
 			while (oHistoryFrom != oStateHistory.end() &&
-				//(char)((u_char)floorf(fHistoryPoint) - oHistoryFrom->cSequenceNumber) < 0) {
-				nTicksAgo >= (cPeriodLength = (u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber))) {
-				/*if (oHistoryFrom == oStateHistory.end()) {
-					fHistoryX = oStateHistory.back().oState.fX;
-					fHistoryY = oStateHistory.back().oState.fY;
-					fHistoryZ = oStateHistory.back().oState.fZ;
-					bUseHistory = false;
-					break;
-				} else {
-					++oHistoryTo;
-					++oHistoryFrom;
-				}*/
+				//(char)((u_char)floorf(fHistoryPoint) - oHistoryFrom->oState.cSequenceNumber) < 0) {
+				nTicksAgo >= (cPeriodLength = (u_char)(oHistoryTo->oState.cSequenceNumber - oHistoryFrom->oState.cSequenceNumber)))
+			{
 				nTicksAgo -= cPeriodLength;
 				++oHistoryTo;
 				++oHistoryFrom;
 			}
 
 			if (oHistoryFrom == oStateHistory.end()) {
-				oStateInPast.fX = oStateHistory.back().oState.fX;
-				oStateInPast.fY = oStateHistory.back().oState.fY;
-				oStateInPast.fZ = oStateHistory.back().oState.fZ;
+				oStateInPast.fX = oStateHistory.back().oState.oState.fX;
+				oStateInPast.fY = oStateHistory.back().oState.oState.fY;
+				oStateInPast.fZ = oStateHistory.back().oState.oState.fZ;
 			} else {
-				eX0_assert(oHistoryFrom->cSequenceNumber != oHistoryTo->cSequenceNumber, "dup!");
-				if (oHistoryFrom->cSequenceNumber < oHistoryTo->cSequenceNumber)
+				eX0_assert(oHistoryFrom->oState.cSequenceNumber != oHistoryTo->oState.cSequenceNumber, "dup!");
+				if (oHistoryFrom->oState.cSequenceNumber < oHistoryTo->oState.cSequenceNumber)
 				{
-					/*eX0_assert(oHistoryFrom->cSequenceNumber <= fHistoryPoint
-						&& fHistoryPoint <= oHistoryTo->cSequenceNumber,
+					/*eX0_assert(oHistoryFrom->oState.cSequenceNumber <= fHistoryPoint
+						&& fHistoryPoint <= oHistoryTo->oState.cSequenceNumber,
 						"not in seq");*/
-					if (!(oHistoryFrom->cSequenceNumber <= dHistoryPoint
-						&& dHistoryPoint <= oHistoryTo->cSequenceNumber))
-					printf("%d <= %f <= %d\n", oHistoryFrom->cSequenceNumber,
+					if (!(oHistoryFrom->oState.cSequenceNumber <= dHistoryPoint
+						&& dHistoryPoint <= oHistoryTo->oState.cSequenceNumber))
+					printf("%d <= %f <= %d\n", oHistoryFrom->oState.cSequenceNumber,
 											   dHistoryPoint,
-											   oHistoryTo->cSequenceNumber);
+											   oHistoryTo->oState.cSequenceNumber);
 					//else
-					//	printf("%d <= %f <= %d ALL OK\n", oHistoryFrom->cSequenceNumber,
+					//	printf("%d <= %f <= %d ALL OK\n", oHistoryFrom->oState.cSequenceNumber,
 					//						   fHistoryPoint,
-					//						   oHistoryTo->cSequenceNumber);
+					//						   oHistoryTo->oState.cSequenceNumber);
 				}
 
-				State_t oStateTo = oHistoryTo->oState;
-				State_t oStateFrom = oHistoryFrom->oState;
+				State_t oStateTo = oHistoryTo->oState.oState;
+				State_t oStateFrom = oHistoryFrom->oState.oState;
 
-				//float fHistoryTicks = fHistoryPoint - oHistoryFrom->cSequenceNumber;
-				float fHistoryTicks = dHistoryPoint - oHistoryFrom->cSequenceNumber;
-				if (fHistoryTicks < 0) fHistoryTicks += 256;
-				u_char cHistoryTickTime = (u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber);
-				//eX0_assert(fHistoryTicks < cHistoryTickTime, "fHistoryTicks not in range");
-				if (!(fHistoryTicks <= cHistoryTickTime))
-					printf("fHistoryTicks not in range: %f\n", fHistoryTicks / cHistoryTickTime);
+				//float dHistoryTicks = fHistoryPoint - oHistoryFrom->oState.cSequenceNumber;
+				double dHistoryTicks = dHistoryPoint - oHistoryFrom->oState.cSequenceNumber;
+				if (dHistoryTicks < 0) dHistoryTicks += 256;
+				u_char cHistoryTickTime = (u_char)(oHistoryTo->oState.cSequenceNumber - oHistoryFrom->oState.cSequenceNumber);
+				//eX0_assert(dHistoryTicks < cHistoryTickTime, "dHistoryTicks not in range");
+				if (!(dHistoryTicks <= cHistoryTickTime))
+					printf("dHistoryTicks not in range: %f\n", dHistoryTicks / cHistoryTickTime);
 				//else
-				//	printf("fHistoryTicks IS OK: %f\n", fHistoryTicks / cHistoryTickTime);
-				oStateInPast.fX = oStateFrom.fX + (oStateTo.fX - oStateFrom.fX) * fHistoryTicks / cHistoryTickTime;
-				oStateInPast.fY = oStateFrom.fY + (oStateTo.fY - oStateFrom.fY) * fHistoryTicks / cHistoryTickTime;
+				//	printf("dHistoryTicks IS OK: %f\n", dHistoryTicks / cHistoryTickTime);
+				oStateInPast.fX = oStateFrom.fX + (oStateTo.fX - oStateFrom.fX) * (float)dHistoryTicks / cHistoryTickTime;
+				oStateInPast.fY = oStateFrom.fY + (oStateTo.fY - oStateFrom.fY) * (float)dHistoryTicks / cHistoryTickTime;
 
 				float fDiffZ = oStateTo.fZ - oStateFrom.fZ;
 				if (fDiffZ >= Math::PI) fDiffZ -= Math::TWO_PI;
 				if (fDiffZ < -Math::PI) fDiffZ += Math::TWO_PI;
-				oStateInPast.fZ = oStateFrom.fZ + fDiffZ * fHistoryTicks / cHistoryTickTime;
+				oStateInPast.fZ = oStateFrom.fZ + fDiffZ * (float)dHistoryTicks / cHistoryTickTime;
 			}
 		}
 	}
@@ -1304,6 +1210,8 @@ if(GetTeam() == 0 && c-- > 0)DumpStateHistory(oStateHistory);
 
 void CPlayer::RenderInPast(double dTimeAgo)
 {
+	//eX0_assert(false, "i shouldn't be using RenderInPast anymore..");
+
 	State_t oState = GetStateInPast(dTimeAgo);
 
 	// select player color
@@ -1336,25 +1244,13 @@ void CPlayer::RenderInPast(double dTimeAgo)
 	glPopMatrix();
 	if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
-#endif
 
 void CPlayer::InitWeapons()
 {
-	oWeapons[0].Init(iID, 0);
+	oWeapons[0].Init(iID, 4);
 	oWeapons[1].Init(iID, 3);
 	oWeapons[2].Init(iID, 1);
 	oWeapons[3].Init(iID, 2);
-}
-
-void CPlayer::UpdateInterpolatedPos()
-{
-	// is the player dead?
-	if (IsDead()) {printf("assertion failed\n");return;}
-
-	fIntX = fOldX + (fX - fOldX) * fTicks / fTickTime;
-	fIntY = fOldY + (fY - fOldY) * fTicks / fTickTime;
-	//fIntX = fX;
-	//fIntY = fY;
 }
 
 string & CPlayer::GetName(void) { return sName; }

@@ -11,6 +11,7 @@ public:
 	double GetTime();
 	double GetTimePassed();
 	double GetRealTime();
+	double GetGameTime();
 	void UpdateTime();
 
 	void Start();

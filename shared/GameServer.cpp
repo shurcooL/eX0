@@ -11,12 +11,12 @@ GameServer::GameServer(bool bNetworkEnabled)
 	: m_pThread(nullptr)
 {
 	// Reset the clock
-	g_cCurrentCommandSequenceNumber = 0;
+	//g_cCurrentCommandSequenceNumber = 0;
 	g_pGameSession->GlobalStateSequenceNumberTEST = 0;
 	//g_dNextTickTime = 1.0 / g_cCommandRate;
 	g_dNextTickTime = 0;
 	//glfwSetTime(0.0);
-	g_pGameSession->LogicTimer().Start();
+	g_pGameSession->LogicTimer().Start();		// This also starts the Game Logic thread
 
 	if (bNetworkEnabled)
 		m_pThread = new Thread(&GameServer::ThreadFunction, this, "GameServer");
@@ -381,14 +381,14 @@ void GameServer::BroadcastPingPacket(void *)
 	// Construct the Ping Packet
 	CPacket oPingPacket;
 	oPingPacket.pack("c", (u_char)10);
-	float fPingData = static_cast<float>(g_pGameSession->LogicTimer().GetRealTime());
+	float fPingData = static_cast<float>(glfwGetTime());
 	PingData_t oPingData;
 	memcpy(oPingData.cPingData, (void *)&fPingData, 4);
 	for (int nPingDataByte = 0; nPingDataByte < 4; ++nPingDataByte)
 		oPingPacket.pack("c", oPingData.cPingData[nPingDataByte]);
 	for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 	{
-		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME)
+		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME)
 		{
 			oPingPacket.pack("h", PlayerGet(nPlayer)->pConnection->GetLastLatency());
 		} else

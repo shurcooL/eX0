@@ -16,7 +16,7 @@ AiController::~AiController()
 
 void AiController::ProvideRealtimeInput(double dTimePassed)
 {
-	m_oPlayer.Rotate(-0.4f * static_cast<float>(dTimePassed));
+	m_oPlayer.Rotate(-0.75f * static_cast<float>(dTimePassed));
 }
 
 void AiController::ProvideNextCommand()
@@ -25,7 +25,7 @@ void AiController::ProvideNextCommand()
 
 	// Run around in circles
 	oSequencedCommand.oCommand.cMoveDirection = 0;
-	oSequencedCommand.oCommand.cStealth = 1;
+	oSequencedCommand.oCommand.cStealth = 0;
 	oSequencedCommand.oCommand.fZ = m_oPlayer.GetZ();
 	// eDRODx AI
 	/*m_oPlayer.SetStealth(false);
@@ -38,9 +38,9 @@ void AiController::ProvideNextCommand()
 										static_cast<int>(pLocalPlayer->GetIntY())) + Math::HALF_PI - m_oPlayer.GetZ());
 	}*/
 
-	oSequencedCommand.cSequenceNumber = g_cCurrentCommandSequenceNumber;
+	oSequencedCommand.cSequenceNumber = m_oPlayer.GlobalStateSequenceNumberTEST;
 
-	eX0_assert(m_oPlayer.m_oInputCmdsTEST.push(oSequencedCommand), "m_oInputCmdsTEST.push(oCommand) failed, lost a command!!\n");
+	eX0_assert(m_oPlayer.m_oCommandsQueue.push(oSequencedCommand), "m_oCommandsQueue.push(oCommand) failed, lost a command!!\n");
 }
 
 void AiController::ChildReset()
