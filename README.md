@@ -1,7 +1,7 @@
 eX0
 ===
 
-eX0 is an unfinished networked multiplayer (and single-player) top-down view 2D tactical shooter game.
+eX0 is an unfinished networked multiplayer (and single-player) top-down view 2D tactical shooter indie game.
 
 It was originally envisioned as a realistic recreationg of Counter-Strike in 2D, but since most of the gameplay is not implemented nor finalized, it can end up being quite different (if I ever decide to finish it).
 
@@ -20,3 +20,8 @@ Screenshots
 -----------
 
 ![](http://img547.imageshack.us/img547/9282/eqch.png)
+
+Attribution
+-----------
+
+This software uses the PolyBoolean library v0.0 © 1998-1999 [Michael Leonov](http://www.complex-a5.ru/polyboolean/contacts.html#leonov).
