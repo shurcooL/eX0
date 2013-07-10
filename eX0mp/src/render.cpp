@@ -2,10 +2,12 @@
 
 int		iCameraType = 0;
 
+CHudMessageQueue	*pChatMessages = NULL;
+
 // render the static scene
 void RenderStaticScene()
 {
-	int nLoop1, nLoop2;
+	u_int nLoop1, nLoop2;
 
 	OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
 	RenderOffsetCamera(false);
@@ -16,12 +18,12 @@ void RenderStaticScene()
 		// fill in the ground
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, oTextureIDs.iFloor);
-		glColor3f(0.9, 0.9, 0.9);
+		glColor3f(0.9f, 0.9f, 0.9f);
 		for (nLoop1 = 0; nLoop1 < oTristripLevel.num_strips; nLoop1++)
 		{
 			if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			//glColor3f(1.0, 0.0, 0.0);
-			glLineWidth(1.0);
+			glLineWidth(1.0f);
 			//glShadeModel(GL_SMOOTH);
 			glBegin(GL_TRIANGLE_STRIP);
 			//glBegin(GL_LINE_STRIP);
@@ -29,7 +31,7 @@ void RenderStaticScene()
 				{
 					//glColor3f(1.0 - (nLoop2 % 2 * 1), (nLoop2 % 2 * 1), 0.0);
 					glTexCoord2f((float)oTristripLevel.strip[nLoop1].vertex[nLoop2].x / 256.0, (float)oTristripLevel.strip[nLoop1].vertex[nLoop2].y / -256.0);
-					glVertex2i(oTristripLevel.strip[nLoop1].vertex[nLoop2].x, oTristripLevel.strip[nLoop1].vertex[nLoop2].y);
+					glVertex2d(oTristripLevel.strip[nLoop1].vertex[nLoop2].x, oTristripLevel.strip[nLoop1].vertex[nLoop2].y);
 				}
 			glEnd();
 			if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -40,11 +42,11 @@ void RenderStaticScene()
 		// Fill in the ground using the PolyBoolean triangulation
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, oTextureIDs.iFloor);
-		glColor3f(0.9, 0.9, 0.9);
+		glColor3f(0.9f, 0.9f, 0.9f);
 		for (nLoop1 = 0; nLoop1 < pPolyBooleanLevel->tnum; ++nLoop1)
 		{
 			if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			glLineWidth(1.0);
+			glLineWidth(1.0f);
 			glBegin(GL_TRIANGLES);
 				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v0->g.x / 256.0, (float)pPolyBooleanLevel->tria[nLoop1].v0->g.y / -256.0);
 				glVertex2i(pPolyBooleanLevel->tria[nLoop1].v0->g.x, pPolyBooleanLevel->tria[nLoop1].v0->g.y);
@@ -70,7 +72,7 @@ void RenderStaticScene()
 		glBegin(GL_LINE_LOOP);
 			for (nLoop2 = 0; nLoop2 < oPolyLevel.contour[nLoop1].num_vertices; nLoop2++)
 			{
-				glVertex2i(oPolyLevel.contour[nLoop1].vertex[nLoop2].x, oPolyLevel.contour[nLoop1].vertex[nLoop2].y);
+				glVertex2d(oPolyLevel.contour[nLoop1].vertex[nLoop2].x, oPolyLevel.contour[nLoop1].vertex[nLoop2].y);
 			}
 		glEnd();
 	}
@@ -120,9 +122,12 @@ void RenderHUD(void)
 	// Print the chat string
 	if (nChatMode) {
 		sTempString = (string)"Say: " + sChatString;
-		if ((long)(fCurTime * 4) % 2) sTempString += "_";
+		if ((long)(dCurTime * 4) % 2) sTempString += "_";
 		OglUtilsPrint(0, 18, 0, false, (char *)sTempString.c_str());
 	}
+
+	// Print chat messages
+	pChatMessages->Render();
 
 	/*sTempString = ftos(oPlayers[1]->GetIntX());
 	glLoadIdentity();
@@ -140,11 +145,23 @@ void RenderHUD(void)
 // render all players
 void RenderPlayers()
 {
+glfwLockMutex(oPlayerTick);
+
+	// Render other players
 	for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
 	{
-		if (oPlayers[iLoop1]->bConnected)
-			oPlayers[iLoop1]->Render();
+		if (iLoop1 != iLocalPlayerID && oPlayers[iLoop1]->bConnected) {
+			//PlayerGet(iLoop1)->Render();
+			PlayerGet(iLoop1)->RenderInPast(kfInterpolate);
+			PlayerGet(iLoop1)->RenderInPast(0);
+		}
 	}
+
+	// Render the local player
+	//PlayerGet(iLocalPlayerID)->RenderInPast(kfInterpolate);
+	PlayerGet(iLocalPlayerID)->Render();
+
+glfwUnlockMutex(oPlayerTick);
 }
 
 // render all particles
@@ -182,6 +199,10 @@ void RenderOffsetCamera(bool bLocalPlayerReferenceFrame)
 	if (!bLocalPlayerReferenceFrame) {
 		glRotatef((oPlayers[iLocalPlayerID]->GetZ() * Math::RAD_TO_DEG), 0, 0, 1);
 		glTranslatef(-(oPlayers[iLocalPlayerID]->GetIntX()), -(oPlayers[iLocalPlayerID]->GetIntY()), 0);
+		/*State_t oState = PlayerGet(iLocalPlayerID)->GetStateInPast(kfInterpolate);
+		//glRotatef(oState.fZ * Math::RAD_TO_DEG, 0, 0, 1);
+		glRotatef((oPlayers[iLocalPlayerID]->GetZ() * Math::RAD_TO_DEG), 0, 0, 1);
+		glTranslatef(-oState.fX, -oState.fY, 0);*/
 	}
 }
 
@@ -257,43 +278,43 @@ void RenderCreateFOVMask()
 		{
 			for (iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
 			{
-				glVertex2i(oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x, oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y);
+				glVertex2d(oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x, oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y);
 
 				oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
 				oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
 				oRay.Direction().x = oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
 				oRay.Direction().y = oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
 				oVector = MathProjectRay(oRay, 500);
-				glVertex2i(oVector.x, oVector.y);
+				glVertex2f(oVector.x, oVector.y);
 
 				oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2].x;
 				oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2].y;
 				oRay.Direction().x = oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
 				oRay.Direction().y = oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
 				oVector = MathProjectRay(oRay, 500);
-				glVertex2i(oVector.x, oVector.y);
+				glVertex2f(oVector.x, oVector.y);
 
-				glVertex2i(oPolyLevel.contour[iLoop1].vertex[iLoop2].x, oPolyLevel.contour[iLoop1].vertex[iLoop2].y);
+				glVertex2d(oPolyLevel.contour[iLoop1].vertex[iLoop2].x, oPolyLevel.contour[iLoop1].vertex[iLoop2].y);
 			}
 
 			// last vertex
-			glVertex2i(oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x, oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y);
+			glVertex2d(oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x, oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y);
 
 			oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
 			oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
 			oRay.Direction().x = oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
 			oRay.Direction().y = oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
 			oVector = MathProjectRay(oRay, 500);
-			glVertex2i(oVector.x, oVector.y);
+			glVertex2f(oVector.x, oVector.y);
 
 			oRay.Origin().x = oPolyLevel.contour[iLoop1].vertex[0].x;
 			oRay.Origin().y = oPolyLevel.contour[iLoop1].vertex[0].y;
 			oRay.Direction().x = oRay.Origin().x - oPlayers[iLocalPlayerID]->GetIntX();
 			oRay.Direction().y = oRay.Origin().y - oPlayers[iLocalPlayerID]->GetIntY();
 			oVector = MathProjectRay(oRay, 500);
-			glVertex2i(oVector.x, oVector.y);
+			glVertex2f(oVector.x, oVector.y);
 
-			glVertex2i(oPolyLevel.contour[iLoop1].vertex[0].x, oPolyLevel.contour[iLoop1].vertex[0].y);
+			glVertex2d(oPolyLevel.contour[iLoop1].vertex[0].x, oPolyLevel.contour[iLoop1].vertex[0].y);
 		}
 	glEnd();
 }

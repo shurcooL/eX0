@@ -1,13 +1,13 @@
-template <typename T> class IndexedCircularBuffer
+template <typename T, typename Tp> class IndexedCircularBuffer
 {
 public:
-	IndexedCircularBuffer(int nBufferSize);
+	IndexedCircularBuffer(void);
 	~IndexedCircularBuffer(void);
 
-	bool push(T & oItem, int nPosition);
+	bool push(T & oItem, Tp nPosition);
 	void pop(void);
 
-	T & operator [](int nPosition);
+	T & operator [](Tp nPosition);
 
 	int begin(void);
 	int end(void);
@@ -17,17 +17,17 @@ public:
 
 	bool empty(void);
 	//bool full(void);
-	int size(void);
+	u_int size(void);
 
 	void clear(void);
 
 private:
-	T	*m_pBuffer;
-	int	m_nBufferSize;
-	int	m_nBufferHead;
-	int	m_nBufferTail;
+	T		*m_pBuffer;
+	const u_int		m_knBufferSize;
+	Tp		m_nBufferHead;
+	Tp		m_nBufferTail;
 
-	int capacity(void);
+	u_int capacity(void);
 };
 
 #include "IndexedCircularBuffer.cpp"

@@ -2,6 +2,14 @@
 
 #pragma comment(linker, "/NODEFAULTLIB:\"LIBCMT\"")
 
+double		dTimePassed = 0;
+double		dCurTime = 0;
+double		dBaseTime = 0;
+u_int		nFpsFrames = 0;
+double		dFpsBaseTime = 0;
+double		dFpsTimePassed = 0;
+string		sFpsString = (string)"eX0";
+
 void eX0_assert(bool expression, string message)
 {
 	if (!expression)
@@ -26,6 +34,7 @@ bool Init(int argc, char *argv[])
 		printf("Couldn't initialize the networking.\n");
 		return false;
 	}
+	pTimedEventScheduler = new CTimedEventScheduler();
 	if (!ServerInit()) {				// Initialize the server
 		printf("Couldn't initialize the server.\n");
 		return false;
@@ -41,6 +50,7 @@ void Deinit()
 	printf("Deinit\n");
 
 	// Sub-deinit
+	delete pTimedEventScheduler; pTimedEventScheduler = NULL;
 	ServerDeinit();
 	NetworkDeinit();					// Shutdown the networking component
 	nPlayerCount = 0; PlayerInit();		// Delete all players
@@ -84,14 +94,24 @@ void sigint_handler(int sig)
 }
 #endif
 
+void PrintHi(void *p)
+{
+	//printf("%30.20f\n", glfwGetTime());
+	printf("===================== %f\n", glfwGetTime());
+}
+
 int main(int argc, char *argv[])
 {
-	// Add a Ctrl+C signal handler, for server termination
+	// Add a Ctrl+C signal handler, for abrupt termination
 #ifdef WIN32
 	SetConsoleCtrlHandler(CtrlCHandler, TRUE);
 #else
 	signal(SIGINT, sigint_handler);
 #endif
+
+	// DEBUG: Set the level name through the 1st command line param
+	if (argc >= 2)
+		sLevelName = argv[1];
 
 	// Initialize the dedicated server
 	if (!Init(argc, argv))
@@ -103,12 +123,34 @@ int main(int argc, char *argv[])
 		Terminate(1);
 	} else printf("Started the server successfully.\n");
 
+	// make sure that the physics won't count all the time passed during init
+	dBaseTime = glfwGetTime();
+	dFpsBaseTime = dBaseTime;
+
+	CTimedEvent oEvent(ceil(glfwGetTime()), 1.0, PrintHi, NULL);
+	pTimedEventScheduler->ScheduleEvent(oEvent);
+
 	// Main loop
 	while (true)
 	{
-		glfwSleep(0.0);
+		// time passed calcs
+		dCurTime = glfwGetTime();
+		dTimePassed = dCurTime - dBaseTime;
+		dBaseTime = dCurTime;
+
+		// fps calcs
+		nFpsFrames++;
+		dFpsTimePassed = dCurTime - dFpsBaseTime;
+		if (dFpsTimePassed >= 10.0f)
+		{
+			sFpsString = (string)"eX0ds - " + ftos(nFpsFrames / (float)dFpsTimePassed) + " fps";
+			//printf("%s\n", sFpsString.c_str());
+			dFpsBaseTime = dCurTime;
+			nFpsFrames = 0;
+		}
+
+		glfwSleep(0.01);
 	}
-	//glfwSleep(5.0);
 
 	// Clean up and exit nicely
 	Terminate(0);

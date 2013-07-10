@@ -18,9 +18,8 @@ bool ServerInit()
 // Start the server
 bool ServerStart()
 {
-	int nYes = 1;		// for setsockopt() SO_REUSEADDR, below
-
 	struct sockaddr_in myaddr;	 // server address
+	int nYes = 1;		// for setsockopt() SO_REUSEADDR, below
 
 	FD_ZERO(&master);	// clear the master and temp sets
 	FD_ZERO(&read_fds);
@@ -111,7 +110,7 @@ void GLFWCALL ServerThread(void *pArg)
 	u_short				snCurrentPacketSize = 0;
 
 	// keep track of the biggest file descriptor
-	fdmax = __max((int)listener, (int)nUdpSocket); // so far, it's this one
+	fdmax = __max((int)listener, (int)nUdpSocket); // so far, it's one of these two
 
 	// Main server loop
 	while (bServerThreadRun)
@@ -204,45 +203,49 @@ void GLFWCALL ServerThread(void *pArg)
 					{
 						CClient * pClient = ClientGetFromSocket(i);
 
-						// got error or connection closed by client
-						if (nbytes == 0) {
-							if (pClient->GetJoinStatus() >= ACCEPTED) {
-								// connection closed
-								printf("Player #%d (name '%s') has left the game (gracefully).\n", pClient->GetPlayerID(),
-									pClient->GetPlayer()->GetName().c_str());
-							} else {
-								printf("eX0ds: socket %d hung up nicely (was not a player)\n", (int)i);
-							}
+						if (pClient == NULL) {
+							printf("Got an error/disconnect on a non-existing client socket (%d), ignoring.\n", i);
 						} else {
-							NetworkPrintError("recv");
-
-							if (pClient->GetJoinStatus() >= ACCEPTED) {
-								// connection closed
-								printf("Player #%d (name '%s') has left the game (connection terminated).\n", pClient->GetPlayerID(),
-									pClient->GetPlayer()->GetName().c_str());
+							// got error or connection closed by client
+							if (nbytes == 0) {
+								if (pClient->GetJoinStatus() >= ACCEPTED) {
+									// connection closed
+									printf("Player #%d (name '%s') has left the game (gracefully).\n", pClient->GetPlayerID(),
+										pClient->GetPlayer()->GetName().c_str());
+								} else {
+									printf("eX0ds: socket %d hung up nicely (was not a player)\n", (int)i);
+								}
 							} else {
-								printf("eX0ds: socket %d terminated hard (error), was not a player\n", (int)i);
+								NetworkPrintError("recv");
+
+								if (pClient->GetJoinStatus() >= ACCEPTED) {
+									// connection closed
+									printf("Player #%d (name '%s') has left the game (connection terminated).\n", pClient->GetPlayerID(),
+										pClient->GetPlayer()->GetName().c_str());
+								} else {
+									printf("eX0ds: socket %d terminated hard (error), was not a player\n", (int)i);
+								}
 							}
+
+							if (pClient->GetJoinStatus() >= IN_GAME) {
+								// Send a Player Left Game to all the other clients
+								CPacket oPlayerLeftGamePacket;
+								oPlayerLeftGamePacket.pack("hh", 0, (u_short)26);
+								oPlayerLeftGamePacket.pack("c", (u_char)pClient->GetPlayerID());
+								oPlayerLeftGamePacket.CompleteTpcPacketSize();
+								oPlayerLeftGamePacket.BroadcastTcpExcept(pClient, UDP_CONNECTED);
+							}
+
+							// Remove the player, if he's already connected
+							//if (PlayerGetFromSocket(i) != NULL)
+							//	PlayerGetFromSocket(i)->bConnected = false;
+							delete pClient;
+
+							//NetworkCloseSocket(i); // bye!
+							FD_CLR(i, &master); // remove from master set
+							it1 = oActiveSockets.erase(it1);
+							bGoToNextIt = false;
 						}
-
-						if (pClient->GetJoinStatus() >= IN_GAME) {
-							// Send a Player Left Game to all the other clients
-							CPacket oPlayerLeftGamePacket;
-							oPlayerLeftGamePacket.pack("hh", 0, (u_short)26);
-							oPlayerLeftGamePacket.pack("c", (u_char)pClient->GetPlayerID());
-							oPlayerLeftGamePacket.CompleteTpcPacketSize();
-							oPlayerLeftGamePacket.BroadcastTcpExcept(pClient, UDP_CONNECTED);
-						}
-
-						// Remove the player, if he's already connected
-						//if (PlayerGetFromSocket(i) != NULL)
-						//	PlayerGetFromSocket(i)->bConnected = false;
-						delete pClient;
-
-						//NetworkCloseSocket(i); // bye!
-						FD_CLR(i, &master); // remove from master set
-						it1 = oActiveSockets.erase(it1);
-						bGoToNextIt = false;
 					}
 					// Recv returned greater than 0
 					else
@@ -298,38 +301,51 @@ void GLFWCALL ServerThread(void *pArg)
 			if (bGoToNextIt) ++it1;
 		}
 
-		if (!bServerThreadRun) {
-			break;
-		}
-
 		// Sleep
 		glfwSleep(0.0);
 	}
 
 	printf("Server thread has ended.\n");
+	oServerThread = -1;
+}
+
+void ServerShutdownThread()
+{
+	if (oServerThread >= 0)
+	{
+		bServerThreadRun = false;
+
+		// DEBUG: A hack to send ourselves an empty UDP packet in order to get out of select()
+		struct sockaddr_in myaddr;
+		myaddr.sin_family = AF_INET;
+		myaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+		myaddr.sin_port = htons(DEFAULT_PORT);
+		memset(myaddr.sin_zero, 0, sizeof(myaddr.sin_zero));
+		sendto(nUdpSocket, NULL, 0, 0, (struct sockaddr *)&myaddr, sizeof(myaddr));
+
+		shutdown(listener, SD_BOTH);
+		shutdown(nUdpSocket, SD_BOTH);
+	}
 }
 
 void ServerDestroyThread()
 {
-	if (oServerThread < 0)
-		return;
+	if (oServerThread >= 0)
+	{
+		printf("Waiting for the server thread to complete.\n");
+		glfwWaitThread(oServerThread, GLFW_WAIT);
+		//glfwDestroyThread(oServerThread);
+		oServerThread = -1;
 
-	bServerThreadRun = false;
-
-	/*shutdown(listener, SD_BOTH);
-	shutdown(nUdpSocket, SD_BOTH);*/
-	NetworkCloseSocket(listener);
-	NetworkCloseSocket(nUdpSocket);
-
-	glfwWaitThread(oServerThread, GLFW_WAIT);
-	//glfwDestroyThread(oServerThread);
-
-	printf("Server thread has been destroyed.\n");
+		printf("Server thread has been destroyed.\n");
+	}
 }
 
 // Shutdown the server
 void ServerDeinit()
 {
+	ServerShutdownThread();
+
 	// Close the connection to all clients
 	ClientDeinit();
 

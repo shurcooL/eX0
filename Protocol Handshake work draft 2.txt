@@ -26,14 +26,21 @@ Send Local Player Info (30).
 						Send Curr Player Info (21).
 Receive Load Level,
 Receive Curr Player Info.
+					-- Spectator --
+Send Join Team Request (8).
+						Send Permission To Join Team (6),
+						Set nJoinStatus=SPECTATOR.
+Receive Permission To Join Team,
+Set nJoinStatus=SPECTATOR.
+						Send Other Players Position (2).
+Receive Other Players Position.
 					-- Start Game --
-						Send Permission To Join (6).
-Receive Permission To Join,
-Set nJoinStatus=IN_GAME,
-Send Client Entered Game (7).
-						Receieve Client Entered Game,
-						Set nJoinStatus=IN_GAME.
+Send Join Team Request (8).
+						Send Permission To Join Team (6),
+						Set nJoinStatus=IN_GAME,
 						Send Player Entered Game to all others (25).
+Receive Permission To Join,
+Set nJoinStatus=IN_GAME.
 					-- Game Started --
 Send Own Position (1).
 						Receive Own Position,

@@ -20,7 +20,7 @@ void CWeapon::Tick()
 {
 //if (this->iOwnerID == 0) printf("fTimer: %f => ", fTimer);
 	// TODO - The whole weapon timing/event scheduling (rate of fire, reloading, etc.) system needs to be reworked
-	if (fTimer > 0.0f) fTimer -= fTimePassed;
+	if (fTimer > 0.0f) fTimer -= dTimePassed;
 //if (this->iOwnerID == 0) printf("%f\n", fTimer);
 	if ((bReloading || bShouldReload) || (bAutoReload && iClipAmmo <= 0 && fTimer <= 0
 	  && glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE))
@@ -82,7 +82,7 @@ void CWeapon::Fire()
 				// play shot sound
 				// ...
 				iClipAmmo--;
-				fTimer += oWeaponSpecs[iWhatWeapon].fROF * PARTICLE_TICK_TIME / PLAYER_TICK_TIME;
+				fTimer += oWeaponSpecs[iWhatWeapon].fROF;// * PARTICLE_TICK_TIME / fPlayerTickTime;
 
 				// make a projectile particle
 				oParticleEngine.AddParticle(oPlayers[iOwnerID]->GetIntX(), oPlayers[iOwnerID]->GetIntY(),

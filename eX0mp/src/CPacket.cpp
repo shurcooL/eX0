@@ -36,8 +36,9 @@ int CPacket::GetSize(void)
 /*
 ** pack() -- store data dictated by the format string in the buffer
 **
+**  c - 8-bit char
 **  h - 16-bit              l - 32-bit
-**  c - 8-bit char          f - float, 32-bit
+**  f - float, 32-bit       d - double, 64-bit
 **  t - std::string (known length)
 **  s - string (known length)
 **  z - string (16-bit length is automatically prepended)
@@ -47,8 +48,10 @@ size_t CPacket::pack(char *format, ...)
 	va_list ap;
 	int h;
 	int l;
+	long long ll;
 	char c;
 	float f;
+	double d;
 	char *s;
 	string *t;
 	size_t size = 0, len;
@@ -85,6 +88,14 @@ size_t CPacket::pack(char *format, ...)
 			m_pBufferPosition += 4;
 			break;
 
+		case 'd': // double
+			size += 8;
+			d = (double)va_arg(ap, double);
+			ll = (long long)pack754_64(d); // convert to IEEE 754
+			packi64(m_pBufferPosition, ll);
+			m_pBufferPosition += 8;
+			break;
+
 		case 't': // std::string (known length)
 			t = va_arg(ap, string *);
 			len = t->length();
@@ -105,7 +116,7 @@ size_t CPacket::pack(char *format, ...)
 			s = va_arg(ap, char *);
 			len = strlen(s);
 			size += len + 2;
-			packi16(m_pBufferPosition, (unsigned int)len);
+			packi16(m_pBufferPosition, (u_int)len);
 			m_pBufferPosition += 2;
 			memcpy(m_pBufferPosition, s, len);
 			m_pBufferPosition += len;
@@ -133,8 +144,10 @@ void CPacket::unpack(char *format, ...)
 	short *h;
 	int *l;
 	int pf;
+	long long pd;
 	char *c;
 	float *f;
+	double *d;
 	char *s;
 	string *t;
 	size_t len, count, maxstrlen = 0;
@@ -165,6 +178,13 @@ void CPacket::unpack(char *format, ...)
 			pf = unpacki32(m_pBufferPosition);
 			*f = (float)unpack754_32(pf);
 			m_pBufferPosition += 4;
+			break;
+
+		case 'd': // double
+			d = va_arg(ap, double *);
+			pd = unpacki64(m_pBufferPosition);
+			*d = (double)unpack754_64(pd);
+			m_pBufferPosition += 8;
 			break;
 
 		case 'e': // set length as an int parameter
@@ -213,13 +233,13 @@ void CPacket::unpack(char *format, ...)
 
 /*
 ** pack754() -- pack a floating point number into IEEE-754 format
-*/ 
-long long CPacket::pack754(long double f, unsigned bits, unsigned expbits)
+*/
+long long CPacket::pack754(long double f, u_int bits, u_int expbits)
 {
 	long double fnorm;
 	int shift;
 	long long sign, exp, significand;
-	unsigned significandbits = bits - expbits - 1; // -1 for sign bit
+	u_int significandbits = bits - expbits - 1; // -1 for sign bit
 
 	if (f == 0.0) return 0; // get this special case out of the way
 
@@ -245,13 +265,13 @@ long long CPacket::pack754(long double f, unsigned bits, unsigned expbits)
 
 /*
 ** unpack754() -- unpack a floating point number from IEEE-754 format
-*/ 
-long double CPacket::unpack754(long long i, unsigned bits, unsigned expbits)
+*/
+long double CPacket::unpack754(long long i, u_int bits, u_int expbits)
 {
 	long double result;
 	long long shift;
-	unsigned bias;
-	unsigned significandbits = bits - expbits - 1; // -1 for sign bit
+	u_int bias;
+	u_int significandbits = bits - expbits - 1; // -1 for sign bit
 
 	if (i == 0) return 0.0;
 
@@ -274,35 +294,55 @@ long double CPacket::unpack754(long long i, unsigned bits, unsigned expbits)
 
 /*
 ** packi16() -- store a 16-bit int into a char buffer (like htons())
-*/ 
-void CPacket::packi16(u_char *buf, unsigned int i)
+*/
+void CPacket::packi16(u_char *buf, u_int i)
 {
 	*buf++ = i>>8; *buf++ = i;
 }
 
 /*
 ** packi32() -- store a 32-bit int into a char buffer (like htonl())
-*/ 
-void CPacket::packi32(u_char *buf, unsigned long i)
+*/
+void CPacket::packi32(u_char *buf, u_long i)
 {
-	*buf++ = (unsigned char)(i>>24); *buf++ = (unsigned char)(i>>16);
-	*buf++ = (unsigned char)(i>>8);  *buf++ = (unsigned char)i;
+	*buf++ = (u_char)(i>>24); *buf++ = (u_char)(i>>16);
+	*buf++ = (u_char)(i>>8);  *buf++ = (u_char)i;
+}
+
+/*
+** packi64() -- store a 64-bit int into a char buffer
+*/
+void CPacket::packi64(u_char *buf, u_int64 i)
+{
+	*buf++ = (u_char)(i>>56); *buf++ = (u_char)(i>>48);
+	*buf++ = (u_char)(i>>40); *buf++ = (u_char)(i>>32);
+	*buf++ = (u_char)(i>>24); *buf++ = (u_char)(i>>16);
+	*buf++ = (u_char)(i>>8);  *buf++ = (u_char)i;
 }
 
 /*
 ** unpacki16() -- unpack a 16-bit int from a char buffer (like ntohs())
-*/ 
-unsigned int CPacket::unpacki16(u_char *buf)
+*/
+u_int CPacket::unpacki16(u_char *buf)
 {
 	return (buf[0]<<8) | buf[1];
 }
 
 /*
 ** unpacki32() -- unpack a 32-bit int from a char buffer (like ntohl())
-*/ 
-unsigned long CPacket::unpacki32(u_char *buf)
+*/
+u_long CPacket::unpacki32(u_char *buf)
 {
 	return (buf[0]<<24) | (buf[1]<<16) | (buf[2]<<8) | buf[3];
+}
+
+/*
+** unpacki64() -- unpack a 64-bit int from a char buffer
+*/
+u_int64 CPacket::unpacki64(u_char *buf)
+{
+	return ((u_int64)buf[0]<<56) | ((u_int64)buf[1]<<48) | ((u_int64)buf[2]<<40) | ((u_int64)buf[3])<<32
+		| ((u_int64)buf[4]<<24) | ((u_int64)buf[5]<<16) | ((u_int64)buf[6]<<8) | (u_int64)buf[7];
 }
 
 void CPacket::CompleteTpcPacketSize(void)
@@ -310,68 +350,25 @@ void CPacket::CompleteTpcPacketSize(void)
 	packi16((u_char *)GetPacket(), GetSize());
 }
 
-bool CPacket::SendTcp(CClient * pClient, JoinStatus nMinimumJoinStatus)
+bool CPacket::SendTcp(/*CClient *pClient, */JoinStatus nMinimumJoinStatus)
 {
-	if (pClient->GetJoinStatus() < nMinimumJoinStatus) { printf("SendTcp failed\n"); return false; }
-	else if (sendall(pClient->GetSocket(), (char *)GetPacket(), GetSize(), 0) == SOCKET_ERROR) {
+	if (nJoinStatus < nMinimumJoinStatus) { printf("SendTcp failed\n"); return false; }
+	else if (sendall(nServerTcpSocket, (char *)GetPacket(), GetSize(), 0) == SOCKET_ERROR) {
 		NetworkPrintError("sendall");
 		return false;
 	}
 	return true;
 }
-bool CPacket::BroadcastTcp(JoinStatus nMinimumJoinStatus)
-{
-	for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
-	{
-		// Broadcast the packet to all players that are connected
-		if (PlayerGet(nPlayer)->pClient != NULL
-		  && PlayerGet(nPlayer)->pClient->GetJoinStatus() >= nMinimumJoinStatus) {
-			if (sendall(PlayerGet(nPlayer)->pClient->GetSocket(), (char *)GetPacket(), GetSize(), 0) == SOCKET_ERROR) {
-				NetworkPrintError("sendall");
-				return false;
-			}
-		}
-	}
-	return true;
-}
-bool CPacket::BroadcastTcpExcept(CClient * pClient, JoinStatus nMinimumJoinStatus)
-{
-	for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
-	{
-		// Broadcast the packet to all players that are connected, except the specified one
-		if (pClient != PlayerGet(nPlayer)->pClient && PlayerGet(nPlayer)->pClient != NULL
-		  && PlayerGet(nPlayer)->pClient->GetJoinStatus() >= nMinimumJoinStatus) {
-			if (sendall(PlayerGet(nPlayer)->pClient->GetSocket(), (char *)GetPacket(), GetSize(), 0) == SOCKET_ERROR) {
-				NetworkPrintError("sendall");
-				return false;
-			}
-		}
-	}
-	return false;
-}
 
-bool CPacket::SendUdp(CClient * pClient, JoinStatus nMinimumJoinStatus)
+bool CPacket::SendUdp(/*CClient *pClient, */JoinStatus nMinimumJoinStatus)
 {
-	if (pClient->GetJoinStatus() < nMinimumJoinStatus) { printf("SendUdp failed\n"); return false; }
-	// DEBUG: Need to lock a UDP Send Mutex before calling sendto()
-	else if (sendto(nUdpSocket, (char *)GetPacket(), GetSize(), 0,
-		(struct sockaddr *)&pClient->GetAddress(), sizeof(pClient->GetAddress())) != GetSize()) {
-		NetworkPrintError("sendto");
+	if (nJoinStatus < nMinimumJoinStatus) { printf("SendUdp failed\n"); return false; }
+	// DEBUG: Need to lock a UDP Send Mutex before calling send()
+	else if (send(nServerUdpSocket, (char *)GetPacket(), GetSize(), 0) != GetSize()) {
+		NetworkPrintError("send");
 		return false;
 	}
 	return true;
-}
-bool CPacket::BroadcastUdp(JoinStatus nMinimumJoinStatus)
-{
-	// TODO
-	printf("BroadcastUdp failed because it's not finished\n"); 
-	return false;
-}
-bool CPacket::BroadcastUdpExcept(CClient * pClient, JoinStatus nMinimumJoinStatus)
-{
-	// TODO
-	printf("BroadcastUdpExcept failed because it's not finished\n"); 
-	return false;
 }
 
 void CPacket::Print(int nPacketSize)

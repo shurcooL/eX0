@@ -15,17 +15,20 @@ bool			bStencilOperations = false;
 GLFWvidmode		oDesktopMode;
 bool			bFullscreen = false;
 
-float			fTimePassed = 0;
-float			fCurTime = 0;
-float			fBaseTime = 0;
+double			dTimePassed = 0;
+double			dCurTime = 0;
+double			dBaseTime = 0;
 int				iFpsFrames = 0;
-float			fFpsBaseTime = 0;
-float			fFpsTimePassed = 0;
+double			dFpsBaseTime = 0;
+double			dFpsTimePassed = 0;
 string			sFpsString = (string)"eX0";
 
 string			sTempString = (string)"";
 float			fTempFloat = 0;
 int				iTempInt = 0;
+
+u_long counter1 = 0;
+u_long counter2 = 0;
 
 void eX0_assert(bool expression, string message)
 {
@@ -49,6 +52,7 @@ bool Init(int argc, char *argv[])
 
 	// create the window
 	glfwGetDesktopMode(&oDesktopMode);
+	glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 4);
 	//if (!glfwOpenWindow(640, 480, 5, 6, 5, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW))
 	if (!glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW))
 		return false;
@@ -80,7 +84,9 @@ bool Init(int argc, char *argv[])
 	SetGlfwCallbacks();
 	GameDataLoad();						// load game data
 	WeaponInitSpecs();
+	pChatMessages = new CHudMessageQueue(0, 480 - 150, 5, 5.0f);
 	//nPlayerCount = 0; PlayerInit();		// Initialize the players
+	pTimedEventScheduler = new CTimedEventScheduler();
 	if (!NetworkInit())					// Initialize the networking
 		return false;
 
@@ -91,7 +97,8 @@ bool Init(int argc, char *argv[])
 	SyncRandSeed();
 
 	// make sure that the physics won't count all the time passed during init
-	fBaseTime = static_cast<float>(glfwGetTime());
+	dBaseTime = glfwGetTime();
+	dFpsBaseTime = dBaseTime;
 
 	return true;
 }
@@ -105,8 +112,10 @@ void Deinit()
 	glfwEnable(GLFW_MOUSE_CURSOR);
 
 	// sub-deinit
+	delete pTimedEventScheduler; pTimedEventScheduler = NULL;
 	NetworkDeinit();					// Shutdown the networking component
 	nPlayerCount = 0; PlayerInit();		// delete all players
+	delete pChatMessages; pChatMessages = NULL;
 	GameDataUnload();					// unload game data
 	OglUtilsDeinitGL();					// Deinit OpenGL stuff
 	// ...
@@ -127,6 +136,8 @@ void Terminate(int nExitCode)
 
 	// DEBUG: Print out the memory usage stats
 	m_dumpMemoryReport();
+
+	if (counter1 != counter2) printf("WARNING!!!!: counter1 = %d != counter2 = %d\n", counter1, counter2);
 
 	exit(nExitCode);
 }
@@ -166,7 +177,7 @@ void RestartGame()
 			x = static_cast<float>(rand() % 2000 - 1000);
 			y = static_cast<float>(rand() % 2000 - 1000);
 		} while (ColHandIsPointInside((int)x, (int)y) || !ColHandCheckPlayerPos(&x, &y));
-		oPlayers[nLoop1]->Position(x, y);
+		oPlayers[nLoop1]->Position(x, y, 0);
 		oPlayers[nLoop1]->SetZ(0.001f * (rand() % 1000) * Math::TWO_PI);
 		oPlayers[nLoop1]->SetTeam(iLocalPlayerID == nLoop1 ? 0 : 1);
 	}
@@ -182,9 +193,31 @@ void SyncRandSeed(void)
 	//srand(static_cast<unsigned int>(time(NULL)));
 }
 
+#ifdef WIN32
+BOOL WINAPI CtrlCHandler(DWORD dwCtrlType)
+{
+	if (dwCtrlType == CTRL_C_EVENT || dwCtrlType == CTRL_BREAK_EVENT)
+		Terminate(1);
+
+	return FALSE;
+}
+#else
+void sigint_handler(int sig)
+{
+	Terminate(1);
+}
+#endif
+
 // main function
 int main(int argc, char *argv[]) 
 {
+	// Add a Ctrl+C signal handler, for abrupt termination
+#ifdef WIN32
+	SetConsoleCtrlHandler(CtrlCHandler, TRUE);
+#else
+	signal(SIGINT, sigint_handler);
+#endif
+
 	// Print the version and date/time built
 	printf("eX0 v0.0 - Built on %s at %s.\n\n", __DATE__, __TIME__);
 
@@ -217,25 +250,25 @@ int main(int argc, char *argv[])
 			if (glfwGetWindowParam(GLFW_ACTIVE)) {
 				glfwDisable(GLFW_MOUSE_CURSOR);
 				glfwSetMousePos(320, 240);
-				fBaseTime = (float)glfwGetTime();
+				dBaseTime = glfwGetTime();
 			}
 			continue;
 		}
 
 		// time passed calcs
-		fCurTime = static_cast<float>(glfwGetTime());
-		//if (!bPaused) fTimePassed = fCurTime - fBaseTime; else fTimePassed = 0;
-		fTimePassed = fCurTime - fBaseTime;
-		fBaseTime = fCurTime;
+		dCurTime = glfwGetTime();
+		//if (!bPaused) dTimePassed = dCurTime - dBaseTime; else dTimePassed = 0;
+		dTimePassed = dCurTime - dBaseTime;
+		dBaseTime = dCurTime;
 
 		// fps calcs
 		iFpsFrames++;
-		fFpsTimePassed = fCurTime - fFpsBaseTime;
-		if (fFpsTimePassed >= 0.75)
+		dFpsTimePassed = dCurTime - dFpsBaseTime;
+		if (dFpsTimePassed >= 0.75)
 		{
-			sFpsString = (string)"eX0 - " + ftos(iFpsFrames / fFpsTimePassed) + " fps";
+			sFpsString = (string)"eX0 - " + ftos(iFpsFrames / (float)dFpsTimePassed) + " fps";
 			//glfwSetWindowTitle(sTempString.c_str());
-			fFpsBaseTime = fCurTime;
+			dFpsBaseTime = dCurTime;
 			iFpsFrames = 0;
 		}
 
@@ -247,6 +280,7 @@ int main(int argc, char *argv[])
 		if (!iGameState)
 		// in game
 		{
+++counter2;
 			// mouse moved?
 			InputMouseMovCalcs();
 
@@ -255,13 +289,13 @@ int main(int argc, char *argv[])
 			InputMouseHold();
 
 			// player tick
+			if (bPaused) { fTempFloat = dTimePassed; dTimePassed = 0; }
 			//PlayerTick();
 			PlayerGet(iLocalPlayerID)->Tick();
 
 			// particle engine tick
-			if (bPaused) { fTempFloat = fTimePassed; fTimePassed = 0; }
 			oParticleEngine.Tick();
-			if (bPaused) fTimePassed = fTempFloat;
+			if (bPaused) dTimePassed = fTempFloat;
 
 			// render the static scene
 			RenderStaticScene();
@@ -276,6 +310,12 @@ int main(int argc, char *argv[])
 			OglUtilsSetMaskingMode(WITH_MASKING_MODE);
 
 			// render all players
+glfwLockMutex(oPlayerTick);
+			//PlayerGet(iLocalPlayerID)->RenderInPast(2 * oPlayers[iLocalPlayerID]->GetZ());
+			//PlayerGet(iLocalPlayerID)->RenderInPast(Math::TWO_PI - 2 * oPlayers[iLocalPlayerID]->GetZ());
+			//for (int i = 1; i <= 100; i += 1) PlayerGet(0/*iLocalPlayerID*/)->RenderInPast(i * 0.1f);
+			PlayerGet(iLocalPlayerID)->RenderInPast(kfInterpolate);
+glfwUnlockMutex(oPlayerTick);
 			RenderPlayers();
 
 			// render all particles

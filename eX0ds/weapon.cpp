@@ -81,7 +81,7 @@ void CWeapon::Fire()
 				// play shot sound
 				// ...
 				iClipAmmo--;
-				fTimer += oWeaponSpecs[iWhatWeapon].fROF * PARTICLE_TICK_TIME / PLAYER_TICK_TIME;
+				fTimer += oWeaponSpecs[iWhatWeapon].fROF;// * PARTICLE_TICK_TIME / fPlayerTickTime;
 
 				// make a projectile particle
 				oParticleEngine.AddParticle(PlayerGet(iOwnerID)->GetIntX(), PlayerGet(iOwnerID)->GetIntY(),

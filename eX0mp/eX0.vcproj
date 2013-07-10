@@ -177,11 +177,43 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\src\CHudMessageQueue.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\CHudMessageQueue.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\col_hand.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\src\col_hand.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\CPacket.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\CPacket.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\CTimedEvent.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\CTimedEvent.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\CTimedEventScheduler.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\CTimedEventScheduler.h"
 				>
 			</File>
 			<File
@@ -262,14 +294,6 @@
 			</File>
 			<File
 				RelativePath=".\src\ogl_utils.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Packet.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Packet.h"
 				>
 			</File>
 			<File

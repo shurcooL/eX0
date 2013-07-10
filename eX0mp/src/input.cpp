@@ -67,9 +67,9 @@ void InputKeyHold()
 
 		// Rotate left/right using arrow keys
 		if (glfwGetKey(GLFW_KEY_LEFT) && !glfwGetKey(GLFW_KEY_RIGHT))
-			oPlayers[iLocalPlayerID]->Rotate(fTimePassed * -1.5f);
+			oPlayers[iLocalPlayerID]->Rotate((float)dTimePassed * -1.5f);
 		else if (glfwGetKey(GLFW_KEY_RIGHT) && !glfwGetKey(GLFW_KEY_LEFT))
-			oPlayers[iLocalPlayerID]->Rotate(fTimePassed * 1.5f);
+			oPlayers[iLocalPlayerID]->Rotate((float)dTimePassed * 1.5f);
 
 		if (glfwGetKey('A') && !glfwGetKey('D'))
 		{
@@ -135,6 +135,7 @@ void InputProcessKey(int iKey, int iAction)
 			// Enter key
 			case GLFW_KEY_ENTER:
 				nChatMode = 0;
+				glfwDisable(GLFW_KEY_REPEAT);
 				// Send the chat string
 				// DEBUG: Finish
 				if (sChatString.length() > 0) {
@@ -148,6 +149,7 @@ void InputProcessKey(int iKey, int iAction)
 			// Escape key
 			case GLFW_KEY_ESC:
 				nChatMode = 0;
+				glfwDisable(GLFW_KEY_REPEAT);
 				break;
 			// Backspace key
 			case GLFW_KEY_BACKSPACE:
@@ -222,11 +224,13 @@ void InputProcessKey(int iKey, int iAction)
 		case GLFW_KEY_ENTER:
 			sChatString = "";
 			nChatMode = 2;
+			glfwEnable(GLFW_KEY_REPEAT);
 			break;
 		// chat
 		case 'T':
 			sChatString = "";
 			nChatMode = 1;
+			glfwEnable(GLFW_KEY_REPEAT);
 			break;
 		// any other key
 		default:

@@ -1,0 +1,25 @@
+Packet Type 1:
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+type (char) = 1
+
+
+Update Others Position Packet (Type 2):
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+type (char) = 2
+cCurrentUpdateSequenceNumber (char)
+[
+	active_player (char) = 1
+	cAckedCommandSequenceNumber (char)
+	fX (float)
+	fY (float)
+	fZ (float)
+] else
+[
+	active_player (char) = 0
+]
+
+
+Handshake Packet (Type 100):
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+type (char) = 100
+signature (4 char)

@@ -13,7 +13,7 @@ void OglUtilsInitFont();
 
 void OglUtilsKillFont();
 
-void OglUtilsPrint(int iX, int iY, int iFont, bool bCentered, char *chText);
+void OglUtilsPrint(int iX, int iY, int iFont, bool bCentered, const char *chText);
 //void OglUtilsPrint(int iX, int iY, int iFont, bool bCentered, const char *chFmt, ...);
 
 void OglUtilsSwitchMatrix(int iWhichMatrix);

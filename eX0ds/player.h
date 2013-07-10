@@ -1,7 +1,3 @@
-#define		PLAYER_TICK_TIME		0.025f
-//#define		PLAYER_TICK_TIME		0.050f
-//#define		PLAYER_TICK_TIME		0.100f
-//#define		PLAYER_TICK_TIME		1.0f
 #define		PLAYER_WIDTH			15.49193f
 #define		PLAYER_HALF_WIDTH		7.74597f
 #define		PLAYER_WIDTH_SQR		240.0f
@@ -29,9 +25,11 @@ public:
 	void SetY(float fValue);
 	void SetOldX(float fValue);
 	void SetOldY(float fValue);
-	void Position(float fPosX, float fPosY);
+	void Position(float fNewX, float fNewY, float fNewZ);
 	float GetVelX();
 	float GetVelY();
+	void SetVelX(float fValue);
+	void SetVelY(float fValue);
 	float GetVelocity();
 	float GetIntX();
 	float GetIntY();
@@ -56,6 +54,9 @@ public:
 	bool		bEmptyClicked;
 	int			iSelWeapon;
 	float		fAimingDistance;
+	float		fTicks;
+	float		fTickTime;
+	float		fOldZ;
 
 	CClient		*pClient;
 
@@ -72,7 +73,6 @@ private:
 	float		fHealth;
 	string		sName;
 	int			iTeam;
-	float		fTicks;
 };
 
 // allocate memory for all the players

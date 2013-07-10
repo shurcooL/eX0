@@ -2,6 +2,8 @@ class CPacket;
 
 #define DEFAULT_PORT			9034
 
+#define SIGNATURE_SIZE			8
+
 // Packets
 #define MAX_TCP_PACKET_SIZE		1448
 #define MAX_UDP_PACKET_SIZE		1448

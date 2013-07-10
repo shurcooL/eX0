@@ -71,7 +71,7 @@ void OglUtilsDeinitGL()
 }
 
 // print text on screen
-void OglUtilsPrint(int iX, int iY, int iFont, bool bCentered, char *chText)
+void OglUtilsPrint(int iX, int iY, int iFont, bool bCentered, const char *chText)
 {
 	if (chText == NULL)
 		return;
@@ -86,13 +86,13 @@ void OglUtilsPrint(int iX, int iY, int iFont, bool bCentered, char *chText)
 	//vsprintf(chAsciiCodes, chText, NULL);
 
 	if (!bCentered)
-		glTranslatef(iX, iY, 0.0);
+		glTranslatef((GLfloat)iX, (GLfloat)iY, 0.0f);
 	else
-		glTranslatef(iX - strlen(chText) * 5.0, iY, 0.0);
+		glTranslatef((GLfloat)(iX - strlen(chText) * 5), (GLfloat)iY, 0.0f);
 
 	glListBase(oFontBase);
 	//glCallLists(strlen(chAsciiCodes), GL_UNSIGNED_BYTE, chAsciiCodes);
-	glCallLists(strlen(chText), GL_UNSIGNED_BYTE, chText);
+	glCallLists((GLsizei)strlen(chText), GL_UNSIGNED_BYTE, chText);
 
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_BLEND);
@@ -111,16 +111,16 @@ void OglUtilsInitFont()
 
 	for (int iLoop1 = 0; iLoop1 < 256; iLoop1++)
 	{
-		fCharX = float(iLoop1 % 16) / 16.0;
-		fCharY = float(iLoop1 / 16) / 16.0;
+		fCharX = float(iLoop1 % 16) / 16.0f;
+		fCharY = float(iLoop1 / 16) / 16.0f;
 
 		glNewList(oFontBase + iLoop1, GL_COMPILE);
 			glBegin(GL_QUADS);
-				glTexCoord2f(fCharX, 1 - fCharY - 0.0625);
+				glTexCoord2f(fCharX, 1 - fCharY - 0.0625f);
 				glVertex2i(0, 16);
-				glTexCoord2f(fCharX + 0.0625, 1 - fCharY - 0.0625);
+				glTexCoord2f(fCharX + 0.0625f, 1 - fCharY - 0.0625f);
 				glVertex2i(16, 16);
-				glTexCoord2f(fCharX + 0.0625, 1 - fCharY);
+				glTexCoord2f(fCharX + 0.0625f, 1 - fCharY);
 				glVertex2i(16, 0);
 				glTexCoord2f(fCharX, 1 - fCharY);
 				glVertex2i(0, 0);

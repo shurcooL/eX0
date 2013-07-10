@@ -177,11 +177,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Client.cpp"
+				RelativePath=".\CClient.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\Client.h"
+				RelativePath=".\CClient.h"
 				>
 			</File>
 			<File
@@ -190,6 +190,30 @@
 			</File>
 			<File
 				RelativePath=".\col_hand.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CPacket.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\CPacket.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CTimedEvent.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\CTimedEvent.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CTimedEventScheduler.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\CTimedEventScheduler.h"
 				>
 			</File>
 			<File
@@ -230,14 +254,6 @@
 			</File>
 			<File
 				RelativePath=".\NetworkIncludes.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Packet.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Packet.h"
 				>
 			</File>
 			<File

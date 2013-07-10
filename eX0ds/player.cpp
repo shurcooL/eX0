@@ -3,6 +3,11 @@
 int		nPlayerCount;
 CPlayer	*oPlayers[32];
 
+//float	fPlayerTickTime;// = 0.025f;
+//float	fPlayerTickTime = 0.050f;
+//float	fPlayerTickTime = 0.100f;
+//float	fPlayerTickTime = 1.0f;
+
 // implementation of the player class
 CPlayer::CPlayer()
 {
@@ -14,6 +19,7 @@ CPlayer::CPlayer()
 	fVelX = 0;
 	fVelY = 0;
 	fZ = 0;
+	fOldZ = 0;
 	iIsStealth = 0;
 	nMoveDirection = -1;
 	iSelWeapon = 2;
@@ -23,6 +29,7 @@ CPlayer::CPlayer()
 	iTeam = 0;
 	bEmptyClicked = true;
 	fTicks = 0;
+	fTickTime = 0;
 
 	// Network related
 	pClient = NULL;
@@ -35,15 +42,15 @@ CPlayer::~CPlayer()
 
 void CPlayer::Tick()
 {
-    // is the player dead?
+	// is the player dead?
 	if (IsDead()) return;
 
 	//oWeapons[iSelWeapon].Tick();
 
 	//fTicks += fTimePassed;
-	while (fTicks >= PLAYER_TICK_TIME)
+	while (fTicks >= fTickTime)
 	{
-		fTicks -= PLAYER_TICK_TIME;
+		fTicks -= fTickTime;
 
 		// calculate player trajectory
 		CalcTrajs();
@@ -70,7 +77,7 @@ int CPlayer::GetSelClipAmmo()
 // fire selected weapon
 void CPlayer::Fire()
 {
-    // is the player dead?
+	// is the player dead?
 	if (IsDead()) return;
 
 	// fire the selected weapon
@@ -80,7 +87,7 @@ void CPlayer::Fire()
 // reload selected weapon
 void CPlayer::Reload()
 {
-    // is the player dead?
+	// is the player dead?
 	if (IsDead()) return;
 
 	//oWeapons[iSelWeapon].Reload();
@@ -95,7 +102,7 @@ bool CPlayer::IsReloading()
 // buy a clip for selected weapon
 void CPlayer::BuyClip()
 {
-    // is the player dead?
+	// is the player dead?
 	if (IsDead()) return;
 
 	// TODO: some kind of money system?
@@ -110,7 +117,7 @@ void CPlayer::SetTeam(int iValue)
 
 void CPlayer::SetStealth(bool bOn)
 {
-    // is the player dead?
+	// is the player dead?
 	if (IsDead()) return;
 
 	iIsStealth = (int)bOn;
@@ -128,7 +135,7 @@ float CPlayer::GetHealth()
 
 void CPlayer::GiveHealth(float fValue)
 {
-    // is the player dead?
+	// is the player dead?
 	if (IsDead()) return;
 
 	fHealth += fValue;
@@ -137,9 +144,10 @@ void CPlayer::GiveHealth(float fValue)
 
 void CPlayer::CalcTrajs()
 {
-    // is the player dead?
+	// is the player dead?
 	if (IsDead()) return;
 
+#if 0
 	// Update the player velocity (acceleration)
 	if (nMoveDirection == -1)
 	{
@@ -148,12 +156,13 @@ void CPlayer::CalcTrajs()
 	}
 	else
 	{
-		fVelX = (PLAYER_TICK_TIME / 0.050f) * Math::Sin((float)nMoveDirection * 0.785398f + fZ) * (3.5f - iIsStealth * 2.5f);
-		fVelY = (PLAYER_TICK_TIME / 0.050f) * Math::Cos((float)nMoveDirection * 0.785398f + fZ) * (3.5f - iIsStealth * 2.5f);
+		fVelX = (fTickTime / 0.050f) * Math::Sin((float)nMoveDirection * 0.785398f + fZ) * (3.5f - iIsStealth * 2.5f);
+		fVelY = (fTickTime / 0.050f) * Math::Cos((float)nMoveDirection * 0.785398f + fZ) * (3.5f - iIsStealth * 2.5f);
 	}
+#else
 	// DEBUG - this is STILL not finished, need to redo properly
 	// need to do linear acceleration and deceleration
-	/*if (nMoveDirection == -1)
+	if (nMoveDirection == -1)
 	{
 		Vector2 oVel(fVelX, fVelY);
 		float fLength = oVel.Unitize();
@@ -162,7 +171,7 @@ void CPlayer::CalcTrajs()
 		fVelX = oVel.x;
 		fVelY = oVel.y;
 	}
-	else
+	else if (nMoveDirection >= 0 && nMoveDirection < 8)
 	{
 		fVelX += 0.25f * Math::Sin((float)nMoveDirection * 0.785398f + fZ);
 		fVelY += 0.25f * Math::Cos((float)nMoveDirection * 0.785398f + fZ);
@@ -178,7 +187,9 @@ void CPlayer::CalcTrajs()
 			fVelX = oVel.x;
 			fVelY = oVel.y;
 		}
-	}*/
+	}
+	else printf("WARNING: Invalid nMoveDirection = %d!\n", nMoveDirection);
+#endif
 
 	// Update the player positions
 	fOldX = fX;
@@ -189,7 +200,7 @@ void CPlayer::CalcTrajs()
 
 void CPlayer::CalcColResp()
 {
-    // is the player dead?
+	// is the player dead?
 	if (IsDead()) return;
 
 	int			iWhichCont, iWhichVert, iCounter = 0;
@@ -323,7 +334,7 @@ float CPlayer::GetOldY()
 
 void CPlayer::SetX(float fValue)
 {
-    // is the player dead?
+	// is the player dead?
 	if (IsDead()) return;
 
 	fX = fValue;
@@ -331,7 +342,7 @@ void CPlayer::SetX(float fValue)
 
 void CPlayer::SetY(float fValue)
 {
-    // is the player dead?
+	// is the player dead?
 	if (IsDead()) return;
 
 	fY = fValue;
@@ -339,7 +350,7 @@ void CPlayer::SetY(float fValue)
 
 void CPlayer::SetOldX(float fValue)
 {
-    // is the player dead?
+	// is the player dead?
 	if (IsDead()) return;
 
 	fOldX = fValue;
@@ -347,19 +358,23 @@ void CPlayer::SetOldX(float fValue)
 
 void CPlayer::SetOldY(float fValue)
 {
-    // is the player dead?
+	// is the player dead?
 	if (IsDead()) return;
 
 	fOldY = fValue;
 }
 
-void CPlayer::Position(float fPosX, float fPosY)
+void CPlayer::Position(float fNewX, float fNewY, float fNewZ)
 {
 	// is the player dead?
 	if (IsDead()) return;
 
-	fIntX = fOldX = fX = fPosX;
-	fIntY = fOldY = fY = fPosY;
+	fIntX = fOldX = fX = fNewX;
+	fIntY = fOldY = fY = fNewY;
+	fZ = fOldZ = fNewZ;
+
+	fVelX = 0.0f;
+	fVelY = 0.0f;
 }
 
 float CPlayer::GetVelX()
@@ -372,6 +387,22 @@ float CPlayer::GetVelY()
 	return fVelY;
 }
 
+void CPlayer::SetVelX(float fValue)
+{
+	// is the player dead?
+	if (IsDead()) return;
+
+	fVelX = fValue;
+}
+
+void CPlayer::SetVelY(float fValue)
+{
+	// is the player dead?
+	if (IsDead()) return;
+
+	fVelY = fValue;
+}
+
 float CPlayer::GetZ()
 {
 	// DEBUG - yet another hack.. replace it with some proper network-syncronyzed view bobbing
@@ -381,7 +412,7 @@ float CPlayer::GetZ()
 
 float CPlayer::GetVelocity()
 {
-    // is the player dead?
+	// is the player dead?
 	if (fHealth <= 0.0f) return 0.0f;
 
 	//return (fVelX || fVelY) ? 3.5f - iIsStealth * 2.0f : 0.0f;
@@ -390,6 +421,8 @@ float CPlayer::GetVelocity()
 
 void CPlayer::MoveDirection(int nDirection)
 {
+	eX0_assert(nDirection >= -1 && nDirection < 8, "nDirection >= -1 && nDirection < 8");
+
 	nMoveDirection = nDirection;
 }
 
@@ -407,8 +440,8 @@ void CPlayer::SetZ(float fValue)
 	if (IsDead()) return;
 
 	fZ = fValue;
-	while (fZ >= Math::TWO_PI) fZ -= Math::TWO_PI;
-	while (fZ < 0.0) fZ += Math::TWO_PI;
+	if (fZ >= Math::TWO_PI) fZ -= Math::TWO_PI;
+	if (fZ < 0.0) fZ += Math::TWO_PI;
 }
 
 void CPlayer::Render()
@@ -485,7 +518,7 @@ void CPlayer::Render()
 			gluPartialDisk(oQuadricObj, 6, 8, 12, 1, 30.0, 300.0);*/
 
 		// Draw the aiming-guide
-        /*glLineWidth(1.0);
+		/*glLineWidth(1.0);
 		glEnable(GL_LINE_SMOOTH);
 		glEnable(GL_BLEND);
 		glShadeModel(GL_SMOOTH);
@@ -505,7 +538,13 @@ void CPlayer::Render()
 			/*glPopMatrix();
 		//}
 	}
-	if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);*/
+	if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	
+	glBegin(GL_POINTS);
+		glColor3f(0, 1, 0);
+		glVertex2i(GetX(), GetY());
+		glVertex2i(GetOldX(), GetOldY());
+	glEnd();*/
 
 	/*Ray2	oRay;
 	oRay.Origin().x = fIntX;
@@ -567,11 +606,11 @@ void CPlayer::InitWeapons()
 
 void CPlayer::UpdateInterpolatedPos()
 {
-    // is the player dead?
+	// is the player dead?
 	if (IsDead()) {printf("assertion failed\n");return;}
 
-	fIntX = fOldX + (fX - fOldX) * fTicks / PLAYER_TICK_TIME;
-	fIntY = fOldY + (fY - fOldY) * fTicks / PLAYER_TICK_TIME;
+	fIntX = fOldX + (fX - fOldX) * fTicks / fTickTime;
+	fIntY = fOldY + (fY - fOldY) * fTicks / fTickTime;
 	//fIntX = fX;
 	//fIntY = fY;
 }

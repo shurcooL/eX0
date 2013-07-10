@@ -1,33 +1,29 @@
-template <typename T> IndexedCircularBuffer<T>::IndexedCircularBuffer(int nBufferSize)
+template <typename T, typename Tp> IndexedCircularBuffer<T, Tp>::IndexedCircularBuffer() : m_knBufferSize(1 << (8 * sizeof(Tp)))
 {
-	eX0_assert(nBufferSize > 1, "nBufferSize > 1");
-
-	m_pBuffer = new T[nBufferSize];
-	m_nBufferSize = nBufferSize;
+	m_pBuffer = new T[m_knBufferSize];
 	m_nBufferHead = 0;
 	m_nBufferTail = 0;
 }
 
-template <typename T> IndexedCircularBuffer<T>::~IndexedCircularBuffer()
+template <typename T, typename Tp> IndexedCircularBuffer<T, Tp>::~IndexedCircularBuffer()
 {
 	delete[] m_pBuffer;
 }
 
-template <typename T> bool IndexedCircularBuffer<T>::push(T & oItem, int nPosition)
+template <typename T, typename Tp> bool IndexedCircularBuffer<T, Tp>::push(T & oItem, Tp nPosition)
 {
-	eX0_assert(nPosition >= 0 && nPosition < m_nBufferSize,
-		"nPosition >= 0 && nPosition < m_nBufferSize");
+	eX0_assert(nPosition >= 0 && nPosition < m_knBufferSize, "nPosition >= 0 && nPosition < m_knBufferSize");
 
 	if (size() < capacity()) {
 		if (empty()) {
 			m_pBuffer[nPosition] = oItem;
 			m_nBufferHead = nPosition;
-			m_nBufferTail = (m_nBufferHead + 1) % m_nBufferSize;
+			m_nBufferTail = (nPosition + 1) % m_knBufferSize;
 		} else {
 			eX0_assert(nPosition == m_nBufferTail, "nPosition == m_nBufferTail");
 
 			m_pBuffer[m_nBufferTail] = oItem;
-			m_nBufferTail = (m_nBufferTail + 1) % m_nBufferSize;
+			m_nBufferTail = (m_nBufferTail + 1) % m_knBufferSize;
 		}
 
 		return true;
@@ -35,53 +31,54 @@ template <typename T> bool IndexedCircularBuffer<T>::push(T & oItem, int nPositi
 		return false;
 }
 
-template <typename T> void IndexedCircularBuffer<T>::pop()
+template <typename T, typename Tp> void IndexedCircularBuffer<T, Tp>::pop()
 {
 	eX0_assert(!empty(), "!empty()");
 
-	m_nBufferHead = (m_nBufferHead + 1) % m_nBufferSize;
+	m_nBufferHead = (m_nBufferHead + 1) % m_knBufferSize;
 }
 
-template <typename T> T & IndexedCircularBuffer<T>::operator [](int nPosition)
+template <typename T, typename Tp> T & IndexedCircularBuffer<T, Tp>::operator [](Tp nPosition)
 {
+	eX0_assert(!empty(), "!empty()");
+
 	return m_pBuffer[nPosition];
 }
 
-template <typename T> int IndexedCircularBuffer<T>::begin() { return m_nBufferHead; }
-template <typename T> int IndexedCircularBuffer<T>::end() { return m_nBufferTail; }
+template <typename T, typename Tp> int IndexedCircularBuffer<T, Tp>::begin() { return m_nBufferHead; }
+template <typename T, typename Tp> int IndexedCircularBuffer<T, Tp>::end() { return m_nBufferTail; }
 
-template <typename T> T & IndexedCircularBuffer<T>::front()
+template <typename T, typename Tp> T & IndexedCircularBuffer<T, Tp>::front()
 {
 	eX0_assert(!empty(), "!empty()");
 
 	return m_pBuffer[m_nBufferHead];
 }
 
-template <typename T> T & IndexedCircularBuffer<T>::back()
+template <typename T, typename Tp> T & IndexedCircularBuffer<T, Tp>::back()
 {
 	eX0_assert(!empty(), "!empty()");
 
-	return m_pBuffer[(m_nBufferTail + m_nBufferSize - 1) % m_nBufferSize];
+	return m_pBuffer[(m_nBufferTail - 1 + m_knBufferSize) % m_knBufferSize];
 }
 
-template <typename T> bool IndexedCircularBuffer<T>::empty()
+template <typename T, typename Tp> bool IndexedCircularBuffer<T, Tp>::empty()
 {
 	return m_nBufferHead == m_nBufferTail;
 }
 
-template <typename T> int IndexedCircularBuffer<T>::size()
+template <typename T, typename Tp> u_int IndexedCircularBuffer<T, Tp>::size()
 {
-	if (!empty()) return (m_nBufferTail + m_nBufferSize - m_nBufferHead) % m_nBufferSize;
-	else return 0;
+	return (m_nBufferTail - m_nBufferHead + m_knBufferSize) % m_knBufferSize;
 }
 
-template <typename T> void IndexedCircularBuffer<T>::clear()
+template <typename T, typename Tp> void IndexedCircularBuffer<T, Tp>::clear()
 {
 	m_nBufferHead = 0;
 	m_nBufferTail = 0;
 }
 
-template <typename T> int IndexedCircularBuffer<T>::capacity()
+template <typename T, typename Tp> u_int IndexedCircularBuffer<T, Tp>::capacity()
 {
-	return m_nBufferSize - 1;
+	return m_knBufferSize - 1;
 }

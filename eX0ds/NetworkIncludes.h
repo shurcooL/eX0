@@ -19,6 +19,7 @@
 #	include <signal.h>
 
 	typedef int SOCKET;
+	typedef unsigned long long u_int64;
 
 #	define INVALID_SOCKET	(-1)
 #	define SOCKET_ERROR		(-1)

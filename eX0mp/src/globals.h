@@ -35,6 +35,8 @@ p = pointer
 #include <math.h>
 #include <list>
 #include <map>
+#include <set>
+#include <queue>
 #include <deque>
 #include <GL/glfw.h>	// the glfw header
 
@@ -45,8 +47,14 @@ p = pointer
 // standard other //
 ////////////////////
 using namespace std;	// so that we can use string class
-#pragma warning(once : 4244 4305 4996)
+#pragma warning(once : 4018 4244 4305 4996)
 
+// Classes
+class CClient;
+class CPlayer;
+class CPacket;
+class CTimedEvent;
+class CTimedEventScheduler;
 
 /////////////////////
 // custom includes //
@@ -67,13 +75,16 @@ using namespace Mgc;
 #include "col_hand.h"
 #include "input.h"
 #include "render.h"
+#include "CHudMessageQueue.h"
 #include "ogl_utils.h"
 #include "game_data.h"
 #include "particle.h"
 #include "weapon.h"
 #include "player.h"
 #include "Network.h"
-#include "Packet.h"
+#include "CPacket.h"
+#include "CTimedEvent.h"
+#include "CTimedEventScheduler.h"
 #include "OGLTextureManager/TextureManager.h"
 
 
@@ -107,23 +118,28 @@ extern int			iMouseButtonsDown;
 
 extern int			nChatMode;
 extern string		sChatString;
+extern CHudMessageQueue		*pChatMessages;
 
 extern int			nPlayerCount;
 extern int			iLocalPlayerID;
 extern string		sLocalPlayerName;
 extern CPlayer		*oPlayers[32];
+//extern float		fPlayerTickTime;
 
 extern int			iCameraType;
 
-extern float		fTimePassed;
-extern float		fCurTime, fBaseTime;
+extern double		dTimePassed;
+extern double		dCurTime, dBaseTime;
 extern int			iFpsFrames;
-extern float		fFpsTimePassed, fFpsBaseTime;
+extern double		dFpsTimePassed, dFpsBaseTime;
 extern string		sFpsString;
 
 extern string		sTempString;
 extern float		fTempFloat;
 extern int			iTempInt;
+
+extern u_long counter1;
+extern u_long counter2;
 
 extern gpc_polygon	oPolyLevel;
 extern gpc_tristrip	oTristripLevel;
@@ -131,6 +147,8 @@ extern PAREA		*pPolyBooleanLevel;
 
 extern TextureIDs_t	oTextureIDs;
 extern CParticle	oParticleEngine;
+
+extern CTimedEventScheduler	*pTimedEventScheduler;
 
 extern GLUquadricObj	*oQuadricObj;
 
@@ -141,13 +159,17 @@ extern volatile int		nJoinStatus;
 extern GLFWthread		oNetworkThread;
 extern volatile bool	bNetworkThreadRun;
 
-extern u_char			cLocalMovementSequenceNumber;
-extern u_char			cRemoteUpdateSequenceNumber;
-extern IndexedCircularBuffer<Move_t>	oUnconfirmedMoves;
+extern u_char			cCurrentCommandSequenceNumber;
+//extern u_char			cLastAckedCommandSequenceNumber;
+extern u_char			cLastUpdateSequenceNumber;
+extern IndexedCircularBuffer<Move_t, u_char>	oUnconfirmedMoves;
 extern GLFWmutex		oPlayerTick;
 
 extern float			fLastLatency;
-extern float			fPingPacketTime;
+extern double			dPingPacketTime;
 extern int				nPingPacketNumber;
+
+extern u_char			cCommandRate;
+extern u_char			cUpdateRate;
 
 #endif // _globals_H_

@@ -35,6 +35,8 @@ p = pointer
 #include <math.h>
 #include <list>
 #include <map>
+#include <set>
+#include <queue>
 #include <GL/glfw.h>	// the glfw header
 
 #include "mmgr/mmgr.h"	// Fluid Studios Memory Manager
@@ -44,12 +46,14 @@ p = pointer
 // standard other //
 ////////////////////
 using namespace std;	// so that we can use string class
-#pragma warning(once : 4244 4305 4996)
+#pragma warning(once : 4018 4244 4305 4996)
 
 // Classes
 class CClient;
 class CPlayer;
 class CPacket;
+class CTimedEvent;
+class CTimedEventScheduler;
 
 /////////////////////
 // custom includes //
@@ -75,9 +79,11 @@ using namespace Mgc;
 #include "weapon.h"
 #include "player.h"
 #include "Network.h"
-#include "Packet.h"
-#include "Client.h"
+#include "CPacket.h"
+#include "CClient.h"
 #include "Server.h"
+#include "CTimedEvent.h"
+#include "CTimedEventScheduler.h"
 //#include "OGLTextureManager/TextureManager.h"
 
 
@@ -113,6 +119,7 @@ extern int			nChatMode;
 extern string		sChatString;*/
 
 extern int			nPlayerCount;
+//extern float		fPlayerTickTime;
 //extern int			iLocalPlayerID;
 //extern CPlayer		*oPlayers[32];
 
@@ -135,6 +142,8 @@ extern gpc_polygon	oPolyLevel;
 
 //extern TextureIDs_t	oTextureIDs;
 extern CParticle	oParticleEngine;
+
+extern CTimedEventScheduler	*pTimedEventScheduler;
 
 //extern GLUquadricObj	*oQuadricObj;
 

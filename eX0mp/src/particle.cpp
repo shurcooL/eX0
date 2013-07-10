@@ -296,14 +296,14 @@ void CParticle::Tick()
 		// is it an in-use particle?
 		if (oParticles[iLoop1].iWhatType)
 		{
-			oParticles[iLoop1].fTicks += fTimePassed;
-			oParticles[iLoop1].fLife -= fTimePassed;
+			oParticles[iLoop1].fTicks += dTimePassed;
+			oParticles[iLoop1].fLife -= dTimePassed;
 
 			// Kill the particle if it's supposed to die by hitting something
 			// and its life wasn't over at the time of impact
 			if ( (oParticles[iLoop1].fTicks / PARTICLE_TICK_TIME) >= oParticles[iLoop1].fDieAt
 				&& (oParticles[iLoop1].fLife > 0 ||													// Either still alive now
-					oParticles[iLoop1].fDieAt < (1 + oParticles[iLoop1].fLife / fTimePassed)) )		// Hit something before life ended
+					oParticles[iLoop1].fDieAt < (1 + oParticles[iLoop1].fLife / dTimePassed)) )		// Hit something before life ended
 			{
 				// give damage to whoever
 				if (oParticles[iLoop1].iWillHit != -1)
@@ -334,7 +334,7 @@ void CParticle::Tick()
 						oVector.x = oPlayers[iLoop2]->GetIntX();
 						oVector.y = oPlayers[iLoop2]->GetIntY();
 
-						oVector -= oParticles[iLoop1].oPosition + (1 + oParticles[iLoop1].fLife / fTimePassed) * oParticles[iLoop1].oVelocity;
+						oVector -= oParticles[iLoop1].oPosition + (1 + oParticles[iLoop1].fLife / dTimePassed) * oParticles[iLoop1].oVelocity;
 
 						float fDistance = oVector.Length();
 

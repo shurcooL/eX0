@@ -6,10 +6,10 @@ public:
 
 	SOCKET GetSocket();
 	struct sockaddr_in & GetAddress();
-	void SetAddress(struct sockaddr_in & oUdpAddress);
+	void SetAddress(struct sockaddr_in &oUdpAddress);
 
 	char * GetSignature(void);
-	void SetSignature(char cSignature[4]);
+	void SetSignature(char cSignature[SIGNATURE_SIZE]);
 
 	JoinStatus GetJoinStatus(void);
 	void SetJoinStatus(JoinStatus nJoinStatus);
@@ -19,12 +19,17 @@ public:
 
 	CPlayer * GetPlayer(void);
 
-	u_char cLastMovementSequenceNumber;
+	u_char		cLastCommandSequenceNumber;
+	u_char		cCurrentUpdateSequenceNumber;
+	u_int		nUpdateEventId;
+	u_char		cCommandRate;
+	u_char		cUpdateRate;
+	bool		bNoCommandsReceived;
 
 private:
 	SOCKET		m_nTcpSocket;
 	struct sockaddr_in	m_oUdpAddress;
-	char		m_cSignature[4];
+	char		m_cSignature[SIGNATURE_SIZE];
 	JoinStatus	m_nJoinStatus;
 
 	int			m_nPlayerID;
@@ -34,9 +39,9 @@ private:
 CClient * ClientGetFromSocket(SOCKET nSocket);
 
 // Returns a client from their address
-CClient * ClientGetFromAddress(struct sockaddr_in & oAddress);
+CClient * ClientGetFromAddress(struct sockaddr_in &oAddress);
 
-CClient * ClientGetFromSignature(char cSignature[4]);
+CClient * ClientGetFromSignature(char cSignature[SIGNATURE_SIZE]);
 
 // Returns a player from their socket number
 //CPlayer * ClientGetPlayerFromSocket(SOCKET nSocket);

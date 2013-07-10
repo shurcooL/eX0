@@ -7,18 +7,24 @@ CClient::CClient(SOCKET nTcpSocket)
 	// Network related
 	m_nTcpSocket = nTcpSocket;
 	m_nJoinStatus = TCP_CONNECTED;
-	cLastMovementSequenceNumber = 0;
+	cLastCommandSequenceNumber = 0;
+	cCurrentUpdateSequenceNumber = 0;
+	nUpdateEventId = 0;
+	bNoCommandsReceived = true;
 
 	m_nPlayerID = -1;
 
 	// Client list management
 	oClients.push_back(this);
 
-	printf("Created a client #%d (socket %d).\n", oClients.size(), GetSocket());
+	printf("Created a client #%d (socket %d opened).\n", oClients.size(), GetSocket());
 }
 
 CClient::~CClient()
 {
+	if (nUpdateEventId != 0 && pTimedEventScheduler != NULL)
+		pTimedEventScheduler->RemoveEventById(nUpdateEventId);
+
 	if (GetPlayerID() != -1)
 		PlayerGet(GetPlayerID())->pClient = NULL;
 
@@ -34,11 +40,11 @@ CClient::~CClient()
 
 SOCKET CClient::GetSocket() { return m_nTcpSocket; }
 struct sockaddr_in & CClient::GetAddress() { return m_oUdpAddress; }
-void CClient::SetAddress(struct sockaddr_in & oUdpAddress) { m_oUdpAddress = oUdpAddress; }
+void CClient::SetAddress(struct sockaddr_in &oUdpAddress) { m_oUdpAddress = oUdpAddress; }
 
 char * CClient::GetSignature(void) { return m_cSignature; }
-void CClient::SetSignature(char cSignature[4]) {
-	memcpy(m_cSignature, cSignature, 4);
+void CClient::SetSignature(char cSignature[SIGNATURE_SIZE]) {
+	memcpy(m_cSignature, cSignature, SIGNATURE_SIZE);
 }
 
 JoinStatus CClient::GetJoinStatus(void) { return m_nJoinStatus; }
@@ -49,7 +55,7 @@ void CClient::SetPlayerID(int nPlayerID)
 {
 	if (GetPlayerID() != -1) {
 		//PlayerGet(GetPlayerID())->pClient = NULL;
-		assert(false); // should only be called once per client
+		eX0_assert(false); // should only be called once per client
 	}
 	m_nPlayerID = nPlayerID;
 	if (GetPlayerID() != -1)
@@ -75,7 +81,7 @@ CClient * ClientGetFromSocket(SOCKET nSocket)
 }
 
 // Returns a client from their address
-CClient * ClientGetFromAddress(struct sockaddr_in & oAddress)
+CClient * ClientGetFromAddress(struct sockaddr_in &oAddress)
 {
 	for (list<CClient *>::iterator it1 = oClients.begin(); it1 != oClients.end(); ++it1) {
 		if ((*it1)->GetJoinStatus() >= UDP_CONNECTED
@@ -87,11 +93,11 @@ CClient * ClientGetFromAddress(struct sockaddr_in & oAddress)
 	return NULL;
 }
 
-CClient * ClientGetFromSignature(char cSignature[4])
+CClient * ClientGetFromSignature(char cSignature[SIGNATURE_SIZE])
 {
 	for (list<CClient *>::iterator it1 = oClients.begin(); it1 != oClients.end(); ++it1) {
 		if ((*it1)->GetJoinStatus() == ACCEPTED
-		  && memcmp((*it1)->GetSignature(), cSignature, 4) == 0)
+		  && memcmp((*it1)->GetSignature(), cSignature, SIGNATURE_SIZE) == 0)
 			return *it1;
 	}
 
@@ -110,14 +116,14 @@ CClient * ClientGetFromSignature(char cSignature[4])
 }
 
 // Returns a player from their address
-CPlayer * ClientGetPlayerFromAddress(struct sockaddr_in & oAddress)
+CPlayer * ClientGetPlayerFromAddress(struct sockaddr_in &oAddress)
 {
 	// TODO
 
 	return NULL;
 }*/
 
-void ClientDeinit(void)
+void ClientDeinit()
 {
 	while (!oClients.empty()) {
 		delete *(oClients.begin());

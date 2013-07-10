@@ -8,6 +8,8 @@ bool ServerCreateThread(void);
 
 void GLFWCALL ServerThread(void *pArg);
 
+void ServerShutdownThread(void);
+
 void ServerDestroyThread(void);
 
 // Shutdown the server
