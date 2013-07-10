@@ -265,11 +265,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\shared\LocalAuthPlayer.cpp"
+				RelativePath="..\shared\LocalStateAuther.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\shared\LocalAuthPlayer.h"
+				RelativePath="..\shared\LocalStateAuther.h"
 				>
 			</File>
 			<File
@@ -338,6 +338,14 @@
 			</File>
 			<File
 				RelativePath="..\shared\PlayerController.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\PlayerStateAuther.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\PlayerStateAuther.h"
 				>
 			</File>
 			<File

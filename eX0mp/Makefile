@@ -21,7 +21,8 @@ $(SRC_PATH)PolyBoolean/pbpolys.cpp $(SRC_PATH)PolyBoolean/triamono.cpp \
 $(SRC_PATH)PolyBoolean/pbsweep.cpp $(SRC_PATH)Network.cpp $(SHARED_PATH)CPacket.cpp \
 $(SHARED_PATH)CTimedEvent.cpp $(SHARED_PATH)CTimedEventScheduler.cpp $(SRC_PATH)CHudMessageQueue.cpp \
 $(SHARED_PATH)MovingAverage.cpp \
-$(SRC_PATH)LCtrlRAuthPlayer.cpp $(SRC_PATH)RCtrlRAuthPlayer.cpp
+$(SHARED_PATH)GameLogicThread.cpp $(SHARED_PATH)PlayerStateAuther.cpp $(SHARED_PATH)NetworkStateAuther.cpp \
+$(SHARED_PATH)PlayerController.cpp $(SHARED_PATH)LocalController.cpp
 	$(CC) $(CFLAGS) $(SHARED_PATH)col_hand.cpp $(SRC_PATH)game_data.cpp \
 $(SRC_PATH)input.cpp $(SRC_PATH)main.cpp \
 $(SHARED_PATH)math.cpp $(SRC_PATH)ogl_utils.cpp $(SHARED_PATH)particle.cpp $(SHARED_PATH)player.cpp $(SRC_PATH)render.cpp $(SHARED_PATH)weapon.cpp \
@@ -34,7 +35,8 @@ $(SRC_PATH)PolyBoolean/pbpolys.cpp $(SRC_PATH)PolyBoolean/triamono.cpp \
 $(SRC_PATH)PolyBoolean/pbsweep.cpp $(SRC_PATH)Network.cpp $(SHARED_PATH)CPacket.cpp \
 $(SHARED_PATH)CTimedEvent.cpp $(SHARED_PATH)CTimedEventScheduler.cpp $(SRC_PATH)CHudMessageQueue.cpp \
 $(SHARED_PATH)MovingAverage.cpp \
-$(SRC_PATH)LCtrlRAuthPlayer.cpp $(SRC_PATH)RCtrlRAuthPlayer.cpp \
+$(SHARED_PATH)GameLogicThread.cpp $(SHARED_PATH)PlayerStateAuther.cpp $(SHARED_PATH)NetworkStateAuther.cpp \
+$(SHARED_PATH)PlayerController.cpp $(SHARED_PATH)LocalController.cpp \
 $(LFLAGS) -o $@
 
 $(SRC_PATH)gpc/gpc.o: $(SRC_PATH)gpc/gpc.c

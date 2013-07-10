@@ -82,10 +82,13 @@ using namespace Mgc;
 #include "../../shared/particle.h"
 #include "../../shared/weapon.h"
 #include "../../shared/PlayerController.h"
-#include "../../shared/HumanController.h"
+#include "../../shared/LocalController.h"
 #include "../../shared/NetworkController.h"
+#include "../../shared/PlayerStateAuther.h"
+#include "../../shared/LocalStateAuther.h"
+#include "../../shared/NetworkStateAuther.h"
 #include "../../shared/player.h"
-#include "RemoteAuthPlayer.h"
+//#include "RemoteAuthPlayer.h"
 #include "../../shared/Network.h"
 #include "../../shared/HashMatcher.h"
 #include "../../shared/NetworkConnection.h"
@@ -164,14 +167,13 @@ extern ServerConnection *	pServer;
 extern GLFWthread		oNetworkThread;
 extern volatile bool	bNetworkThreadRun;
 
-extern u_char			cCurrentCommandSequenceNumber;
-//extern u_char			cLastAckedCommandSequenceNumber;
-extern u_char			cLastUpdateSequenceNumber;
+extern u_char			g_cCurrentCommandSequenceNumber;
+extern double			g_dNextTickTime;
 extern IndexedCircularBuffer<Move_t, u_char>	oUnconfirmedMoves;
 extern GLFWmutex		oPlayerTick;
 
-extern u_char			cCommandRate;
-extern u_char			cUpdateRate;
+extern u_char			g_cCommandRate;
+extern u_char			g_cUpdateRate;
 
 extern bool				bSelectTeamDisplay;
 extern bool				bSelectTeamReady;

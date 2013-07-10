@@ -265,14 +265,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\shared\HumanController.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\shared\HumanController.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\IndexedCircularBuffer.cpp"
 				>
 				<FileConfiguration
@@ -302,6 +294,14 @@
 			</File>
 			<File
 				RelativePath=".\src\input.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\LocalController.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\LocalController.h"
 				>
 			</File>
 			<File
@@ -349,6 +349,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\NetworkStateAuther.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\NetworkStateAuther.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\ogl_utils.cpp"
 				>
 			</File>
@@ -381,11 +389,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\RemoteAuthPlayer.cpp"
+				RelativePath="..\shared\PlayerStateAuther.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\RemoteAuthPlayer.h"
+				RelativePath="..\shared\PlayerStateAuther.h"
 				>
 			</File>
 			<File

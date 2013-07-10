@@ -15,9 +15,8 @@ volatile bool	bNetworkThreadRun;
 GLFWmutex		oTcpSendMutex;
 GLFWmutex		oUdpSendMutex;
 
-u_char			cCurrentCommandSequenceNumber = 0;
-//u_char			cLastAckedCommandSequenceNumber = 0;
-u_char			cLastUpdateSequenceNumber = 0;
+u_char			g_cCurrentCommandSequenceNumber = 0;
+double			g_dNextTickTime = GLFW_INFINITY;
 GLFWmutex		oPlayerTick;
 
 IndexedCircularBuffer<Move_t, u_char>	oUnconfirmedMoves;
@@ -33,8 +32,8 @@ double			dShortestLatencyRemoteTime;
 u_int			nTrpReceived = 0;
 u_int			nSendTimeRequestPacketEventId = 0;
 
-u_char			cCommandRate = 20;
-u_char			cUpdateRate = 20;
+u_char			g_cCommandRate = 20;
+u_char			g_cUpdateRate = 20;
 
 const float		kfInterpolate = 0.1f;
 const float		kfMaxExtrapolate = 0.5f;
@@ -312,8 +311,9 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			nPlayerCount = (int)cPlayerCount;
 
 			//PlayerInit();
-			pLocalPlayer = new RemoteAuthPlayer(static_cast<u_int>(cLocalPlayerId));
-			pLocalPlayer->m_pPlayerController = new HumanController(*pLocalPlayer);
+			pLocalPlayer = new CPlayer(static_cast<u_int>(cLocalPlayerId));
+			pLocalPlayer->m_pController = new LocalController(*pLocalPlayer);
+			pLocalPlayer->m_pStateAuther = new NetworkStateAuther(*pLocalPlayer);
 
 			// TODO: Player name (and other local settings?) needs to be assigned, validated (and corrected if needed) in a better way
 			pLocalPlayer->SetName(sLocalPlayerName);
@@ -388,7 +388,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			oLocalPlayerInfoPacket.pack("hc", 0, (u_char)30);
 			oLocalPlayerInfoPacket.pack("c", (u_char)pLocalPlayer->GetName().length());
 			oLocalPlayerInfoPacket.pack("t", &pLocalPlayer->GetName());
-			oLocalPlayerInfoPacket.pack("cc", cCommandRate, cUpdateRate);
+			oLocalPlayerInfoPacket.pack("cc", g_cCommandRate, g_cUpdateRate);
 			oLocalPlayerInfoPacket.CompleteTpcPacketSize();
 			pServer->SendTcp(oLocalPlayerInfoPacket, UDP_CONNECTED);
 
@@ -483,7 +483,9 @@ fTempFloat = static_cast<float>(glfwGetTime());
 					oPacket.unpack("etc", (int)cNameLength, &sName, &cTeam);
 
 					if (nPlayer != iLocalPlayerID) {
-						new RemoteAuthPlayer(nPlayer);
+						new CPlayer(nPlayer);
+						PlayerGet(nPlayer)->m_pController = NULL;		// No player controller
+						PlayerGet(nPlayer)->m_pStateAuther = new NetworkStateAuther(*PlayerGet(nPlayer));
 					}
 
 					PlayerGet(nPlayer)->SetName(sName);
@@ -492,22 +494,19 @@ fTempFloat = static_cast<float>(glfwGetTime());
 					{
 						oPacket.unpack("cfff", &cLastCommandSequenceNumber, &fX, &fY, &fZ);
 						//cCurrentCommandSequenceNumber = cLastCommandSequenceNumber;
-						PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
+						PlayerGet(nPlayer)->cLatestAuthStateSequenceNumber = cLastCommandSequenceNumber;
+						static_cast<NetworkStateAuther *>(PlayerGet(nPlayer)->m_pStateAuther)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
 						if (nPlayer == iLocalPlayerID) {
 							eX0_assert(false, "local player can't be on a non-spectator team already!");
 						} else {
-							PlayerGet(nPlayer)->Position(fX, fY, fZ, cLastCommandSequenceNumber);
+							PlayerGet(nPlayer)->Position(fX, fY, fZ, PlayerGet(nPlayer)->cLatestAuthStateSequenceNumber);
 						}
 					}
 					// Set the player tick time
-					PlayerGet(nPlayer)->fTickTime = 1.0f / cCommandRate;
+					PlayerGet(nPlayer)->fTickTime = 1.0f / g_cCommandRate;
 					if (nPlayer == iLocalPlayerID)
 					{
 						// Reset the sequence numbers for the local player
-						// TODO: cCurrentCommandSequenceNumber will no longer start off at 0, so find a way to set it to the correct value
-						cCurrentCommandSequenceNumber = 0;
-						//cLastAckedCommandSequenceNumber = 0;
-						cLastUpdateSequenceNumber = 0;
 						oUnconfirmedMoves.clear();
 					} else {
 						PlayerGet(nPlayer)->fTicks = 0.0f;
@@ -545,13 +544,15 @@ glfwLockMutex(oPlayerTick);
 				return false;
 			}
 
-			new RemoteAuthPlayer(cPlayerId);
+			new CPlayer(static_cast<u_int>(cPlayerId));
+			PlayerGet(cPlayerId)->m_pController = NULL;		// No player controller
+			PlayerGet(cPlayerId)->m_pStateAuther = new NetworkStateAuther(*PlayerGet(cPlayerId));
 
 			PlayerGet(cPlayerId)->SetName(sName);
 			PlayerGet(cPlayerId)->SetTeam(2);
 
 			// Set the other player tick time
-			PlayerGet(cPlayerId)->fTickTime = 1.0f / cCommandRate;
+			PlayerGet(cPlayerId)->fTickTime = 1.0f / g_cCommandRate;
 
 			printf("Player #%d (name '%s') is connecting (in Info Exchange)...\n", cPlayerId, sName.c_str());
 			// This is a kinda a lie, he's still connecting, in Info Exchange part; should display this when server gets Entered Game Notification (7) packet
@@ -622,9 +623,12 @@ glfwLockMutex(oPlayerTick);
 				PlayerGet(cPlayerID)->RespawnReset();
 
 				oPacket.unpack("cfff", &cLastCommandSequenceNumber, &fX, &fY, &fZ);
-				PlayerGet(cPlayerID)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
+				PlayerGet(cPlayerID)->cLatestAuthStateSequenceNumber = cLastCommandSequenceNumber;
+				static_cast<NetworkStateAuther *>(PlayerGet(cPlayerID)->m_pStateAuther)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
+				PlayerGet(cPlayerID)->m_oInputCmdsTEST.clear();			// DEBUG: Can't do this from this thread really
+				PlayerGet(cPlayerID)->m_oAuthUpdatesTEST.clear();		// DEBUG: Can't do this from this thread really
 //printf("cLastAckedCommandSequenceNumber (in packet 28) = %d, while cCurrentCommandSequenceNumber = %d\n", cLastCommandSequenceNumber, cCurrentCommandSequenceNumber);
-				PlayerGet(cPlayerID)->Position(fX, fY, fZ, PlayerGet(cPlayerID)->cLastAckedCommandSequenceNumber);
+				PlayerGet(cPlayerID)->Position(fX, fY, fZ, PlayerGet(cPlayerID)->cLatestAuthStateSequenceNumber);
 			}
 
 			printf("Player #%d (name '%s') joined team %d.\n", cPlayerID, PlayerGet(cPlayerID)->GetName().c_str(), cTeam);
@@ -655,15 +659,15 @@ fTempFloat = static_cast<float>(glfwGetTime()) - fTempFloat;
 void NetworkJoinGame()
 {
 	// DEBUG: Perform the cCurrentCommandSequenceNumber synchronization
-	double d = glfwGetTime() / (256.0 / cCommandRate);
+	double d = glfwGetTime() / (256.0 / g_cCommandRate);
 	d -= floor(d);
 	d *= 256.0;
-	cCurrentCommandSequenceNumber = (u_char)d;
-	pLocalPlayer->dNextTickTime = ceil(glfwGetTime() / (1.0 / cCommandRate)) * (1.0 / cCommandRate);
-	printf("abc: %f, %d\n", d, cCurrentCommandSequenceNumber);
+	g_cCurrentCommandSequenceNumber = (u_char)d;
+	g_dNextTickTime = ceil(glfwGetTime() / (1.0 / g_cCommandRate)) * (1.0 / g_cCommandRate);
+	printf("abc: %f, %d\n", d, g_cCurrentCommandSequenceNumber);
 	d -= floor(d);
-	printf("tick %% = %f, nextTickAt = %.10lf\n", d*100, pLocalPlayer->dNextTickTime);
-	printf("%.8lf sec: NxtTk=%.15lf, NxtTk/12.8=%.15lf\n", glfwGetTime(), pLocalPlayer->dNextTickTime, pLocalPlayer->dNextTickTime / (256.0 / cCommandRate));
+	printf("tick %% = %f, nextTickAt = %.10lf\n", d*100, g_dNextTickTime);
+	printf("%.8lf sec: NxtTk=%.15lf, NxtTk/12.8=%.15lf\n", glfwGetTime(), g_dNextTickTime, g_dNextTickTime / (256.0 / g_cCommandRate));
 	pLocalPlayer->fTicks = (float)(d * pLocalPlayer->fTickTime);
 
 	pServer->SetJoinStatus(IN_GAME);
@@ -762,46 +766,7 @@ bool NetworkProcessUdpPacket(CPacket & oPacket)
 		else {
 glfwLockMutex(oPlayerTick);
 
-			u_char cUpdateSequenceNumber;
-			u_char cLastCommandSequenceNumber;
-			u_char cPlayerInfo;
-			float fX, fY, fZ;
-			oPacket.unpack("c", &cUpdateSequenceNumber);
-
-			if (cUpdateSequenceNumber == cLastUpdateSequenceNumber) {
-				printf("Got a duplicate UDP update packet from the server, discarding.\n");
-			} else if ((char)(cUpdateSequenceNumber - cLastUpdateSequenceNumber) < 0) {
-				printf("Got an out of order UDP update packet from the server, discarding.\n");
-			} else
-			{
-				++cLastUpdateSequenceNumber;
-				if (cUpdateSequenceNumber != cLastUpdateSequenceNumber) {
-					printf("Lost %d UDP update packet(s) from the server!\n", (char)(cUpdateSequenceNumber - cLastUpdateSequenceNumber));
-				}
-				cLastUpdateSequenceNumber = cUpdateSequenceNumber;
-
-				for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
-				{
-					oPacket.unpack("c", &cPlayerInfo);
-					if (cPlayerInfo == 1 && PlayerGet(nPlayer)->GetTeam() != 2) {
-						// Active player
-						oPacket.unpack("c", &cLastCommandSequenceNumber);
-						oPacket.unpack("fff", &fX, &fY, &fZ);
-
-						bool bNewerCommand = (cLastCommandSequenceNumber != PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber);
-						if (bNewerCommand) {
-							SequencedState_t oSequencedState;
-							oSequencedState.cSequenceNumber = cLastCommandSequenceNumber;
-							oSequencedState.oState.fX = fX;
-							oSequencedState.oState.fY = fY;
-							oSequencedState.oState.fZ = fZ;
-
-							eX0_assert(PlayerGet(nPlayer)->m_oAuthUpdatesTEST.push(oSequencedState), "m_oAuthUpdatesTEST.push(oSequencedState) failed, missed latest update!\n");
-							//printf("pushed %d\n", cLastCommandSequenceNumber);
-						}
-					}
-				}
-			}
+			NetworkStateAuther::ProcessUpdate(oPacket);
 
 glfwUnlockMutex(oPlayerTick);
 		}

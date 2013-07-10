@@ -190,8 +190,7 @@ void RenderHUD(void)
 				sTempString = (string)"pl#" + itos(iLoop1) + " name: '" + PlayerGet(iLoop1)->GetName()
 					+ "' hp: " + itos((int)PlayerGet(iLoop1)->GetHealth())
 					+ " lat: " + ftos(PlayerGet(iLoop1)->GetLastLatency() * 0.1f)
-					//+ " ccsn: " + itos(PlayerGet(iLoop1)->cCurrentCommandSequenceNumber)
-					+ " lacsn: " + itos(PlayerGet(iLoop1)->cLastAckedCommandSequenceNumber);
+					+ " lacsn: " + itos(PlayerGet(iLoop1)->cLatestAuthStateSequenceNumber);
 				OglUtilsPrint(0, 70 + iLoop1 * 10, 0, false, (char *)sTempString.c_str());
 			}
 		}
@@ -204,18 +203,15 @@ void RenderHUD(void)
 		OglUtilsPrint(0, 80 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());*/
 
 		// Networking info
-		sTempString = "cCurrentCommandSequenceNumber = " + itos(cCurrentCommandSequenceNumber);
+		sTempString = "g_cCurrentCommandSequenceNumber = " + itos(g_cCurrentCommandSequenceNumber);
 		glLoadIdentity();
 		OglUtilsPrint(0, 90 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
-		//sTempString = "cLastAckedCommandSequenceNumber = " + itos(cLastAckedCommandSequenceNumber);
-		//glLoadIdentity();
-		//OglUtilsPrint(0, 105 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
-		sTempString = "cLastUpdateSequenceNumber = " + itos(cLastUpdateSequenceNumber);
+		sTempString = "cLastUpdateSequenceNumber = " + itos(pServer->cLastUpdateSequenceNumber);
 		glLoadIdentity();
-		OglUtilsPrint(0, 120 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
+		OglUtilsPrint(0, 105 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
 		sTempString = "oUnconfirmedMoves.size() = " + itos(oUnconfirmedMoves.size());
 		glLoadIdentity();
-		OglUtilsPrint(0, 135 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
+		OglUtilsPrint(0, 120 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
 
 		//OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
 		//RenderOffsetCamera(false);
@@ -235,8 +231,14 @@ void RenderPlayers()
 			PlayerGet(iLoop1)->RenderInPast(0);
 		}
 	}*/
+	pLocalPlayer->fTicks = (float)(glfwGetTime() - (g_dNextTickTime - 1.0 / g_cCommandRate));
+	if (!pLocalPlayer->IsDead()) {
+		pLocalPlayer->UpdateInterpolatedPos();
+	}
+
 	for (vector<CPlayer *>::iterator it1 = CPlayer::m_oPlayers.begin(); it1 < CPlayer::m_oPlayers.end(); ++it1) {
 		if (*it1 != NULL && *it1 != pLocalPlayer && (*it1)->GetTeam() != 2) {
+			//(*it1)->UpdateInterpolatedPos();
 			(*it1)->RenderInPast(kfInterpolate);
 			(*it1)->RenderInPast(0);
 		}
@@ -244,6 +246,7 @@ void RenderPlayers()
 
 	// Render the local player
 	if (pLocalPlayer->GetTeam() != 2) {
+		//pLocalPlayer->UpdateInterpolatedPos();
 		pLocalPlayer->RenderInPast(kfInterpolate);
 		pLocalPlayer->Render();
 	}

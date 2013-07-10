@@ -15,6 +15,7 @@ public:
 	bool full() const;
 	u_int size() const;
 	u_int capacity() const;
+	void clear();
 
 private:
 	ThreadSafeQueue(const ThreadSafeQueue &);

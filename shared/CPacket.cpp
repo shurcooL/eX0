@@ -150,6 +150,8 @@ u_int CPacket::pack(char *format, ...)
 
 	va_end(ap);
 
+	eX0_assert(CPacket::size() <= MAX_PACKET_SIZE, "Tried to pack more data than can fit into a packet");
+
 	return size;
 }
 

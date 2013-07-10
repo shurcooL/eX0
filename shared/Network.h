@@ -12,7 +12,7 @@ class CPacket;
 // Packets
 #define MAX_TCP_PACKET_SIZE		1448
 #define MAX_UDP_PACKET_SIZE		1448
-#define MAX_PACKET_SIZE			(std::max<int>(MAX_TCP_PACKET_SIZE, MAX_UDP_PACKET_SIZE))
+#define MAX_PACKET_SIZE			(std::max<u_int>(MAX_TCP_PACKET_SIZE, MAX_UDP_PACKET_SIZE))
 
 typedef struct PingData_st {
 	u_char	cPingData[4];

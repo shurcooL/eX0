@@ -8,11 +8,7 @@ ClientConnection::ClientConnection(SOCKET nTcpSocket)
 {
 	printf("ClientConnection(%d) Ctor.\n", GetTcpSocket());
 
-	cLastCommandSequenceNumber = 0;
-	cCurrentCommandSeriesNumber = 0;
 	cCurrentUpdateSequenceNumber = 0;
-	//nUpdateEventId = 0;
-	bFirstCommand = true;
 	m_nLastLatency = 0;
 
 	m_pPlayer = NULL;

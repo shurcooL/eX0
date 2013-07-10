@@ -34,10 +34,14 @@ void eX0_assert(bool expression, string message)
 	}
 }
 
-bool CloseBadWindow()
+bool CheckWindow()
 {
-	if (glfwGetWindowParam(GLFW_OPENED)) glfwCloseWindow();
-	return false;
+	if (glfwGetWindowParam(GLFW_ACCELERATED) && glfwGetWindowParam(GLFW_STENCIL_BITS))
+		return true;
+	else {
+		if (glfwGetWindowParam(GLFW_OPENED)) glfwCloseWindow();
+		return false;
+	}
 }
 
 // initialization
@@ -61,41 +65,36 @@ bool Init(int, char *[])
 	glfwGetDesktopMode(&oDesktopMode);
 	glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 0);
 	glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
-	if (glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW)
-			&& glfwGetWindowParam(GLFW_ACCELERATED) && glfwGetWindowParam(GLFW_STENCIL_BITS) || CloseBadWindow())
+	if (glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
 	{
 		printf("Opened a window (try 1)...\n");
 	}
-	else if (glfwOpenWindow(640, 480, 8, 8, 8, 8, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW)
-			&& glfwGetWindowParam(GLFW_ACCELERATED) && glfwGetWindowParam(GLFW_STENCIL_BITS) || CloseBadWindow())
+	else if (glfwOpenWindow(640, 480, 8, 8, 8, 8, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
 	{
 		printf("Opened a window (try 2)...\n");
 	}
-	else if (glfwOpenWindow(640, 480, 5, 6, 5, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW)
-			&& glfwGetWindowParam(GLFW_ACCELERATED) && glfwGetWindowParam(GLFW_STENCIL_BITS) || CloseBadWindow())
+	else if (glfwOpenWindow(640, 480, 5, 6, 5, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
 	{
 		printf("Opened a window (try 3)...\n");
 	}
-	else if (glfwOpenWindow(640, 480, 5, 6, 5, 0, 8, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW)
-			&& glfwGetWindowParam(GLFW_ACCELERATED) && glfwGetWindowParam(GLFW_STENCIL_BITS) || CloseBadWindow())
+	else if (glfwOpenWindow(640, 480, 5, 6, 5, 0, 8, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
 	{
 		printf("Opened a window (try 4)...\n");
 	}
-	else if (glfwOpenWindow(640, 480, 5, 6, 5, 0, 16, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW)
-			&& glfwGetWindowParam(GLFW_ACCELERATED) && glfwGetWindowParam(GLFW_STENCIL_BITS) || CloseBadWindow())
+	else if (glfwOpenWindow(640, 480, 5, 6, 5, 0, 16, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
 	{
 		printf("Opened a window (try 5)...\n");
 	}
 	else {
-		printf("Couldn't open an accelerated window...\n");
+		printf("ERROR: Couldn't open an accelerated window...\n");
 		/*if (glfwGetWindowParam(GLFW_OPENED)) glfwCloseWindow();
 		return false;*/
 		if (!glfwGetWindowParam(GLFW_OPENED)) return false;
 	}
+	glfwSwapInterval(1);		// Turn V-Sync on
 	//glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
 	glfwSetWindowPos(oDesktopMode.Width - 650, oDesktopMode.Height / 2 - 240);
 	glfwSetWindowTitle(EX0_BUILD_STRING);	// set the window title
-	glfwSwapInterval(1);		// Turn V-Sync on
 
 	// init OpenGL
 	if (!OglUtilsInitGL()) {

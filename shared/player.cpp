@@ -22,7 +22,8 @@ vector<CPlayer *> CPlayer::m_oPlayers;
 
 // implementation of the player class
 CPlayer::CPlayer()
-	: m_pPlayerController(NULL),
+	: m_pController(NULL),
+	  m_pStateAuther(NULL),
 	  m_dNextUpdateTime(GLFW_INFINITY)
 {
 	printf("CPlayer(%p) Ctor.\n", this);
@@ -52,7 +53,6 @@ CPlayer::CPlayer()
 	// Network related
 #ifdef EX0_CLIENT
 	m_nLastLatency = 0;
-	cCurrentCommandSeriesNumber = 0;
 #else
 	pConnection = NULL;
 #endif
@@ -63,7 +63,8 @@ CPlayer::CPlayer()
 }
 
 CPlayer::CPlayer(u_int nPlayerId)
-	: m_pPlayerController(NULL),
+	: m_pController(NULL),
+	  m_pStateAuther(NULL),
 	  m_dNextUpdateTime(GLFW_INFINITY)
 {
 	printf("CPlayer(%p) Ctor.\n", this);
@@ -93,7 +94,6 @@ CPlayer::CPlayer(u_int nPlayerId)
 	// Network related
 #ifdef EX0_CLIENT
 	m_nLastLatency = 0;
-	cCurrentCommandSeriesNumber = 0;
 #else
 	pConnection = NULL;
 #endif
@@ -107,13 +107,13 @@ CPlayer::~CPlayer()
 {
 	Remove(this);
 
-	delete m_pPlayerController;
+	delete m_pController;
+	delete m_pStateAuther;
 
 	printf("CPlayer(%p) ~Dtor.\n", this);
 }
 
-#ifdef EX0_CLIENT
-void CPlayer::FakeTick()
+/*void CPlayer::FakeTick()
 {
 	fTicks = (float)(dCurTime - (dNextTickTime - 1.0 / cCommandRate));
 	while (dCurTime >= dNextTickTime)
@@ -123,12 +123,12 @@ void CPlayer::FakeTick()
 
 		++cCurrentCommandSequenceNumber;
 	}
-}
-#endif
+}*/
 
 void CPlayer::Tick()
 {
-#ifdef EX0_CLIENT
+//#ifdef EX0_CLIENT
+#if 0
 	// is the player dead?
 	if (IsDead()) {
 		return;
@@ -150,7 +150,7 @@ void CPlayer::Tick()
 		fTicks = (float)(dCurTime - (dNextTickTime - 1.0 / cCommandRate));
 
 		// DEBUG: A work in progress
-		m_pPlayerController->RequestInput(0);
+		m_pPlayer->RequestInput(0);
 
 		if (iID == iLocalPlayerID) {
 			if (oUnconfirmedMoves.size() < 100)
@@ -214,158 +214,74 @@ void CPlayer::Tick()
 	}
 
 	UpdateInterpolatedPos();
-#endif
-}
+#endif // 0
 
-void CPlayer::ProcessAuthUpdateTEST()
-{
 #ifdef EX0_CLIENT
-	while (!m_oAuthUpdatesTEST.empty()) {
-		//eX0_assert(m_oAuthUpdatesTEST.size() == 1, "m_oAuthUpdatesTEST.size() is != 1!!!!\n");
+	if (pLocalPlayer->GetTeam() == 2 || pLocalPlayer->IsDead())
+		return;
 
-		SequencedState_t oSequencedState;
-		m_oAuthUpdatesTEST.pop(oSequencedState);
-		//printf("popped %d\n", oSequencedState.cSequenceNumber);
-		u_int nPlayer = this->iID;
-		float fX, fY, fZ;
+	if (iID == iLocalPlayerID) {
+		// DEBUG: A work in progress
+		m_pController->RequestInput(0);
 
-		{//begin section from Network.cpp
-			//PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
-			PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber = oSequencedState.cSequenceNumber;
+		//if (oUnconfirmedMoves.size() < 100)
+		//{
+			// calculate player trajectory
+			CalcTrajs();
 
-			fX = oSequencedState.oState.fX;
-			fY = oSequencedState.oState.fY;
-			fZ = oSequencedState.oState.fZ;
+			// do collision response for player
+			CalcColResp();
 
-			// Add the new state to player's state history
-			/*SequencedState_t oSequencedState;
-			oSequencedState.cSequenceNumber = PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber;
-			oSequencedState.oState.fX = fX;
-			oSequencedState.oState.fY = fY;
-			oSequencedState.oState.fZ = fZ;*/
-			PlayerGet(nPlayer)->PushStateHistory(oSequencedState);
+			Input_t oInput;
+			oInput.cMoveDirection = (char)nMoveDirection;
+			oInput.cStealth = (u_char)iIsStealth;
+			oInput.fZ = GetZ();
+			//if (oUnconfirmedInputs.size() < 101)
+			//oUnconfirmedInputs.push_back(oInput);
+			Move_t oMove;
+			oMove.oInput = oInput;
+			oMove.oState.fX = GetX(); oMove.oState.fY = GetY(); oMove.oState.fZ = GetZ();
+			oUnconfirmedMoves.push(oMove, g_cCurrentCommandSequenceNumber);
+//printf("pushed a move on oUnconfirmedMoves, size() = %d, cur# => %d\n", oUnconfirmedMoves.size(), cCurrentCommandSequenceNumber);
 
-			if (nPlayer == iLocalPlayerID)
+			iTempInt = std::max<int>(iTempInt, (int)oUnconfirmedMoves.size() - 1);
+
+			// Send the Client Command packet
+			CPacket oClientCommandPacket;
+			oClientCommandPacket.pack("cccc", (u_char)1,		// packet type
+											  g_cCurrentCommandSequenceNumber,		// sequence number
+											  static_cast<NetworkStateAuther *>(m_pStateAuther)->cCurrentCommandSeriesNumber,		// series number
+											  (u_char)(oUnconfirmedMoves.size() - 1));
+			for (u_char it1 = oUnconfirmedMoves.begin(); it1 != oUnconfirmedMoves.end(); ++it1)
 			{
-				if (cCurrentCommandSequenceNumber == pLocalPlayer->cLastAckedCommandSequenceNumber)
-				{
-					Vector2 oServerPosition(fX, fY);
-					//Vector2 oClientPrediction(oUnconfirmedMoves.front().oState.fX, oUnconfirmedMoves.front().oState.fY);
-					Vector2 oClientPrediction(pLocalPlayer->GetX(), pLocalPlayer->GetY());
-					// If the client prediction differs from the server's value by more than a treshold amount, snap to server's value
-					if ((oServerPosition - oClientPrediction).SquaredLength() > 0.001f)
-						printf("Snapping-A to server's position (%f difference):\n  server = (%.4f, %.4f), client = (%.4f, %.4f)\n", (oServerPosition - oClientPrediction).Length(),
-							oServerPosition.x, oServerPosition.y, oClientPrediction.x, oClientPrediction.y);
-
-					// DEBUG: Should make sure the player can't see other players
-					// through walls, if he accidentally gets warped through a wall
-					pLocalPlayer->SetX(fX);
-					pLocalPlayer->SetY(fY);
-
-					// All moves have been confirmed now
-					oUnconfirmedMoves.clear();
-				}
-				else if ((char)(cCurrentCommandSequenceNumber - pLocalPlayer->cLastAckedCommandSequenceNumber) > 0)
-				{
-					string str = (string)"inputs empty; " + itos(cCurrentCommandSequenceNumber) + ", " + itos(pLocalPlayer->cLastAckedCommandSequenceNumber);
-					//eX0_assert(!oLocallyPredictedInputs.empty(), str);
-					eX0_assert(!oUnconfirmedMoves.empty(), str);
-
-					// Discard all the locally predicted inputs that got deprecated by this server update
-					// TODO: There's a faster way to get rid of all old useless packets at once
-					while (!oUnconfirmedMoves.empty()) {
-						if ((char)(pLocalPlayer->cLastAckedCommandSequenceNumber - oUnconfirmedMoves.begin()) > 0)
-						{
-							// This is an outdated predicted input, the server's update supercedes it, thus it's dropped
-							oUnconfirmedMoves.pop();
-						} else
-							break;
-					}
-
-					Vector2 oServerPosition(fX, fY);
-					Vector2 oClientPrediction(oUnconfirmedMoves.front().oState.fX, oUnconfirmedMoves.front().oState.fY);
-					// If the client prediction differs from the server's value by more than a treshold amount, snap to server's value
-					if ((oServerPosition - oClientPrediction).SquaredLength() > 0.001f)
-					{
-						printf("Snapping-B to server's position (%f difference).\n", (oServerPosition - oClientPrediction).Length());
-
-						// DEBUG: Figure out why I have this here, I'm not sure if it's correct or its purpose
-						oUnconfirmedMoves.pop();
-
-						// DEBUG: Should make sure the player can't see other players
-						// through walls, if he accidents gets warped through a wall
-						pLocalPlayer->SetX(fX);
-						pLocalPlayer->SetY(fY);
-
-						eX0_assert((char)(oUnconfirmedMoves.begin() - pLocalPlayer->cLastAckedCommandSequenceNumber) > 0, "outdated input being used");
-
-						// Run the simulation for all locally predicted inputs after this server update
-						float fOriginalOldX = pLocalPlayer->GetOldX();
-						float fOriginalOldY = pLocalPlayer->GetOldY();
-						float fOriginalZ = pLocalPlayer->GetZ();
-						Input_t oInput;
-						for (u_char it1 = oUnconfirmedMoves.begin(); it1 != oUnconfirmedMoves.end(); ++it1)
-						{
-							oInput = oUnconfirmedMoves[it1].oInput;
-
-							// Set inputs
-							pLocalPlayer->MoveDirection(oInput.cMoveDirection);
-							pLocalPlayer->SetStealth(oInput.cStealth != 0);
-							pLocalPlayer->SetZ(oInput.fZ);
-
-							// Run a tick
-							pLocalPlayer->CalcTrajs();
-							pLocalPlayer->CalcColResp();
-						}
-						pLocalPlayer->SetOldX(fOriginalOldX);
-						pLocalPlayer->SetOldY(fOriginalOldY);
-						pLocalPlayer->SetZ(fOriginalZ);
-					}
-				} else {
-					printf("WTF - server is ahead of client?? confirmed command %d from the future (now %d) lol\n", pLocalPlayer->cLastAckedCommandSequenceNumber, cCurrentCommandSequenceNumber);
-				}
-
-				// Drop the moves that have been confirmed now
-				// TODO: There's a faster way to get rid of all old useless packets at once
-				while (!oUnconfirmedMoves.empty())
-				{
-					if ((char)(pLocalPlayer->cLastAckedCommandSequenceNumber - oUnconfirmedMoves.begin()) >= 0)
-					{
-						oUnconfirmedMoves.pop();
-					} else
-						break;
-				}
+				oClientCommandPacket.pack("ccf", oUnconfirmedMoves[it1].oInput.cMoveDirection,
+												 oUnconfirmedMoves[it1].oInput.cStealth,
+												 oUnconfirmedMoves[it1].oInput.fZ);
 			}
-			else if (nPlayer != iLocalPlayerID)
-			{
-				/*PlayerGet(nPlayer)->Position(fX, fY);
-				PlayerGet(nPlayer)->SetZ(fZ);*/
+			if ((rand() % 100) >= 0 || iLocalPlayerID != 0) // DEBUG: Simulate packet loss
+				pServer->SendUdp(oClientCommandPacket);
 
-				/*PlayerGet(nPlayer)->SetOldX(PlayerGet(nPlayer)->GetIntX());
-				PlayerGet(nPlayer)->SetOldY(PlayerGet(nPlayer)->GetIntY());
-				PlayerGet(nPlayer)->SetX(fX);
-				PlayerGet(nPlayer)->SetY(fY);
-				PlayerGet(nPlayer)->SetZ(fZ);
-				PlayerGet(nPlayer)->SetVelX(fVelX);
-				PlayerGet(nPlayer)->SetVelY(fVelY);
-				PlayerGet(nPlayer)->fTicks = 0.0f;*/
+			// DEBUG: Keep state history for local player
+			/*if ((rand() % 100) >= 0) {
+				SequencedState_t oSequencedState;
+				oSequencedState.cSequenceNumber = cCurrentCommandSequenceNumber;
+				oSequencedState.oState = oMove.oState;
+				PushStateHistory(oSequencedState);
+			}*/
+		//}
+	} else {
+		// calculate player trajectory
+		//CalcTrajs();
+		/*fOldX = fX;
+		fOldY = fY;
+		fX += fVelX;
+		fY += fVelY;
 
-				/*PlayerGet(nPlayer)->SetOldX(PlayerGet(nPlayer)->GetIntX());
-				PlayerGet(nPlayer)->SetOldY(PlayerGet(nPlayer)->GetIntY());
-				PlayerGet(nPlayer)->SetX(fX + fVelX);
-				PlayerGet(nPlayer)->SetY(fY + fVelY);
-				PlayerGet(nPlayer)->fOldZ = PlayerGet(nPlayer)->GetZ();
-				PlayerGet(nPlayer)->SetZ(fZ);
-				PlayerGet(nPlayer)->SetVelX(fVelX);
-				PlayerGet(nPlayer)->SetVelY(fVelY);
-				PlayerGet(nPlayer)->fTicks = 0.0f;
-				PlayerGet(nPlayer)->fUpdateTicks = 0.0f;
-
-				PlayerGet(nPlayer)->CalcColResp();*/
-			}
-		}//end section from Network.cpp
+		// do collision response for player
+		CalcColResp();*/
+		//++cCurrentCommandSequenceNumber;
 	}
-#endif // EX0_CLIENT
+#endif
 }
 
 // returns number of clips left in the selected weapon
@@ -451,7 +367,7 @@ void CPlayer::RespawnReset()
 	fHealth = 100.0f;
 
 	// Increment the Command packet series
-	cCurrentCommandSeriesNumber += 1;
+	static_cast<NetworkStateAuther *>(m_pStateAuther)->cCurrentCommandSeriesNumber += 1;
 }
 #endif
 
@@ -984,12 +900,12 @@ State_t CPlayer::GetStateInPast(float fTimeAgo)
 		fHistoryY = oStateHistory.front().oState.fY;
 		fHistoryZ = oStateHistory.front().oState.fZ;
 	} else {
-		float	fCurrentTimepoint = (u_char)(cCurrentCommandSequenceNumber - 1) + pLocalPlayer->fTicks / fTickTime;
+		float	fCurrentTimepoint = (u_char)(g_cCurrentCommandSequenceNumber - 1) + pLocalPlayer->fTicks / fTickTime;
 		float	fHistoryPoint = fCurrentTimepoint - fTimeAgo / fTickTime;
 		if (fHistoryPoint < 0) fHistoryPoint += 256;
 		int		nTicksAgo = (int)floorf(fTimeAgo / fTickTime - pLocalPlayer->fTicks / fTickTime) + 1;
 		//int		nTicksAgo = (int)(floorf(fTimeAgo / fTickTime - pLocalPlayer->fTicks / fTickTime) + 0.1) + 1;
-		char	cLastKnownTickAgo = (char)(cCurrentCommandSequenceNumber - oStateHistory.front().cSequenceNumber);
+		char	cLastKnownTickAgo = (char)(g_cCurrentCommandSequenceNumber - oStateHistory.front().cSequenceNumber);
 		list<SequencedState_t>::iterator oHistoryTo = oStateHistory.begin();
 		list<SequencedState_t>::iterator oHistoryFrom = oStateHistory.begin(); ++oHistoryFrom;
 		//if ((char)((u_char)floorf(fHistoryPoint) - oStateHistory.front().cSequenceNumber) >= 5)
@@ -1011,7 +927,7 @@ State_t CPlayer::GetStateInPast(float fTimeAgo)
 				fHistoryTicks = ((u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber) + pLocalPlayer->fTicks + kfMaxExtrapolate) / fTickTime;
 
 				printf("Exceeding max EXTERP time (player %d).\n", iID);
-				printf("cur state = %d; last known state = %d\n", cCurrentCommandSequenceNumber, oStateHistory.front().cSequenceNumber);
+				printf("cur state = %d; last known state = %d\n", g_cCurrentCommandSequenceNumber, oStateHistory.front().cSequenceNumber);
 				printf("cLastKnownTickAgo %d > nTicksAgo %d\n", cLastKnownTickAgo, nTicksAgo);
 			}// else
 			//	printf("Exterping into the future (player %d).\n", iID);
@@ -1242,12 +1158,10 @@ void PlayerTick()
 #ifdef EX0_CLIENT
 	for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
 	{
-		if (PlayerGet(iLoop1) != NULL)
+		if (PlayerGet(iLoop1) != NULL) {
 			//PlayerGet(iLoop1)->Tick();
 			PlayerGet(iLoop1)->ProcessAuthUpdateTEST();
+		}
 	}
-
-	// update local player interpolated pos
-	//pLocalPlayer->UpdateInterpolatedPos();
 #endif // EX0_CLIENT
 }

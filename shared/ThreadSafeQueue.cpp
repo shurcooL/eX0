@@ -48,3 +48,11 @@ template <typename T, u_int Tsize> u_int ThreadSafeQueue<T, Tsize>::capacity() c
 {
 	return Tsize;
 }
+
+template <typename T, u_int Tsize> void ThreadSafeQueue<T, Tsize>::clear()
+{
+	while (!empty()) {
+		delete m_pBuffer[m_nReadHead];
+		m_nReadHead = (m_nReadHead + 1) % m_knBufferSize;
+	}
+}

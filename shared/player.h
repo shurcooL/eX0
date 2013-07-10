@@ -19,29 +19,6 @@ typedef struct {
 typedef struct SequencedState_st {
 	State_t	oState;
 	u_char	cSequenceNumber;
-
-	/*SequencedState_st() {
-		oState.fX = 0;
-		oState.fY = 0;
-		oState.fZ = 0;
-		cSequenceNumber = 0;
-	}
-
-	SequencedState_st(const volatile SequencedState_st & oOther) {
-		oState.fX = oOther.oState.fX;
-		oState.fY = oOther.oState.fY;
-		oState.fZ = oOther.oState.fZ;
-		cSequenceNumber = oOther.cSequenceNumber;
-	}
-
-	volatile SequencedState_st & operator =(const volatile SequencedState_st & oOther) volatile {
-		oState.fX = oOther.oState.fX;
-		oState.fY = oOther.oState.fY;
-		oState.fZ = oOther.oState.fZ;
-		cSequenceNumber = oOther.cSequenceNumber;
-
-		return *this;
-	}*/
 } SequencedState_t;
 
 typedef struct {
@@ -49,6 +26,11 @@ typedef struct {
 	u_char	cStealth;
 	float	fZ;
 } Input_t;
+
+typedef struct {
+	Input_t	oInput;
+	u_char	cSequenceNumber;
+} SequencedInput_t;
 
 typedef struct {
 	Input_t	oInput;
@@ -102,10 +84,7 @@ public:
 	int GetSelClipAmmo();
 	void InitWeapons();
 	void BuyClip();
-	void Tick();
-#ifdef EX0_CLIENT
-	void FakeTick();
-#endif
+	//void FakeTick();
 	bool IsReloading();
 	float GetHealth();
 	void GiveHealth(float fValue);
@@ -117,26 +96,27 @@ public:
 	void SetLastLatency(u_short nLastLatency);
 	u_short GetLastLatency() const;
 #endif
-	void ProcessAuthUpdateTEST();
-	PlayerController * m_pPlayerController;
-	virtual void SendUpdate() = 0;
+	PlayerController * m_pController;
+	PlayerStateAuther * m_pStateAuther;
+	void Tick();
+	void AfterTick() { if (m_pStateAuther) m_pStateAuther->AfterTick(); }
+	void ProcessAuthUpdateTEST() { if (m_pStateAuther) m_pStateAuther->ProcessAuthUpdateTEST(); }
+	void SendUpdate() { if (m_pStateAuther) m_pStateAuther->SendUpdate(); }
 	double		m_dNextUpdateTime;
+
+	u_char		cLatestAuthStateSequenceNumber;
+
+	ThreadSafeQueue<SequencedInput_t, 100>		m_oInputCmdsTEST;
+	ThreadSafeQueue<SequencedState_t, 3>		m_oAuthUpdatesTEST;
 
 	u_int		iID;
 	bool		bEmptyClicked;
 	int			iSelWeapon;
 	float		fAimingDistance;
 	float		fTicks;
-#ifdef EX0_CLIENT
-	double		dNextTickTime;
-	ThreadSafeQueue<SequencedState_t, 3>		m_oAuthUpdatesTEST;
-#endif
 	float		fTickTime;
 	float		fOldZ;
-
-#ifdef EX0_CLIENT
-	u_char		cLastAckedCommandSequenceNumber;
-#else
+#ifndef EX0_CLIENT
 	ClientConnection * pConnection;
 #endif
 
@@ -165,7 +145,6 @@ private:
 	State_t						oOnlyKnownState;
 
 	u_short		m_nLastLatency;
-	u_char		cCurrentCommandSeriesNumber;
 
 	State_t GetStateInPast(float fTimeAgo);
 #endif

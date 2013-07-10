@@ -1,6 +1,6 @@
 struct TextureIDs_t
 {
-	int iFonts[1];
+	int iFonts[2];
 	int	iFloor;
 	int nM4A1MuzzleFlash;
 };

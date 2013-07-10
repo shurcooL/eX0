@@ -80,10 +80,13 @@ using namespace Mgc;
 #include "../../shared/particle.h"
 #include "../../shared/weapon.h"
 #include "../../shared/PlayerController.h"
-#include "../../shared/HumanController.h"
+#include "../../shared/LocalController.h"
 #include "../../shared/NetworkController.h"
+#include "../../shared/PlayerStateAuther.h"
+#include "../../shared/LocalStateAuther.h"
+#include "../../shared/NetworkStateAuther.h"
 #include "../../shared/player.h"
-#include "../../shared/LocalAuthPlayer.h"
+//#include "../../shared/LocalAuthPlayer.h"
 #include "../../shared/Network.h"
 #include "Server.h"
 #include "../../shared/HashMatcher.h"
@@ -162,6 +165,12 @@ extern volatile bool	bServerThreadRun;
 
 extern GLFWmutex		oTcpSendMutex;
 extern GLFWmutex		oUdpSendMutex;
+
+extern u_char			g_cCurrentCommandSequenceNumber;
+extern double			g_dNextTickTime;
 extern GLFWmutex		oPlayerTick;
+
+extern u_char			g_cCommandRate;
+extern u_char			g_cUpdateRate;
 
 #endif // __globals_H__

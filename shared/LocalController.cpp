@@ -5,16 +5,16 @@
 #	include "../eX0ds/src/globals.h"
 #endif // EX0_CLIENT
 
-HumanController::HumanController(CPlayer & oPlayer)
+LocalController::LocalController(CPlayer & oPlayer)
 	: PlayerController(oPlayer)
 {
 }
 
-HumanController::~HumanController()
+LocalController::~LocalController()
 {
 }
 
-bool HumanController::RequestInput(u_char cSequenceNumber)
+bool LocalController::RequestInput(u_char cSequenceNumber)
 {
 	// set stealth
 	if (glfwGetKey(GLFW_KEY_LSHIFT) || glfwGetKey(GLFW_KEY_RSHIFT))

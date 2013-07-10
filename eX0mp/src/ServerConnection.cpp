@@ -1,7 +1,8 @@
 #include "globals.h"
 
 ServerConnection::ServerConnection()
-	: NetworkConnection()
+	: NetworkConnection(),
+	  cLastUpdateSequenceNumber(0)
 {
 	printf("ServerConnection(DISCONNECTED) Ctor.\n");
 }

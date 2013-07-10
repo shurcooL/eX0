@@ -3,7 +3,7 @@
 GLUquadricObj	*oQuadricObj;
 
 // local vars
-GLuint	oFontBase;
+GLuint	oFontBase[2];
 
 // init all gl stuff
 bool OglUtilsInitGL()
@@ -88,9 +88,9 @@ void OglUtilsPrint(int iX, int iY, int iFont, bool bCentered, const char *chText
 	if (!bCentered)
 		glTranslatef((GLfloat)iX, (GLfloat)iY, 0.0f);
 	else
-		glTranslatef((GLfloat)(iX - strlen(chText) * 5), (GLfloat)iY, 0.0f);
+		glTranslatef((GLfloat)(iX - strlen(chText) * (iFont == 0 ? 5 : 3)), (GLfloat)iY, 0.0f);
 
-	glListBase(oFontBase);
+	glListBase(oFontBase[iFont]);
 	//glCallLists(strlen(chAsciiCodes), GL_UNSIGNED_BYTE, chAsciiCodes);
 	glCallLists((GLsizei)strlen(chText), GL_UNSIGNED_BYTE, chText);
 
@@ -107,14 +107,15 @@ void OglUtilsInitFont()
 	float fCharX;
 	float fCharY;
 
-	oFontBase = glGenLists(256);
+	// Font 1
+	oFontBase[0] = glGenLists(256);
 
 	for (int iLoop1 = 0; iLoop1 < 256; iLoop1++)
 	{
 		fCharX = float(iLoop1 % 16) / 16.0f;
 		fCharY = float(iLoop1 / 16) / 16.0f;
 
-		glNewList(oFontBase + iLoop1, GL_COMPILE);
+		glNewList(oFontBase[0] + iLoop1, GL_COMPILE);
 			glBegin(GL_QUADS);
 				glTexCoord2f(fCharX, 1 - fCharY - 0.0625f);
 				glVertex2i(0, 16);
@@ -128,12 +129,36 @@ void OglUtilsInitFont()
 			glTranslatef(10.0, 0.0, 0.0);
 		glEndList();
 	}
+
+	// Font 2
+	oFontBase[1] = glGenLists(256);
+
+	for (int iLoop1 = 0; iLoop1 < 256; iLoop1++)
+	{
+		fCharX = float(iLoop1 % 16) / 16.0f;
+		fCharY = float(iLoop1 / 16) / 16.0f;
+
+		glNewList(oFontBase[1] + iLoop1, GL_COMPILE);
+			glBegin(GL_QUADS);
+				glTexCoord2f(fCharX, 1 - fCharY - 0.0625f);
+				glVertex2i(0, 8);
+				glTexCoord2f(fCharX + 0.0625f, 1 - fCharY - 0.0625f);
+				glVertex2i(8, 8);
+				glTexCoord2f(fCharX + 0.0625f, 1 - fCharY);
+				glVertex2i(8, 0);
+				glTexCoord2f(fCharX, 1 - fCharY);
+				glVertex2i(0, 0);
+			glEnd();
+			glTranslatef(6.0, 0.0, 0.0);
+		glEndList();
+	}
 }
 
 // kill the font
 void OglUtilsKillFont()
 {
-	glDeleteLists(oFontBase, 256);
+	glDeleteLists(oFontBase[0], 256);
+	glDeleteLists(oFontBase[1], 256);
 }
 
 void OglUtilsSwitchMatrix(int iWhichMatrix)

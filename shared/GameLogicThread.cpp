@@ -77,20 +77,35 @@ void GLFWCALL GameLogicThread::Thread(void * pArgument)
 #endif
 
 glfwLockMutex(oPlayerTick);
+			while (dCurTime >= g_dNextTickTime)
+			{
+				g_dNextTickTime += 1.0 / g_cCommandRate;
+				++g_cCurrentCommandSequenceNumber;
+
+				for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+					if (PlayerGet(nPlayer) != NULL)
+						PlayerGet(nPlayer)->Tick();
+				}
+			}
+			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+				if (PlayerGet(nPlayer) != NULL) {
+					PlayerGet(nPlayer)->AfterTick();
+				}
+			}
+			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+				if (PlayerGet(nPlayer) != NULL) {
+					PlayerGet(nPlayer)->ProcessAuthUpdateTEST();
+				}
+			}
 #ifdef EX0_CLIENT
 			// player tick
-			if (bPaused) { fTempFloat = (float)dTimePassed; dTimePassed = 0.00001; }
-			if (pLocalPlayer->GetTeam() != 2 && !pLocalPlayer->IsDead()) {
+			//if (bPaused) { fTempFloat = (float)dTimePassed; dTimePassed = 0.00001; }
+			/*if (pLocalPlayer->GetTeam() != 2 && !pLocalPlayer->IsDead()) {
 				pLocalPlayer->Tick();
 			} else {
-				pLocalPlayer->FakeTick();
-			}
-			PlayerTick();
-#else
-			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
-				if (PlayerGet(nPlayer) != NULL)
-					dynamic_cast<LocalAuthPlayer *>(PlayerGet(nPlayer))->ProcessInputCmdTEST();
-			}
+				//pLocalPlayer->FakeTick();
+			}*/
+			//PlayerTick();
 #endif
 glfwUnlockMutex(oPlayerTick);
 

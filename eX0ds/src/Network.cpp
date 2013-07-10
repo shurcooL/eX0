@@ -2,7 +2,13 @@
 
 GLFWmutex		oTcpSendMutex;
 GLFWmutex		oUdpSendMutex;
+
+u_char			g_cCurrentCommandSequenceNumber = 0;
+double			g_dNextTickTime = GLFW_INFINITY;
 GLFWmutex		oPlayerTick;
+
+u_char			g_cCommandRate = 0;
+u_char			g_cUpdateRate = 0;
 
 // Initialize the networking component
 bool NetworkInit(void)
@@ -117,7 +123,9 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, ClientConnection *& pConnection)
 				// Assign this client the avaliable player id
 				pConnection->SetSignature(cSignature);
 glfwLockMutex(oPlayerTick);
-				pConnection->SetPlayer(new LocalAuthPlayer());
+				pConnection->SetPlayer(new CPlayer());
+				pConnection->GetPlayer()->m_pController = new NetworkController(*pConnection->GetPlayer());
+				pConnection->GetPlayer()->m_pStateAuther = new LocalStateAuther(*pConnection->GetPlayer());
 glfwUnlockMutex(oPlayerTick);
 				pConnection->SetJoinStatus(ACCEPTED);
 
@@ -175,7 +183,7 @@ glfwUnlockMutex(oPlayerTick);
 			oPacket.unpack("et", nDataSize, &sTextMessage);
 
 			// Valid Send Text Message packet
-			printf("Player %d sends msg '%s'.\n", pConnection->GetPlayerID(), sTextMessage.c_str());
+			printf("%s\n", (pConnection->GetPlayer()->GetName() + ": " + sTextMessage).c_str());
 
 			// Create a Broadcast Text Message packet
 			CPacket oBroadcastMessagePacket;
@@ -219,18 +227,21 @@ glfwLockMutex(oPlayerTick);
 				pConnection->GetPlayer()->Position(x, y, 0.001f * (rand() % 1000) * Math::TWO_PI);
 				printf("Positioning player %d at %f, %f.\n", pConnection->GetPlayerID(), x, y);
 
-				// DEBUG: Perform the cLastCommandSequenceNumber synchronization to time
-				double d = glfwGetTime() / (256.0 / pConnection->cCommandRate);
+				// DEBUG: Perform the cLastRecvedCommandSequenceNumber synchronization to time
+				double d = glfwGetTime() / (256.0 / g_cCommandRate);
 				d -= floor(d);
 				d *= 256.0;
-				pConnection->cLastCommandSequenceNumber = (u_char)d;
-				dynamic_cast<LocalAuthPlayer *>(pConnection->GetPlayer())->cLatestAuthStateSequenceNumber = (u_char)d;
+				static_cast<NetworkController *>(pConnection->GetPlayer()->m_pController)->cLastRecvedCommandSequenceNumber = (u_char)d;
+				pConnection->GetPlayer()->cLatestAuthStateSequenceNumber = (u_char)d;
+
+				pConnection->GetPlayer()->m_oInputCmdsTEST.clear();			// DEBUG: Is this the right thing to do? Right place to do it?
+				pConnection->GetPlayer()->m_oAuthUpdatesTEST.clear();		// DEBUG: Is this the right thing to do? Right place to do it?
 
 				// Start expecting the first command packet from this player
-				pConnection->cCurrentCommandSeriesNumber += 1;
-				pConnection->bFirstCommand = true;
+				static_cast<NetworkController *>(pConnection->GetPlayer()->m_pController)->cCurrentCommandSeriesNumber += 1;
+				static_cast<NetworkController *>(pConnection->GetPlayer()->m_pController)->bFirstCommand = true;
 
-				oPlayerJoinedTeamPacket.pack("c", pConnection->cLastCommandSequenceNumber);
+				oPlayerJoinedTeamPacket.pack("c", pConnection->GetPlayer()->cLatestAuthStateSequenceNumber);
 				oPlayerJoinedTeamPacket.pack("fff", pConnection->GetPlayer()->GetX(),
 					pConnection->GetPlayer()->GetY(), pConnection->GetPlayer()->GetZ());
 			}
@@ -255,16 +266,21 @@ glfwUnlockMutex(oPlayerTick);
 		else {
 			u_char cNameLength;
 			string sName;
+			u_char cCommandRate, cUpdateRate;
 			oPacket.unpack("c", &cNameLength); if ((u_short)cNameLength > nDataSize - 3) cNameLength = static_cast<u_char>(nDataSize - 3);
 			oPacket.unpack("et", (int)cNameLength, &sName);
+			oPacket.unpack("cc", &cCommandRate, &cUpdateRate);
 			PlayerGet(pConnection->GetPlayerID())->SetName(sName);
-			oPacket.unpack("cc", &pConnection->cCommandRate, &pConnection->cUpdateRate);
+			if (g_cCommandRate == 0 && g_cUpdateRate == 0 && cCommandRate != 0 && cUpdateRate != 0) {
+				g_cCommandRate = cCommandRate;
+				g_cUpdateRate = cUpdateRate;
+			}
 
-			if (pConnection->cCommandRate < 1 || pConnection->cCommandRate > 100 ||
-				pConnection->cUpdateRate < 1 || pConnection->cUpdateRate > 100)
+			if (g_cCommandRate < 1 || g_cCommandRate > 100 ||
+				g_cUpdateRate < 1 || g_cUpdateRate > 100)
 			{
 				printf("Client rates (%d, %d) for player %d are out of range, sending refuse packet.\n",
-					pConnection->cCommandRate, pConnection->cUpdateRate, pConnection->GetPlayerID());
+					g_cCommandRate, g_cUpdateRate, pConnection->GetPlayerID());
 
 				// Refuse with reason 2
 				CPacket oJoinServerRefusePacket;
@@ -282,7 +298,7 @@ glfwUnlockMutex(oPlayerTick);
 
 				// Set the player tick time
 				// TODO: Do something about this, see if it's needed, and remove it if not, or make it useful, etc.
-				pConnection->GetPlayer()->fTickTime = 1.0f / pConnection->cCommandRate;
+				pConnection->GetPlayer()->fTickTime = 1.0f / g_cCommandRate;
 
 				// Send a Load Level packet to load the current level
 				CPacket oLoadLevelPacket;
@@ -304,7 +320,7 @@ glfwUnlockMutex(oPlayerTick);
 						oCurrentPlayersInfoPacket.pack("c", (u_char)PlayerGet(nPlayer)->GetTeam());
 						if (PlayerGet(nPlayer)->GetTeam() != 2)
 						{
-							oCurrentPlayersInfoPacket.pack("c", PlayerGet(nPlayer)->pConnection->cLastCommandSequenceNumber);
+							oCurrentPlayersInfoPacket.pack("c", PlayerGet(nPlayer)->cLatestAuthStateSequenceNumber);
 							oCurrentPlayersInfoPacket.pack("fff", PlayerGet(nPlayer)->GetX(),
 								PlayerGet(nPlayer)->GetY(), PlayerGet(nPlayer)->GetZ());
 						}
@@ -321,9 +337,6 @@ glfwUnlockMutex(oPlayerTick);
 				oPlayerJoinedServerPacket.pack("c", (u_char)pConnection->GetPlayerID());
 				oPlayerJoinedServerPacket.pack("c", (u_char)pConnection->GetPlayer()->GetName().length());
 				oPlayerJoinedServerPacket.pack("t", &pConnection->GetPlayer()->GetName());
-				//oPlayerJoinedServerPacket.pack("c", pConnection->cLastCommandSequenceNumber);
-				//oPlayerJoinedServerPacket.pack("fff", pConnection->GetPlayer()->GetX(),
-				//	pConnection->GetPlayer()->GetY(), pConnection->GetPlayer()->GetZ());
 				oPlayerJoinedServerPacket.CompleteTpcPacketSize();
 				ClientConnection::BroadcastTcpExcept(oPlayerJoinedServerPacket, pConnection, PUBLIC_CLIENT);
 
@@ -426,83 +439,7 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, ClientConnection * pConnection)
 glfwLockMutex(oPlayerTick);
 //double t1 = glfwGetTime();
 
-			u_char cCommandSequenceNumber;
-			u_char cCommandSeriesNumber;
-			u_char cMovesCount;
-			char cMoveDirection;
-			u_char cStealth;
-			float fZ;
-			oPacket.unpack("ccc", &cCommandSequenceNumber, &cCommandSeriesNumber, &cMovesCount);
-			cMovesCount += 1;
-
-			if (cCommandSeriesNumber != pConnection->cCurrentCommandSeriesNumber) {
-				printf("Got a Command with mismatching series number, cCommandSequenceNumber = %d, cMovesCount = %d, ignoring.\n", cCommandSequenceNumber, cMovesCount);
-				break;
-			}
-
-			// A special case for the first command we receive from this client in this new series
-			if (pConnection->bFirstCommand) {
-				pConnection->cLastCommandSequenceNumber = (u_char)(cCommandSequenceNumber - cMovesCount);
-				pConnection->bFirstCommand = false;
-			}
-
-			if (cCommandSequenceNumber == pConnection->cLastCommandSequenceNumber) {
-				printf("Got a duplicate UDP command packet from player %d, discarding.\n", pConnection->GetPlayerID());
-			} else if ((char)(cCommandSequenceNumber - pConnection->cLastCommandSequenceNumber) < 0) {
-				printf("Got an out of order UDP command packet from player %d, discarding.\n", pConnection->GetPlayerID());
-			} else
-			{
-				LocalAuthPlayer * pLocalAuthPlayer = dynamic_cast<LocalAuthPlayer *>(pConnection->GetPlayer());
-
-				int nMove = (int)cMovesCount - (char)(cCommandSequenceNumber - pConnection->cLastCommandSequenceNumber);
-				if (nMove < 0) printf("!!MISSING!! %d command move(s) from player #%d, due to lost packets:\n", -nMove, pConnection->GetPlayerID());
-				if (nMove < 0) nMove = 0;
-
-				++pConnection->cLastCommandSequenceNumber;
-				if (cCommandSequenceNumber != pConnection->cLastCommandSequenceNumber) {
-					printf("Lost %d UDP command packet(s) from player #%d!\n", (u_char)(cCommandSequenceNumber - pConnection->cLastCommandSequenceNumber), pConnection->GetPlayerID());
-				}
-				pConnection->cLastCommandSequenceNumber = cCommandSequenceNumber;
-
-				for (int nSkip = 0; nSkip < nMove; ++nSkip)
-					oPacket.unpack("ccf", &cMoveDirection, &cStealth, &fZ);
-				for (; nMove < (int)cMovesCount; ++nMove)
-				{
-					oPacket.unpack("ccf", &cMoveDirection, &cStealth, &fZ);
-					//printf("execing command %d\n", cCommandSequenceNumber - (cMovesCount - 1) + nMove);
-
-					SequencedInput_t oSequencedInput;
-
-					// Set the inputs
-					oSequencedInput.oInput.cMoveDirection = cMoveDirection;
-					oSequencedInput.oInput.cStealth = cStealth;
-					oSequencedInput.oInput.fZ = fZ;
-
-					oSequencedInput.cSequenceNumber = static_cast<u_char>(cCommandSequenceNumber - (cMovesCount - 1) + nMove);
-
-					eX0_assert(pLocalAuthPlayer->m_oInputCmdsTEST.push(oSequencedInput), "m_oInputCmdsTEST.push(oInput) failed, lost input!!\n");
-					//printf("pushed %d\n", cCommandSequenceNumber - (cMovesCount - 1) + nMove);
-				}
-
-				// Remember the time of the last update
-				//pConnection->GetPlayer()->fTicks = (float)glfwGetTime();
-
-				// Send the Update Others Position packet
-				/*CPacket oUpdateOthersPositionPacket;
-				oUpdateOthersPositionPacket.pack("cc", (u_char)2, pConnection->cLastCommandSequenceNumber);
-				for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
-				{
-					if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME) {
-						oUpdateOthersPositionPacket.pack("c", (u_char)1);
-						oUpdateOthersPositionPacket.pack("fff", PlayerGet(nPlayer)->GetX(),
-							PlayerGet(nPlayer)->GetY(), PlayerGet(nPlayer)->GetZ());
-					} else {
-						oUpdateOthersPositionPacket.pack("c", (u_char)0);
-					}
-				}
-				if ((rand() % 100) >= 0 || pConnection->GetPlayerID() != 0) // DEBUG: Simulate packet loss
-					oUpdateOthersPositionPacket.SendUdp(pConnection);*/
-			}
+			static_cast<NetworkController *>(pConnection->GetPlayer()->m_pController)->ProcessCommand(oPacket);
 
 //static u_int i = 0; if (i++ % 50 == 0) printf("processed Client Command packet in %.5lf ms\n", (glfwGetTime() - t1) * 1000);
 glfwUnlockMutex(oPlayerTick);

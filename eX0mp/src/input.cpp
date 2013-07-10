@@ -170,6 +170,7 @@ glfwLockMutex(oPlayerTick);
 						  <= PLAYER_HALF_WIDTH_SQR)
 							PlayerGet(iLoop1)->GiveHealth(-150);
 					}
+					pLocalPlayer->GiveHealth(-150);
 				}
 glfwUnlockMutex(oPlayerTick);
 			}

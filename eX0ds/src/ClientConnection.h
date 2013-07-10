@@ -19,13 +19,7 @@ public:
 	bool HasPlayer() const;
 	CPlayer * GetPlayer();
 
-	u_char		cLastCommandSequenceNumber;
-	u_char		cCurrentCommandSeriesNumber;		// A number that changes on every respawn, team change, etc. and the server will ignore any Commands with mismatching series number
 	u_char		cCurrentUpdateSequenceNumber;
-	//u_int		nUpdateEventId;
-	u_char		cCommandRate;
-	u_char		cUpdateRate;
-	bool		bFirstCommand;		// When true, indicates we are expecting the first command from a client (so far got nothing) and will be set to false when it arrives
 
 	struct TcpPacketBuffer_t {
 		u_char		cTcpPacketBuffer[2 * MAX_TCP_PACKET_SIZE - 1];	// Buffer for incoming TCP packets

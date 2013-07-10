@@ -1,0 +1,58 @@
+game logic loop
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+-time.++g_cCurrentCommandSequenceNumber (every 50 ms only)
+-players.tick[PlayerController] (every 50 ms only): request input
+-players.AfterTick[PlayerStateAuther]: process input, convert to auth-seek, locally predicted state, etc.
+-players.ProcessUpdate[PlayerStateAuther]: process received auth-update
+-players.SendUpdate[PlayerStateAuther] (every 60 ms only): send a complete network update to each of the players
+
+New Network Variables
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+global/GameSession (remote auth/client side):
+-g_cCurrentCommandSequenceNumber
+-g_dNextTickTime
+
+ServerConnection (remote auth/client side):
+-cLastUpdateSequenceNumber
+
+CPlayer (remote auth/client side):
+-Player.AuthState(Latest).cSequenceNumber
+-NetworkStateAuther.cLastAckedCommandSequenceNumber
+-NetworkStateAuther.cCurrentCommandSeriesNumber
+--------------------------------------
+global/GameSession (local auth/server side):
+-g_cCurrentCommandSequenceNumber
+-g_dNextTickTime
+
+ClientConnection (local auth/server side):
+-cCurrentUpdateSequenceNumber
+
+CPlayer (local auth/server side):
+-Player.AuthState(Latest).cSequenceNumber == Player.Command(Latest).cSequenceNumber
+-NetworkController.cLastRecvedCommandSequenceNumber
+-NetworkController.bFirstCommand
+-NetworkController.cCurrentCommandSeriesNumber
+
+Old Network Variables - TODO: Separate them between Connection-, Player- and other-related, group them
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+global (remote auth/client side):
+-g_cCurrentCommandSequenceNumber
+-g_dNextTickTime
+-cLastUpdateSequenceNumber
+
+CPlayer (remote auth/client side):
+-cLastAckedCommandSequenceNumber
+-cCurrentCommandSeriesNumber
+--------------------------------------
+global (local auth/server side):
+-g_cCurrentCommandSequenceNumber
+-g_dNextTickTime
+
+ClientConnection (local auth/server side):
+-cLastCommandSequenceNumber
+-cCurrentCommandSeriesNumber
+-cCurrentUpdateSequenceNumber
+-bFirstCommand
+
+LocalAuthPlayer (local auth/server side):
+-cLatestAuthStateSequenceNumber

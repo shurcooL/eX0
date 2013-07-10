@@ -11,6 +11,8 @@ public:
 
 	bool Connect(const char * szHostname, u_short nPort);
 	void GenerateSignature();
+
+	u_char		cLastUpdateSequenceNumber;
 };
 
 #endif // __ServerConnection_H__
