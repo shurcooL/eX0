@@ -11,7 +11,7 @@ bool			bPaused = false;
 
 bool			bWireframe = false;
 bool			bUseDefaultTriangulation = true;
-bool			bStencilOperations = true;
+bool			bStencilOperations = false;
 
 GLFWvidmode		oDesktopMode;
 bool			bFullscreen = false;
@@ -19,9 +19,9 @@ bool			bFullscreen = false;
 double			dTimePassed = 0;
 double			dCurTime = 0;
 double			dBaseTime = 0;
-string			sFpsString = string();
+std::string		sFpsString = std::string();
 
-string			sTempString = string();
+std::string		sTempString = std::string();
 float			fTempFloat = 0;
 int				iTempInt = 0;
 
@@ -70,7 +70,7 @@ bool Init(int, char *[])
 
 		// create the window
 		glfwGetDesktopMode(&oDesktopMode);
-		glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 0);
+		glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 8);
 		glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
 		//if (glfwOpenWindow(1920, 1200, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow()) { printf("Opened a window (try 0)...\n"); } else
 		if (glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
@@ -142,9 +142,12 @@ bool Init(int, char *[])
 		return false;
 	}
 	pTimedEventScheduler = new CTimedEventScheduler();
+	g_pGameSession = new GameSession();
 	pGameLogicThread = new GameLogicThread();
 	if (nRunModeDEBUG != 0 && nRunModeDEBUG != 3)
 		pLocalServer = new LocalServer();
+	if (bWindowModeDEBUG)
+		g_pInputManager = new InputManager();
 
 	SyncRandSeed();
 
@@ -156,11 +159,10 @@ void Deinit()
 {
 	printf("Deinit\n");
 
-	// show the mouse cursor
-	glfwEnable(GLFW_MOUSE_CURSOR);
-
 	// Sub-deinit
+	delete g_pInputManager; g_pInputManager = NULL;
 	delete pGameLogicThread; pGameLogicThread = NULL;
+	delete g_pGameSession; g_pGameSession = NULL;
 	delete pTimedEventScheduler; pTimedEventScheduler = NULL;
 	delete pLocalServer; pLocalServer = NULL;
 	NetworkDeinit();					// Shutdown the networking component
@@ -182,10 +184,10 @@ void Deinit()
 }
 
 // resize the window callback function
-void GLFWCALL ResizeWindow(int iWidth, int iHeight)
+void GLFWCALL WindowSizeCallback(int iWidth, int iHeight)
 {
 	printf("ResizeWindow to %dx%d.\n", iWidth, iHeight);
-	if ((iWidth * iHeight != 0) && (iWidth != 640 || iHeight != 480)) {
+	if (((iWidth | iHeight) != 0) && (iWidth != 640 || iHeight != 480)) {
 #ifdef WIN32
 		//MessageBox(NULL, "Refusing to run in non-native resolution (for now).", EX0_BUILD_STRING, MB_OK);
 #else
@@ -195,7 +197,7 @@ void GLFWCALL ResizeWindow(int iWidth, int iHeight)
 	}
 }
 
-int GLFWCALL CloseWindowCallback()
+int GLFWCALL WindowCloseCallback()
 {
 	bProgramRunning = false;
 
@@ -205,11 +207,8 @@ int GLFWCALL CloseWindowCallback()
 // set glfw callback functions
 void SetGlfwCallbacks()
 {
-	glfwSetWindowSizeCallback(&ResizeWindow);
-	glfwSetWindowCloseCallback(&CloseWindowCallback);
-	glfwSetKeyCallback(&InputProcessKey);
-	glfwSetCharCallback(&InputProcessChar);
-	glfwSetMouseButtonCallback(&InputProcessMouse);
+	glfwSetWindowSizeCallback(&WindowSizeCallback);
+	glfwSetWindowCloseCallback(&WindowCloseCallback);
 }
 
 // Restarts the game
@@ -298,80 +297,10 @@ int main(int argc, char *argv[])
 #endif
 
 
-	/*multimap<int, int> myset;
-	multimap<int, int>::iterator it1;
-	vector<multimap<int, int>::iterator> its;
 
-	// insert some values:
-	for (int i=1; i<10; i++) myset.insert(pair<int, int>(i*10, i));  // 10 20 30 40 50 60 70 80 90
-
-	for (it1 = myset.begin(); it1 != myset.end(); ++it1) {
-		its.push_back(it1);
-	}
-
-	printf("myset contains:"); for (it1 = myset.begin(); it1 != myset.end(); ++it1) printf(" %d", it1->first); printf("\n");
-	printf("  its point to:"); for (vector<multimap<int, int>::iterator>::iterator it2 = its.begin(); it2 != its.end(); ++it2) printf(" %d", (*it2)->first); printf("\n");
-
-	printf("removing 5th elem..\n");
-	myset.erase(its.at(4));
-	its.erase(its.begin() + 4);
-
-	printf("myset contains:"); for (it1 = myset.begin(); it1 != myset.end(); ++it1) printf(" %d", it1->first); printf("\n");
-	printf("  its point to:"); for (vector<multimap<int, int>::iterator>::iterator it2 = its.begin(); it2 != its.end(); ++it2) printf(" %d", (*it2)->first); printf("\n");
-
-	printf("removing 2nd elem..\n");
-	myset.erase(its.at(1));
-	its.erase(its.begin() + 1);
-
-	printf("removing 6th elem..\n");
-	myset.erase(its.at(5));
-	its.erase(its.begin() + 5);
-
-	printf("myset contains:"); for (it1 = myset.begin(); it1 != myset.end(); ++it1) printf(" %d", it1->first); printf("\n");
-	printf("  its point to:"); for (vector<multimap<int, int>::iterator>::iterator it2 = its.begin(); it2 != its.end(); ++it2) printf(" %d", (*it2)->first); printf("\n");*/
-
-
-
-	/*MovingAverage	avg(60.0, 5);
-	int myints[] = { 10, 21, 30, 40, 50, 90 };
-	list<int> mylist (myints,myints + 6);
-	list<int>::iterator it1;
-	for (list<int>::iterator it=mylist.begin(); it != mylist.end(); ++it)
-		avg.push(*it, *it);
-	avg.Print();
-
-	printf("%.5lf\n", avg.WeightedMovingAverage());
-	printf("%d\n", avg.Signum());*/
-
-
-	/*try {
-		new CPlayer();
-		new CPlayer(3);
-		new CPlayer(40);
-		printf("no excptn\n");
-	} catch (int e) {
-		printf("meh caught int %d\n", e);
-	} catch (std::exception e) {
-		printf("meh caught std::exception '%s'\n", e.what());
-	}
-	printf("safe end\n");*/
-
-	/*ThreadSafeQueue<int, 3> q1;
-	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());
-	int i1 = 1; printf("push retval=%d\n", q1.push(i1));
-	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());
-	int i2 = 2; printf("push retval=%d\n", q1.push(i2));
-	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());
-	int i3 = 3; printf("push retval=%d\n", q1.push(i3));
-	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());
-	int i4 = 4; printf("push retval=%d\n", q1.push(i4));
-	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());
-	int i = -1; q1.pop(i); printf("poped %d\n", i);
-	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());
-	printf("push retval=%d\n", q1.push(i4));
-	printf("empty=%d, full=%d, size=%d, capacity=%d\n", q1.empty(), q1.full(), q1.size(), q1.capacity());*/
-
+	// ...
 //return 0;
+
 
 
 	// Print the version and date/time built
@@ -402,10 +331,10 @@ int main(int argc, char *argv[])
 		sLocalPlayerName = argv[2];
 
 	// Connect to the server
-	if (argc >= 2 && nRunModeDEBUG == 0)
+	if (argc >= 2 && nRunModeDEBUG == 0)	// Client only
 	{
 		NetworkConnect(argv[1], DEFAULT_PORT);
-	} else if (nRunModeDEBUG == 2)
+	} else if (nRunModeDEBUG == 2)			// Both server and client
 	{
 		// Connect to local server
 		NetworkConnect(NULL, 0);
@@ -415,19 +344,28 @@ int main(int argc, char *argv[])
 glfwLockMutex(oPlayerTick);
 		pLocalPlayer = new CPlayer(iLocalPlayerID);
 		pLocalPlayer->SetName(sLocalPlayerName);
-		pLocalPlayer->m_pController = new LocalController(*pLocalPlayer);
+		pLocalPlayer->m_pController = new HidController(*pLocalPlayer);
+		/*{
+			PlayerInputListener * pPlayerInputListener = new PlayerInputListener();
+			g_pInputManager->RegisterListener(pPlayerInputListener);
+
+			HidController * pHidController = new HidController(*pLocalPlayer);
+			pHidController->m_pPlayerInputListener = pPlayerInputListener;
+
+			pLocalPlayer->m_pController = pHidController;
+		}*/
 		pLocalPlayer->m_pStateAuther = new LocalStateAuther(*pLocalPlayer);
 		(new LocalClientConnection())->SetPlayer(pLocalPlayer);
 		pLocalPlayer->pConnection->SetJoinStatus(IN_GAME);
 
 		pLocalPlayer->fTickTime = 1.0f / g_cCommandRate;
 
-		for (int nBotNumber = 1; nBotNumber <= 4; ++nBotNumber)
+		for (int nBotNumber = 1; nBotNumber <= 1; ++nBotNumber)
 		{//Bot test
 			CPlayer * pTestPlayer = new CPlayer();
 			std::string sName = "Test Mimic " + itos(nBotNumber);
 			pTestPlayer->SetName(sName);
-			pTestPlayer->m_pController = new LocalController(*pTestPlayer);
+			pTestPlayer->m_pController = new AiController(*pTestPlayer);
 			pTestPlayer->m_pStateAuther = new LocalStateAuther(*pTestPlayer);
 			//(new LocalClientConnection())->SetPlayer(pTestPlayer);
 			//pTestPlayer->pConnection->SetJoinStatus(IN_GAME);
@@ -435,11 +373,13 @@ glfwLockMutex(oPlayerTick);
 
 			pTestPlayer->fTickTime = 1.0f / g_cCommandRate;
 
+glfwUnlockMutex(oPlayerTick);
 			// Send a Join Team Request packet
 			CPacket oJoinTeamRequest(CPacket::BOTH);
 			oJoinTeamRequest.pack("hccc", 0, (u_char)27, (u_char)nBotNumber /*nth player on this connection*/, (u_char)1);
 			oJoinTeamRequest.CompleteTpcPacketSize();
 			pServer->SendTcp(oJoinTeamRequest);
+glfwLockMutex(oPlayerTick);
 		}
 
 		// Start the game
@@ -449,12 +389,12 @@ glfwLockMutex(oPlayerTick);
 		bSelectTeamDisplay = true;
 		bSelectTeamReady = true;
 glfwUnlockMutex(oPlayerTick);
-	} else if (nRunModeDEBUG == 3)
+	} else if (nRunModeDEBUG == 3)		// Off-line client/server (no network)
 	{
 glfwLockMutex(oPlayerTick);
 		pLocalPlayer = new CPlayer(iLocalPlayerID);
 		pLocalPlayer->SetName(sLocalPlayerName);
-		pLocalPlayer->m_pController = new LocalController(*pLocalPlayer);
+		pLocalPlayer->m_pController = new HidController(*pLocalPlayer);
 		pLocalPlayer->m_pStateAuther = new LocalStateAuther(*pLocalPlayer);
 
 		pLocalPlayer->fTickTime = 1.0f / g_cCommandRate;
@@ -501,9 +441,47 @@ glfwUnlockMutex(oPlayerTick);
 			glLoadIdentity();
 			glClear(GL_COLOR_BUFFER_BIT);
 
+			// DEBUG: A hack
+			static double dPreviousTime = glfwGetTime();
+			double dCurrentTime = glfwGetTime();
+			double dTimePassed = dCurrentTime - dPreviousTime;
+			dPreviousTime = dCurrentTime;
+
 			if (iGameState == 0)
 			// in game
 			{
+#ifdef EX0_CLIENT
+				if (pLocalPlayer != NULL) {
+					// mouse moved?
+					//InputMouseMovCalcs();
+
+					// key or mouse button held down?
+					InputKeyHold();
+					InputMouseHold();
+				}
+#endif // EX0_CLIENT
+
+glfwLockMutex(oPlayerTick);
+				for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+					if (NULL != PlayerGet(nPlayer)) {
+						PlayerGet(nPlayer)->SeekRealtimeInput(dTimePassed);
+					}
+				}
+glfwUnlockMutex(oPlayerTick);
+
+glfwLockMutex(oPlayerTick);
+				// DEBUG: Do this first to make sure there's no mis-match between player position for scene and other player rendering
+				// But this should be done by a separate camera type of thing
+				if (pLocalPlayer != NULL) {
+					pLocalPlayer->fTicks = (float)(glfwGetTime() - (g_dNextTickTime - 1.0 / g_cCommandRate));
+					if (pLocalPlayer->GetTeam() != 2) {
+						if (!pLocalPlayer->IsDead()) {
+							pLocalPlayer->UpdateInterpolatedPos();
+						}
+					}
+				}
+glfwUnlockMutex(oPlayerTick);
+
 				// render the static scene
 				// TODO: Don't do any rendering when the window is GLFW_ICONIFIED (minimized)
 				RenderStaticScene();
@@ -549,9 +527,20 @@ glfwUnlockMutex(oPlayerTick);
 			glfwSwapBuffers();
 
 			if (glfwGetWindowParam(GLFW_ACTIVE))
+			{
+				g_pInputManager->ProcessJoysticks();
+
+				g_pInputManager->TimePassed(dTimePassed);		// DEBUG: Not the right place
+
 				glfwSleep(0.0);
+			}
 			else
+			{
+				bSelectTeamDisplay = true;
+				g_pInputManager->ShowMouseCursor();		// DEBUG: Not the right place
+
 				glfwSleep(0.015);
+			}
 		}
 		else
 		{

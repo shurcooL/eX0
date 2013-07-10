@@ -19,9 +19,9 @@ NetworkController::~NetworkController()
 	glfwDestroyMutex(m_oMutex);
 }
 
-bool NetworkController::RequestInput(u_char/* cSequenceNumber*/)
+//bool NetworkController::RequestCommand(u_char/* cSequenceNumber*/)
+void NetworkController::ProvideNextCommand()
 {
-	return false;
 }
 
 void NetworkController::ProcessCommand(CPacket & oPacket)
@@ -71,16 +71,16 @@ void NetworkController::ProcessCommand(CPacket & oPacket)
 			oPacket.unpack("ccf", &cMoveDirection, &cStealth, &fZ);
 			//printf("execing command %d\n", cCommandSequenceNumber - (cMovesCount - 1) + nMove);
 
-			SequencedInput_t oSequencedInput;
+			SequencedCommand_t oSequencedCommand;
 
 			// Set the inputs
-			oSequencedInput.oInput.cMoveDirection = cMoveDirection;
-			oSequencedInput.oInput.cStealth = cStealth;
-			oSequencedInput.oInput.fZ = fZ;
+			oSequencedCommand.oCommand.cMoveDirection = cMoveDirection;
+			oSequencedCommand.oCommand.cStealth = cStealth;
+			oSequencedCommand.oCommand.fZ = fZ;
 
-			oSequencedInput.cSequenceNumber = static_cast<u_char>(cCommandSequenceNumber - (cMovesCount - 1) + nMove);
+			oSequencedCommand.cSequenceNumber = static_cast<u_char>(cCommandSequenceNumber - (cMovesCount - 1) + nMove);
 
-			eX0_assert(m_oPlayer.m_oInputCmdsTEST.push(oSequencedInput), "m_oInputCmdsTEST.push(oInput) failed, lost input!!\n");
+			eX0_assert(m_oPlayer.m_oInputCmdsTEST.push(oSequencedCommand), "m_oInputCmdsTEST.push(oCommand) failed, lost a command!!\n");
 			//printf("pushed %d\n", cCommandSequenceNumber - (cMovesCount - 1) + nMove);
 		}
 	}

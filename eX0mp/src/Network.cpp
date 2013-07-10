@@ -306,7 +306,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 
 			//PlayerInit();
 			pLocalPlayer = new CPlayer(static_cast<u_int>(cLocalPlayerId));
-			pLocalPlayer->m_pController = new LocalController(*pLocalPlayer);
+			pLocalPlayer->m_pController = new HidController(*pLocalPlayer);
 			pLocalPlayer->m_pStateAuther = new NetworkStateAuther(*pLocalPlayer);
 
 			// TODO: Player name (and other local settings?) needs to be assigned, validated (and corrected if needed) in a better way
@@ -533,20 +533,23 @@ glfwLockMutex(oPlayerTick);
 			if (cPlayerId == iLocalPlayerID)
 				printf("Got a Player Joined Server packet, with the local player ID %d.", iLocalPlayerID);
 
-			if (PlayerGet(cPlayerId) != NULL) {
-				printf("Got a Player Joined Server packet, but player %d was already in game.\n", cPlayerId);
-				return false;
+			if (false == pServer->IsLocal())
+			{
+				if (PlayerGet(cPlayerId) != NULL) {
+					printf("Got a Player Joined Server packet, but player %d was already in game.\n", cPlayerId);
+					return false;
+				}
+
+				new CPlayer(static_cast<u_int>(cPlayerId));
+				PlayerGet(cPlayerId)->m_pController = NULL;		// No player controller
+				PlayerGet(cPlayerId)->m_pStateAuther = new NetworkStateAuther(*PlayerGet(cPlayerId));
+
+				PlayerGet(cPlayerId)->SetName(sName);
+				PlayerGet(cPlayerId)->SetTeam(2);
+
+				// Set the other player tick time
+				PlayerGet(cPlayerId)->fTickTime = 1.0f / g_cCommandRate;
 			}
-
-			new CPlayer(static_cast<u_int>(cPlayerId));
-			PlayerGet(cPlayerId)->m_pController = NULL;		// No player controller
-			PlayerGet(cPlayerId)->m_pStateAuther = new NetworkStateAuther(*PlayerGet(cPlayerId));
-
-			PlayerGet(cPlayerId)->SetName(sName);
-			PlayerGet(cPlayerId)->SetTeam(2);
-
-			// Set the other player tick time
-			PlayerGet(cPlayerId)->fTickTime = 1.0f / g_cCommandRate;
 
 			printf("Player #%d (name '%s') is connecting (in Info Exchange)...\n", cPlayerId, sName.c_str());
 			// This is a kinda a lie, he's still connecting, in Info Exchange part; should display this when server gets Entered Game Notification (7) packet

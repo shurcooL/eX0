@@ -282,7 +282,7 @@ printf("processed accept()              in %.5lf ms\n", (glfwGetTime() - t1) * 1
 
 						if (pConnection->GetJoinStatus() >= PUBLIC_CLIENT) {
 							// Send a Player Left Server to all the other clients
-							CPacket oPlayerLeftServerPacket;
+							CPacket oPlayerLeftServerPacket(CPacket::BOTH);
 							oPlayerLeftServerPacket.pack("hc", 0, (u_char)26);
 							oPlayerLeftServerPacket.pack("c", (u_char)pConnection->GetPlayerID());
 							oPlayerLeftServerPacket.CompleteTpcPacketSize();

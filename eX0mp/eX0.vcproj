@@ -177,6 +177,14 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath="..\shared\AiController.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\AiController.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\CHudMessageQueue.cpp"
 				>
 			</File>
@@ -249,6 +257,22 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\GameSession.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\GameSession.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\GameTimer.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\GameTimer.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\globals.h"
 				>
 			</File>
@@ -281,6 +305,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\HidController.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\HidController.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\IndexedCircularBuffer.cpp"
 				>
 				<FileConfiguration
@@ -310,6 +342,22 @@
 			</File>
 			<File
 				RelativePath=".\src\input.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\InputListener.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\InputListener.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\InputManager.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\InputManager.h"
 				>
 			</File>
 			<File
@@ -442,6 +490,14 @@
 			</File>
 			<File
 				RelativePath="..\shared\PlayerController.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\PlayerInputListener.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\PlayerInputListener.h"
 				>
 			</File>
 			<File

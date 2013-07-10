@@ -6,10 +6,30 @@
 #endif // EX0_CLIENT
 
 PlayerController::PlayerController(CPlayer & oPlayer)
-	: m_oPlayer(oPlayer)
+	: m_nCommandRequests(0),
+	  m_oPlayer(oPlayer)
 {
 }
 
 PlayerController::~PlayerController()
 {
+}
+
+void PlayerController::RequestNextCommand()
+{
+	++m_nCommandRequests;
+
+	ProvideNextCommand();
+}
+
+u_int PlayerController::GetCommandRequests()
+{
+	return m_nCommandRequests;
+}
+
+void PlayerController::UseUpCommandRequest()
+{
+	eX0_assert(m_nCommandRequests > 0);
+
+	--m_nCommandRequests;
 }

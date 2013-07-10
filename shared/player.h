@@ -25,17 +25,20 @@ typedef struct {
 	char	cMoveDirection;
 	u_char	cStealth;
 	float	fZ;
-} Input_t;
+} Command_t;
 
 typedef struct {
-	Input_t	oInput;
-	u_char	cSequenceNumber;
-} SequencedInput_t;
+	Command_t	oCommand;
+	u_char		cSequenceNumber;
+} SequencedCommand_t;
 
 typedef struct {
-	Input_t	oInput;
-	State_t	oState;
+	Command_t	oCommand;
+	State_t		oState;
 } Move_t;
+
+// Returns a player
+CPlayer * PlayerGet(u_int nPlayerId);
 
 class CPlayer
 {
@@ -45,6 +48,7 @@ public:
 	virtual ~CPlayer();
 
 	void MoveDirection(int nDirection);
+	int GetMoveDirection() const { return nMoveDirection; }
 	void Rotate(float fAmount);
 	void CalcTrajs();
 	void CalcColResp();
@@ -99,6 +103,7 @@ public:
 #endif // EX0_CLIENT
 	PlayerController * m_pController;
 	PlayerStateAuther * m_pStateAuther;
+	void SeekRealtimeInput(double dTimePassed);
 	void Tick();
 	void AfterTick()				{ if (m_pStateAuther) m_pStateAuther->AfterTick(); }
 	void ProcessAuthUpdateTEST()	{ if (m_pStateAuther) m_pStateAuther->ProcessAuthUpdateTEST(); }
@@ -107,7 +112,7 @@ public:
 
 	u_char		cLatestAuthStateSequenceNumber;
 
-	ThreadSafeQueue<SequencedInput_t, 100>		m_oInputCmdsTEST;
+	ThreadSafeQueue<SequencedCommand_t, 100>	m_oInputCmdsTEST;
 	ThreadSafeQueue<SequencedState_t, 3>		m_oAuthUpdatesTEST;
 
 	u_int		iID;
@@ -135,6 +140,7 @@ private:
 	float		fVelX, fVelY;
 	float		fIntX, fIntY;
 	float		fZ;
+	State_t		m_oDeadState;
 	int			iIsStealth;
 	int			nMoveDirection;
 	CWeapon		oWeapons[4];
@@ -163,9 +169,6 @@ private:
 	friend CPlayer * PlayerGet(u_int nPlayerId);
 	friend void RenderPlayers();
 };
-
-// Returns a player
-//CPlayer * PlayerGet(int nPlayerID);
 
 void PlayerTick();
 

@@ -6,7 +6,7 @@
 #endif // EX0_CLIENT
 
 //std::string			sLevelName = "test_orientation";
-std::string			sLevelName = "test1";
+std::string			sLevelName = "test3";
 
 gpc_polygon		oPolyLevel;
 #ifdef EX0_CLIENT

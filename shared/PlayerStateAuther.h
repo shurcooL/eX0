@@ -12,6 +12,8 @@ public:
 	virtual void ProcessAuthUpdateTEST() = 0;
 	virtual void SendUpdate() = 0;
 
+	virtual bool IsLocal(void) = 0;
+
 protected:
 	PlayerStateAuther(const PlayerStateAuther &);
 	PlayerStateAuther & operator =(const PlayerStateAuther &);

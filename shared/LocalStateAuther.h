@@ -12,6 +12,8 @@ public:
 	void AfterTick();
 	void ProcessAuthUpdateTEST();
 	void SendUpdate();
+
+	bool IsLocal(void) { return true; }
 };
 
 #endif // __LocalStateAuther_H__

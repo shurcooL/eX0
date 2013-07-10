@@ -14,7 +14,8 @@ ClientConnection::ClientConnection(SOCKET nTcpSocket)
 	  m_nLastLatency(0),
 	  m_oPingSentTimes(PING_SENT_TIMES_HISTORY),
 	  m_pPlayer(NULL),
-	  m_oPlayers()
+	  m_oPlayers(),
+	  m_nBadClientTimeoutEventId(0)
 {
 	printf("ClientConnection(%d) Ctor.\n", GetTcpSocket());
 
@@ -37,7 +38,8 @@ ClientConnection::ClientConnection()
 	  m_nLastLatency(0),
 	  m_oPingSentTimes(PING_SENT_TIMES_HISTORY),
 	  m_pPlayer(NULL),
-	  m_oPlayers()
+	  m_oPlayers(),
+	  m_nBadClientTimeoutEventId(0)
 {
 	printf("ClientConnection() Ctor.\n");
 
@@ -179,6 +181,11 @@ void ClientConnection::SetPlayer(CPlayer * pPlayer)
 		m_pPlayer->pConnection = this;
 
 	printf("Associated player id %d with socket %d.\n", GetPlayerID(), GetTcpSocket());
+}
+
+void ClientConnection::RemovePlayer()
+{
+	m_pPlayer = NULL;
 }
 
 bool ClientConnection::HasPlayer() const { return m_pPlayer != NULL; }

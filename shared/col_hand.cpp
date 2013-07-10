@@ -123,7 +123,7 @@ bool ColHandCheckPlayerPos(float *fX, float *fY, Real *oShortestDistance, Vector
 			*oShortestDistance = oDistance;
 			*oClosestPoint = oSegment.Origin() + oParam * oSegment.Direction();
 			*iWhichCont = iLoop1;
-			*iWhichVert = iLoop2;
+			*iWhichVert = 0;
 		}
 	}
 

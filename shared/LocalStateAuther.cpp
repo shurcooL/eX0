@@ -16,27 +16,30 @@ LocalStateAuther::~LocalStateAuther()
 
 void LocalStateAuther::AfterTick()
 {
-	while (!m_oPlayer.m_oInputCmdsTEST.empty()) {
+	while (!m_oPlayer.m_oInputCmdsTEST.empty() && m_oPlayer.m_pController->GetCommandRequests() > 0)
+	{
 //double t1 = glfwGetTime();
 		//eX0_assert(m_oInputCmdsTEST.size() == 1, "m_oAuthUpdatesTEST.size() is != 1!!!!\n");
 
-		SequencedInput_t oSequencedInput;
-		m_oPlayer.m_oInputCmdsTEST.pop(oSequencedInput);
-		//static u_char cmdNum = 0; printf("popped an input cmd %d\n", cmdNum++);
+		m_oPlayer.m_pController->UseUpCommandRequest();
+
+		SequencedCommand_t oSequencedCommand;
+		m_oPlayer.m_oInputCmdsTEST.pop(oSequencedCommand);
+		//static u_char cmdNum = 0; printf("popped a command %d\n", cmdNum++);
 
 		{//begin section from Network.cpp
 			// Set the inputs
-			m_oPlayer.MoveDirection(oSequencedInput.oInput.cMoveDirection);
-			m_oPlayer.SetStealth(oSequencedInput.oInput.cStealth != 0);
-			m_oPlayer.SetZ(oSequencedInput.oInput.fZ);
+			m_oPlayer.MoveDirection(oSequencedCommand.oCommand.cMoveDirection);
+			m_oPlayer.SetStealth(oSequencedCommand.oCommand.cStealth != 0);
+			m_oPlayer.SetZ(oSequencedCommand.oCommand.fZ);
 
 			// Player tick
 			m_oPlayer.CalcTrajs();
 			m_oPlayer.CalcColResp();
 
-			m_oPlayer.cLatestAuthStateSequenceNumber = oSequencedInput.cSequenceNumber;
+			m_oPlayer.cLatestAuthStateSequenceNumber = oSequencedCommand.cSequenceNumber;
 		}//end section from Network.cpp
-//static u_int i = 0; if (i++ % 50 == 0) printf("processed Input Command         in %.5lf ms\n", (glfwGetTime() - t1) * 1000);
+//static u_int i = 0; if (i++ % 50 == 0) printf("processed Command         in %.5lf ms\n", (glfwGetTime() - t1) * 1000);
 
 		// DEBUG: Used for server rendering purposes only, may not be needed later
 		{

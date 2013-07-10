@@ -22,9 +22,6 @@ void GLFWCALL GameLogicThread::ThreadFunction(void * pArgument)
 	Thread * pThread = Thread::GetThisThreadAndRevertArgument(pArgument);
 	FpsCounter * pFpsCounter = pThread->GetFpsCounter();
 
-	int			nFpsFrames = 0;
-	double		dFpsTimePassed = 0, dFpsBaseTime = glfwGetTime();
-
 	// Main loop
 	while (pThread->ShouldBeRunning())
 	{
@@ -35,30 +32,10 @@ void GLFWCALL GameLogicThread::ThreadFunction(void * pArgument)
 
 		// fps calcs
 		pFpsCounter->IncrementCounter();
-		nFpsFrames++;
-		dFpsTimePassed = dCurTime - dFpsBaseTime;
-		if (dFpsTimePassed >= 0.75)
-		{
-			sFpsString = string("eX0 - ") + ftos(nFpsFrames / static_cast<float>(dFpsTimePassed)) + " fps (game logic thread)";
-			//glfwSetWindowTitle(sFpsString.c_str());
-			dFpsBaseTime = glfwGetTime();
-			nFpsFrames = 0;
-		}
 
 		if (!iGameState)
 		// in game
 		{
-#ifdef EX0_CLIENT
-			if (pLocalPlayer != NULL) {
-				// mouse moved?
-				InputMouseMovCalcs();
-
-				// key or mouse button held down?
-				InputKeyHold();
-				InputMouseHold();
-			}
-#endif // EX0_CLIENT
-
 glfwLockMutex(oPlayerTick);
 			while (dCurTime >= g_dNextTickTime)
 			{

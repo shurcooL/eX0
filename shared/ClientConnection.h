@@ -16,6 +16,7 @@ public:
 
 	u_int GetPlayerID() const;
 	void SetPlayer(CPlayer * pPlayer);
+	void RemovePlayer();
 	bool HasPlayer() const;
 	CPlayer * GetPlayer();
 

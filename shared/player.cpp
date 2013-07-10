@@ -27,7 +27,7 @@ CPlayer::CPlayer()
 	  m_pStateAuther(NULL),
 	  m_dNextUpdateTime(GLFW_INFINITY)
 {
-	printf("CPlayer(%p) Ctor.\n", this);
+	//printf("CPlayer(%p) Ctor.\n", this);
 
 	// init vars
 	fX = 0;
@@ -70,7 +70,7 @@ CPlayer::CPlayer(u_int nPlayerId)
 	  m_pStateAuther(NULL),
 	  m_dNextUpdateTime(GLFW_INFINITY)
 {
-	printf("CPlayer(%p) Ctor.\n", this);
+	//printf("CPlayer(%p) Ctor.\n", this);
 
 	// init vars
 	fX = 0;
@@ -116,20 +116,23 @@ CPlayer::~CPlayer()
 	delete m_pController;
 	delete m_pStateAuther;
 
-	printf("CPlayer(%p) ~Dtor.\n", this);
+	if (pConnection != NULL && pConnection->HasPlayer() && !pConnection->IsMultiPlayer())
+		pConnection->RemovePlayer();
+
+	//printf("CPlayer(%p) ~Dtor.\n", this);
 }
 
-/*void CPlayer::FakeTick()
+void CPlayer::SeekRealtimeInput(double dTimePassed)
 {
-	fTicks = (float)(dCurTime - (dNextTickTime - 1.0 / cCommandRate));
-	while (dCurTime >= dNextTickTime)
-	{
-		dNextTickTime += 1.0 / cCommandRate;
-		fTicks = (float)(dCurTime - (dNextTickTime - 1.0 / cCommandRate));
+	// is the player dead?
+	if (GetTeam() == 2 || IsDead()) return;
 
-		++cCurrentCommandSequenceNumber;
+	LocalController * pLocalController = dynamic_cast<LocalController *>(m_pController);
+
+	if (NULL != pLocalController) {
+		pLocalController->ProvideRealtimeInput(dTimePassed);
 	}
-}*/
+}
 
 void CPlayer::Tick()
 {
@@ -223,22 +226,25 @@ void CPlayer::Tick()
 #endif // 0
 
 #ifdef EX0_CLIENT
-	if (pLocalPlayer == NULL || pLocalPlayer->GetTeam() == 2 || pLocalPlayer->IsDead())
+	//if (pLocalPlayer == NULL || pLocalPlayer->GetTeam() == 2 || pLocalPlayer->IsDead())
+	if (GetTeam() == 2 || IsDead())
 		return;
 
 	// CONTINUE: Decide how local player movement should be handled when hosting a server...
 	//			 Consider that while keyboard/mouse input may be instantly avaliable, AI/bot calculations may not be
 	//			 (i.e. perhaps, even local player on local server should be treated as with a remote controller)
 
+	if (m_pController != NULL)
+		m_pController->RequestNextCommand();
+
+	/*
 	//if (iID == iLocalPlayerID)
 	//if (this == pLocalPlayer)
-	// TODO: Fix this up... Don't use typid, rather make smart use of virtual functions, etc.
-	if (this->m_pController != NULL && typeid(*this->m_pController) == typeid(LocalController))
+	if (true == m_pController->IsLocal())
 	{
-		m_pController->RequestInput(0);
-
 		// DEBUG: A work in progress...
-		if (pLocalServer == NULL && pServer != NULL)
+		//if (pLocalServer == NULL && pServer != NULL)
+		if (false == m_pStateAuther->IsLocal())
 		{
 			//if (oUnconfirmedMoves.size() < 100)
 			//{
@@ -283,9 +289,10 @@ void CPlayer::Tick()
 					oSequencedState.cSequenceNumber = cCurrentCommandSequenceNumber;
 					oSequencedState.oState = oMove.oState;
 					PushStateHistory(oSequencedState);
-				}*/
+				}* /
 			//}
-		} else
+		}
+		else
 		{
 			SequencedInput_t oSequencedInput;
 
@@ -307,9 +314,10 @@ void CPlayer::Tick()
 		fY += fVelY;
 
 		// do collision response for player
-		CalcColResp();*/
+		CalcColResp();* /
 		//++cCurrentCommandSequenceNumber;
 	}
+	*/
 #endif
 }
 
@@ -410,6 +418,11 @@ void CPlayer::GiveHealth(float fValue)
 	// is the player dead?
 	if (IsDead()) return;
 
+	if (fHealth + fValue <= 0) {
+		m_oDeadState = GetStateInPast(0);
+		m_oDeadState.fZ = GetZ();
+	}
+
 	fHealth += fValue;
 	if (fHealth < 0) fHealth = 0;
 }
@@ -419,6 +432,7 @@ void CPlayer::CalcTrajs()
 	// is the player dead?
 	if (IsDead()) return;
 
+#define TOP_SPEED (3.5f)
 #if 0
 	// Update the player velocity (acceleration)
 	if (nMoveDirection == -1)
@@ -428,8 +442,8 @@ void CPlayer::CalcTrajs()
 	}
 	else
 	{
-		fVelX = (fTickTime / 0.050f) * Math::Sin((float)nMoveDirection * 0.785398f + fZ) * (3.5f - iIsStealth * 2.5f);
-		fVelY = (fTickTime / 0.050f) * Math::Cos((float)nMoveDirection * 0.785398f + fZ) * (3.5f - iIsStealth * 2.5f);
+		fVelX = (fTickTime / 0.050f) * Math::Sin((float)nMoveDirection * 0.785398f + fZ) * (TOP_SPEED - iIsStealth * 1.5f);
+		fVelY = (fTickTime / 0.050f) * Math::Cos((float)nMoveDirection * 0.785398f + fZ) * (TOP_SPEED - iIsStealth * 1.5f);
 	}
 #else
 	// DEBUG - this is STILL not finished, need to redo properly
@@ -449,13 +463,13 @@ void CPlayer::CalcTrajs()
 		fVelY += 0.25f * Math::Cos((float)nMoveDirection * 0.785398f + fZ);
 		Vector2 oVel(fVelX, fVelY);
 		float fLength = oVel.Unitize();
-		if (fLength - 0.5f > 3.5f - iIsStealth * 1.5f) {
+		if (fLength - 0.5f > TOP_SPEED - iIsStealth * 1.5f) {
 			fLength -= 0.5f;
 			oVel *= fLength;
 			fVelX = oVel.x;
 			fVelY = oVel.y;
-		} else if (fLength > 3.5f - iIsStealth * 1.5f) {
-			oVel *= 3.5f - iIsStealth * 1.5f;
+		} else if (fLength > TOP_SPEED - iIsStealth * 1.5f) {
+			oVel *= TOP_SPEED - iIsStealth * 1.5f;
 			fVelX = oVel.x;
 			fVelY = oVel.y;
 		}
@@ -481,7 +495,8 @@ void CPlayer::CalcColResp()
 	//Real		oDistance;
 	//float		fVelXPercentage, fVelYPercentage;
 
-	while (true)
+	int nTries = 10;
+	while (nTries-- > 0)
 	{
 		// check for collision
 		if (!ColHandCheckPlayerPos(&fX, &fY, &oShortestDistance, &oClosestPoint, &iWhichCont, &iWhichVert))
@@ -490,31 +505,63 @@ void CPlayer::CalcColResp()
 			/*for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 			{
 				// dont check for collision with yourself
-				if (iLoop1 == iID)
+				if (iLoop1 == iID || PlayerGet(iLoop1) == NULL || PlayerGet(iLoop1)->IsDead())
 					continue;
 
 				// calculate the displacement
-				oVector.x = oPlayers[iID]->GetX() - PlayerGet(iLoop1)->GetX();
-				oVector.y = oPlayers[iID]->GetY() - PlayerGet(iLoop1)->GetY();
-				oDistance = oVector.Length();
+				oVector.x = PlayerGet(iID)->GetX() - PlayerGet(iLoop1)->GetX();
+				oVector.y = PlayerGet(iID)->GetY() - PlayerGet(iLoop1)->GetY();
+				oDistance = oVector.Length() * 0.5;
 
 				if (oDistance < oShortestDistance)
 				{
 					oShortestDistance = oDistance;
 					oClosestPoint.x = PlayerGet(iLoop1)->GetX();
 					oClosestPoint.y = PlayerGet(iLoop1)->GetY();
+					iWhichCont = iWhichVert = -1;
 				}
 			}*/
 
-			oVector.x = oClosestPoint.x - fX;
-			oVector.y = oClosestPoint.y - fY;
-			//fX = fX - (oVector.x / (oShortestDistance / PLAYER_HALF_WIDTH) - oVector.x);
-			//fY = fY - (oVector.y / (oShortestDistance / PLAYER_HALF_WIDTH) - oVector.y);
-			fX -= (float)(oVector.x * PLAYER_HALF_WIDTH / oShortestDistance - oVector.x);
-			fY -= (float)(oVector.y * PLAYER_HALF_WIDTH / oShortestDistance - oVector.y);
+			// Closest to a wall
+			if (iWhichCont != -1 && false /* don't use this for now, the extra work is not needed */)
+			{
+				//Vector2		oVector;
+				//Segment2	oSegment;
+
+				// Check if resolved point lies on the same side of wall
+				// TODO: This can be optimized by using IsLeft() of the closest wall, instead of the expensive IsInside()
+				//if (ColHandIsLeft
+
+				oVector.x = fX - oClosestPoint.x;
+				oVector.y = fY - oClosestPoint.y;
+				fX += (float)(oVector.x * PLAYER_HALF_WIDTH / oShortestDistance - oVector.x);
+				fY += (float)(oVector.y * PLAYER_HALF_WIDTH / oShortestDistance - oVector.y);
+
+				if (ColHandIsPointInside(static_cast<int>(fX), static_cast<int>(fY)))
+				{
+					// Outside, move back
+					oVector.Unitize();
+					fX -= (float)(oVector.x * PLAYER_WIDTH);
+					fY -= (float)(oVector.y * PLAYER_WIDTH);
+				}
+			}
+			// Closest to another player
+			else
+			{
+				oVector.x = fX - oClosestPoint.x;
+				oVector.y = fY - oClosestPoint.y;
+				//fX = fX - (oVector.x / (oShortestDistance / PLAYER_HALF_WIDTH) - oVector.x);
+				//fY = fY - (oVector.y / (oShortestDistance / PLAYER_HALF_WIDTH) - oVector.y);
+				fX += (float)(oVector.x * PLAYER_HALF_WIDTH / oShortestDistance - oVector.x);
+				fY += (float)(oVector.y * PLAYER_HALF_WIDTH / oShortestDistance - oVector.y);
+			}
 		}
 		else
 			break;
+	}
+	if (nTries <= -1) {
+		fX = fOldX;
+		fY = fOldY;
 	}
 
 	// player-player collision - only check if we're moving
@@ -572,16 +619,22 @@ void CPlayer::CalcColResp()
 			}
 		}
 	}*/
+
+	// Update the velocity (based on collisions with things)
+	fVelX = fX - fOldX;
+	fVelY = fY - fOldY;
 }
 
 float CPlayer::GetIntX()
 {
-	return fIntX;
+	if (!IsDead()) return fIntX;
+	else return m_oDeadState.fX;
 }
 
 float CPlayer::GetIntY()
 {
-	return fIntY;
+	if (!IsDead()) return fIntY;
+	else return m_oDeadState.fY;
 }
 
 float CPlayer::GetX()
@@ -709,9 +762,12 @@ void CPlayer::SetVelY(float fValue)
 
 float CPlayer::GetZ()
 {
-	// DEBUG - yet another hack.. replace it with some proper network-syncronyzed view bobbing
-	//return fZ + Math::Sin(glfwGetTime() * 7.5) * GetVelocity() * 0.005;
-	return fZ;
+	if (!IsDead()) {
+		// DEBUG - yet another hack.. replace it with some proper network-syncronyzed view bobbing
+		//return fZ + Math::Sin(glfwGetTime() * 7.5) * GetVelocity() * 0.005;
+		return fZ;
+	} else
+		return m_oDeadState.fZ;
 }
 
 float CPlayer::GetVelocity()
@@ -733,7 +789,8 @@ void CPlayer::MoveDirection(int nDirection)
 void CPlayer::Rotate(float fAmount)
 {
 	// is the player dead?
-	if (IsDead()) return;
+	//if (IsDead()) return;
+	eX0_assert(!IsDead(), "CPlayer::Rotate() called on a dead player");
 
 	SetZ(fZ + fAmount);
 }
@@ -866,6 +923,10 @@ void CPlayer::PushStateHistory(SequencedState_t & oSequencedState)
 #ifdef EX0_CLIENT
 State_t CPlayer::GetStateInPast(float fTimeAgo)
 {
+	if (IsDead()) {
+		return m_oDeadState;
+	}
+
 	float fTicks = (pLocalPlayer != NULL) ? (pLocalPlayer->fTicks) : (float)(glfwGetTime() - (g_dNextTickTime - 1.0 / g_cCommandRate));
 
 	float fHistoryX;

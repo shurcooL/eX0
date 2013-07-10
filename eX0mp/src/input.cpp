@@ -10,7 +10,7 @@ float		fMouseSensitivity = 0.25f;
 bool		bAutoReload = true;
 
 int			nChatMode;
-string		sChatString;
+std::string	sChatString;
 
 bool		bSelectTeamDisplay = false;
 bool		bSelectTeamReady = false;		// Indicates we're ready to select a team, ie. got a response to previous request
@@ -135,6 +135,7 @@ void GLFWCALL InputProcessKey(int iKey, int iAction)
 		case GLFW_KEY_ESC:
 			if (bSelectTeamDisplay && iGameState == 0) {
 				bSelectTeamDisplay = false;
+				g_pInputManager->HideMouseCursor();		// DEBUG: Not the right place
 			} else {
 				Terminate(0);		// Normal shutdown
 			}
@@ -165,9 +166,9 @@ void GLFWCALL InputProcessKey(int iKey, int iAction)
 glfwLockMutex(oPlayerTick);
 				if (!pLocalPlayer->IsDead()) {
 					for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1) {
-						if (PlayerGet(iLoop1) == NULL || iLoop1 == iLocalPlayerID) continue;
-						if (pow((pLocalPlayer->GetIntX() + Math::Sin(pLocalPlayer->GetZ()) * PLAYER_WIDTH) - PlayerGet(iLoop1)->GetIntX(), 2)
-						  + pow((pLocalPlayer->GetIntY() + Math::Cos(pLocalPlayer->GetZ()) * PLAYER_WIDTH) - PlayerGet(iLoop1)->GetIntY(), 2)
+						if (PlayerGet(iLoop1) == NULL || PlayerGet(iLoop1) == pLocalPlayer) continue;
+						if (pow((pLocalPlayer->GetIntX() + Math::Sin(pLocalPlayer->GetZ()) * PLAYER_WIDTH) - PlayerGet(iLoop1)->GetX(), 2)
+						  + pow((pLocalPlayer->GetIntY() + Math::Cos(pLocalPlayer->GetZ()) * PLAYER_WIDTH) - PlayerGet(iLoop1)->GetY(), 2)
 						  <= PLAYER_HALF_WIDTH_SQR)
 							PlayerGet(iLoop1)->GiveHealth(-150);
 					}
@@ -207,11 +208,13 @@ glfwUnlockMutex(oPlayerTick);
 		case 'J':
 			if (!bSelectTeamDisplay && iGameState == 0) {
 				bSelectTeamDisplay = true;
+				g_pInputManager->ShowMouseCursor();		// DEBUG: Not the right place
 			}
 			break;
 		case '1':
 			if (bSelectTeamDisplay && bSelectTeamReady && pLocalPlayer->GetTeam() != 0 && iGameState == 0) {
 				bSelectTeamDisplay = bSelectTeamReady = false;
+				g_pInputManager->HideMouseCursor();		// DEBUG: Not the right place
 				pLocalPlayer->GiveHealth(-150);
 
 				// Send a Join Team Request packet
@@ -281,6 +284,7 @@ glfwUnlockMutex(oPlayerTick);
 		case '2':
 			if (bSelectTeamDisplay && bSelectTeamReady && pLocalPlayer->GetTeam() != 1 && iGameState == 0) {
 				bSelectTeamDisplay = bSelectTeamReady = false;
+				g_pInputManager->HideMouseCursor();		// DEBUG: Not the right place
 				pLocalPlayer->GiveHealth(-150);
 
 				// Send a Join Team Request packet
@@ -297,6 +301,7 @@ glfwUnlockMutex(oPlayerTick);
 		case '3':
 			if (bSelectTeamDisplay && bSelectTeamReady && pLocalPlayer->GetTeam() != 2 && iGameState == 0) {
 				bSelectTeamDisplay = bSelectTeamReady = false;
+				g_pInputManager->HideMouseCursor();		// DEBUG: Not the right place
 				pLocalPlayer->GiveHealth(-150);
 
 				// Send a Join Team Request packet
@@ -313,23 +318,25 @@ glfwUnlockMutex(oPlayerTick);
 		case '0':
 			if (bSelectTeamDisplay && bSelectTeamReady && iGameState == 0) {
 				bSelectTeamDisplay = false;
+				g_pInputManager->HideMouseCursor();		// DEBUG: Not the right place
 			}
 			break;
 		case '=':
-glfwLockMutex(oPlayerTick);
-			for (int i = 0; i < 10; ++i)
+			for (int i = 0; i < 10 && pLocalPlayer->pConnection->GetPlayerCount() < 256; ++i)
 			{//Bot test
+glfwLockMutex(oPlayerTick);
 				int nBotNumber = pLocalPlayer->pConnection->GetPlayerCount();
 				CPlayer * pTestPlayer = new CPlayer();
 				std::string sName = "Test Mimic " + itos(nBotNumber);
 				pTestPlayer->SetName(sName);
-				pTestPlayer->m_pController = new LocalController(*pTestPlayer);
+				pTestPlayer->m_pController = new AiController(*pTestPlayer);
 				pTestPlayer->m_pStateAuther = new LocalStateAuther(*pTestPlayer);
 				//(new LocalClientConnection())->SetPlayer(pTestPlayer);
 				//pTestPlayer->pConnection->SetJoinStatus(IN_GAME);
 				pLocalPlayer->pConnection->AddPlayer(pTestPlayer);
 
 				pTestPlayer->fTickTime = 1.0f / g_cCommandRate;
+glfwUnlockMutex(oPlayerTick);
 
 				// Send a Join Team Request packet
 				CPacket oJoinTeamRequest(CPacket::BOTH);
@@ -337,7 +344,6 @@ glfwLockMutex(oPlayerTick);
 				oJoinTeamRequest.CompleteTpcPacketSize();
 				pServer->SendTcp(oJoinTeamRequest);
 			}
-glfwUnlockMutex(oPlayerTick);
 			break;
 		case '-':
 			for (int i = 0; i < 10; ++i)
@@ -405,13 +411,8 @@ void InputMouseMoved()
 		* (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? 0.5f : 1.0f);
 		//* 200.0 / pLocalPlayer->fAimingDistance);
 glfwLockMutex(oPlayerTick);
-	//pLocalPlayer->Rotate(fRotationAmount);
-	// DEBUG: This is a test only, fix it
-	for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
-		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->m_pController != NULL && typeid(*PlayerGet(nPlayer)->m_pController) == typeid(LocalController)) {
-			PlayerGet(nPlayer)->Rotate(fRotationAmount);
-		}
-	}
+	// DEBUG: Fix it
+	pLocalPlayer->Rotate(fRotationAmount);
 glfwUnlockMutex(oPlayerTick);
 }
 

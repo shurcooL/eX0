@@ -6,15 +6,24 @@ class PlayerController
 {
 public:
 	PlayerController(CPlayer & oPlayer);
-	virtual ~PlayerController();
+	virtual ~PlayerController(void);
 
-	virtual bool RequestInput(u_char cSequenceNumber) = 0;
+	void RequestNextCommand(void);
+	u_int GetCommandRequests(void);
+	void UseUpCommandRequest(void);
+
+	virtual bool IsLocal(void) = 0;
 
 protected:
+	virtual void ProvideNextCommand(void) = 0;
+
+	CPlayer & m_oPlayer;
+
+private:
 	PlayerController(const PlayerController &);
 	PlayerController & operator =(const PlayerController &);
 
-	CPlayer & m_oPlayer;
+	u_int	m_nCommandRequests;
 };
 
 #endif // __PlayerController_H__

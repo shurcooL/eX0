@@ -59,6 +59,7 @@ class CTimedEvent;
 class CTimedEventScheduler;
 class ClientConnection;
 class FpsCounter;
+class PlayerInputListener;
 
 /////////////////////
 // custom includes //
@@ -88,6 +89,8 @@ using namespace Mgc;
 #include "../../shared/weapon.h"
 #include "../../shared/PlayerController.h"
 #include "../../shared/LocalController.h"
+#include "HidController.h"
+#include "../../shared/AiController.h"
 #include "../../shared/NetworkController.h"
 #include "../../shared/PlayerStateAuther.h"
 #include "../../shared/LocalStateAuther.h"
@@ -109,6 +112,11 @@ using namespace Mgc;
 #include "../../shared/GameLogicThread.h"
 #include "OGLTextureManager/TextureManager.h"
 #include "../../shared/MovingAverage.h"
+#include "InputListener.h"
+#include "PlayerInputListener.h"
+#include "InputManager.h"
+#include "../../shared/GameTimer.h"
+#include "../../shared/GameSession.h"
 
 
 //////////////////
@@ -175,6 +183,10 @@ extern GameLogicThread *		pGameLogicThread;
 extern LocalServer *			pLocalServer;
 
 extern ServerConnection *	pServer;
+
+extern InputManager *	g_pInputManager;
+
+extern GameSession *	g_pGameSession;
 
 extern u_char			g_cCurrentCommandSequenceNumber;
 extern double			g_dNextTickTime;

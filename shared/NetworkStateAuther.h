@@ -13,6 +13,8 @@ public:
 	void ProcessAuthUpdateTEST();
 	void SendUpdate();
 
+	bool IsLocal(void) { return false; }
+
 	static void ProcessUpdate(CPacket & oPacket);
 
 	u_char		cLastAckedCommandSequenceNumber;

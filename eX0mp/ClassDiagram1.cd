@@ -1,80 +1,95 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
   <Class Name="ClientConnection" Collapsed="true">
-    <Position X="5.5" Y="2.75" Width="1.5" />
+    <Position X="10.5" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AIECBARAAAABABAQAIEAQAABQAgAACVAAgEAIAQAAJI=</HashCode>
+      <HashCode>AIECBATAAAABABAQBJEAQAABQAgAACVAAwkAIAQAAJI=</HashCode>
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\ClientConnection.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="LocalController" Collapsed="true">
-    <Position X="3" Y="2.75" Width="1.5" />
+  <Class Name="AiController" Collapsed="true">
+    <Position X="4" Y="3.75" Width="1.25" />
     <TypeIdentifier>
-      <HashCode>CAAAAAAAAAAAAAQAAAAAAAAAACAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>c:\Work\Generation 10\eX0\eX0\shared\LocalController.h</FileName>
+      <HashCode>AAAACAAAACAAAAAAAAEAAQAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\AiController.h</FileName>
+      <NewMemberFileName>c:\Work\Generation 10\eX0\eX0\shared\LocalController.h</NewMemberFileName>
     </TypeIdentifier>
   </Class>
   <Class Name="LocalStateAuther" Collapsed="true">
-    <Position X="3" Y="6" Width="1.5" />
+    <Position X="7.75" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAQAAgAAAAAACAAAAAAEAAAAAACAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAQAAgAQAAAACAAAAAAEAAAAAACAAAAAAAAAA=</HashCode>
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\LocalStateAuther.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="NetworkConnection" Collapsed="true">
-    <Position X="6.5" Y="1.5" Width="1.75" />
+    <Position X="11.5" Y="1.25" Width="1.75" />
     <TypeIdentifier>
       <HashCode>gAAAIAAAAIERAQABhACACAAAAAAAEAgAQAggEAEAAQA=</HashCode>
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\NetworkConnection.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="NetworkController" Collapsed="true">
-    <Position X="0.75" Y="2.75" Width="1.5" />
+    <Position X="0.75" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAACAAAACAAAAAAACAAAAIABAAAIAAIAIA=</HashCode>
+      <HashCode>AAAAAAAAAAAACQAAACEAAQAAAAAAAAIABAAAIAAIAIA=</HashCode>
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\NetworkController.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="NetworkStateAuther" Collapsed="true">
-    <Position X="0.75" Y="6" Width="1.75" />
+    <Position X="5.5" Y="2.5" Width="1.75" />
     <TypeIdentifier>
-      <HashCode>AAAAAAACAAAgAAAAAACAAAAAQEAAAAAACAAAAAQAAIA=</HashCode>
+      <HashCode>AAAAAAACAAAgAQAAAACAAAAAQEAAAAAACAAAAAQAAIA=</HashCode>
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\NetworkStateAuther.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="PlayerController" Collapsed="true">
-    <Position X="2" Y="1.5" Width="1.5" />
+    <Position X="2" Y="1.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAABAAAAAAAAASAEACAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAAAABBQCAAAEAASAEAAAAAAAAAAAAAACAAAA=</HashCode>
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\PlayerController.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="PlayerStateAuther" Collapsed="true">
-    <Position X="2" Y="4.75" Width="1.5" />
+    <Position X="6.75" Y="1.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAIAAAAAFAAAAAACAAQAAAEAAAAAACAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAIAAAAAFAQAAAACAAQAAAEAAAAAACAAAAAAAAAA=</HashCode>
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\PlayerStateAuther.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="ServerConnection" Collapsed="true">
-    <Position X="7.75" Y="2.75" Width="1.5" />
+    <Position X="12.75" Y="2.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ABgAAAAAAAAAAAAAAAAAAIBAAAAAAAAAAAAAAAAAQAA=</HashCode>
       <FileName>src\ServerConnection.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="LocalClientConnection" Collapsed="true">
-    <Position X="5.25" Y="4" Width="2" />
+    <Position X="10.25" Y="3.75" Width="2" />
     <TypeIdentifier>
-      <HashCode>AAAABAAAAAAAAAAAAAAAAAAAAAAAAEAAQAAgAAAAAAA=</HashCode>
+      <HashCode>AAAABAAAAAAAAQAAAAAAAAAAAAAAAEAAQAAgAAAAAAA=</HashCode>
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\LocalClientConnection.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="LocalServerConnection" Collapsed="true">
-    <Position X="7.5" Y="4" Width="2" />
+    <Position X="12.5" Y="3.75" Width="2" />
     <TypeIdentifier>
-      <HashCode>AgAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAgAAAAAAA=</HashCode>
+      <HashCode>AgAAgAAAAAAAAQAAAAAAAIAAAAAAAAAAQAAgAAAAAAA=</HashCode>
       <FileName>src\LocalServerConnection.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="LocalController" Collapsed="true">
+    <Position X="3" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CAAAAAAAAAAAAQQAAAAAAQAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\LocalController.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="HidController" Collapsed="true">
+    <Position X="2.25" Y="3.75" Width="1.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAACAAAAACAAAAAEAAQAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\HidController.h</FileName>
     </TypeIdentifier>
   </Class>
   <Font Name="Tahoma" Size="8.25" />

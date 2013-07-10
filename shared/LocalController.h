@@ -9,7 +9,13 @@ public:
 	LocalController(CPlayer & oPlayer);
 	~LocalController();
 
-	bool RequestInput(u_char cSequenceNumber);
+	bool IsLocal(void) { return true; }
+
+	virtual void ProvideRealtimeInput(double dTimePassed) = 0;
+
+private:
+	LocalController(const LocalController &);
+	LocalController & operator =(const LocalController &);
 };
 
 #endif // __LocalController_H__

@@ -18,6 +18,62 @@ NetworkStateAuther::~NetworkStateAuther()
 
 void NetworkStateAuther::AfterTick()
 {
+	while (!m_oPlayer.m_oInputCmdsTEST.empty() && m_oPlayer.m_pController->GetCommandRequests() > 0)
+	{
+		m_oPlayer.m_pController->UseUpCommandRequest();
+
+		SequencedCommand_t oSequencedCommand;
+		m_oPlayer.m_oInputCmdsTEST.pop(oSequencedCommand);
+
+		//if (oUnconfirmedMoves.size() < 100)
+		//{
+			// Set the inputs
+			m_oPlayer.MoveDirection(oSequencedCommand.oCommand.cMoveDirection);
+			m_oPlayer.SetStealth(oSequencedCommand.oCommand.cStealth != 0);
+			m_oPlayer.SetZ(oSequencedCommand.oCommand.fZ);
+
+			// Player tick
+			m_oPlayer.CalcTrajs();
+			m_oPlayer.CalcColResp();
+
+			/*Input_t oInput;
+			oInput.cMoveDirection = (char)nMoveDirection;
+			oInput.cStealth = (u_char)iIsStealth;
+			oInput.fZ = GetZ();*/
+			//if (oUnconfirmedInputs.size() < 101)
+			//oUnconfirmedInputs.push_back(oInput);
+			Move_t oMove;
+			oMove.oCommand = oSequencedCommand.oCommand;
+			oMove.oState.fX = m_oPlayer.GetX(); oMove.oState.fY = m_oPlayer.GetY(); oMove.oState.fZ = m_oPlayer.GetZ();
+			oUnconfirmedMoves.push(oMove, g_cCurrentCommandSequenceNumber);
+			//printf("pushed a move on oUnconfirmedMoves, size() = %d, cur# => %d\n", oUnconfirmedMoves.size(), cCurrentCommandSequenceNumber);
+
+			iTempInt = std::max<int>(iTempInt, (int)oUnconfirmedMoves.size() - 1);
+
+			// Send the Client Command packet
+			CPacket oClientCommandPacket;
+			oClientCommandPacket.pack("cccc", (u_char)1,		// packet type
+											  g_cCurrentCommandSequenceNumber,		// sequence number
+											  this->cCurrentCommandSeriesNumber,		// series number
+											  (u_char)(oUnconfirmedMoves.size() - 1));
+			for (u_char it1 = oUnconfirmedMoves.begin(); it1 != oUnconfirmedMoves.end(); ++it1)
+			{
+				oClientCommandPacket.pack("ccf", oUnconfirmedMoves[it1].oCommand.cMoveDirection,
+												 oUnconfirmedMoves[it1].oCommand.cStealth,
+												 oUnconfirmedMoves[it1].oCommand.fZ);
+			}
+			if ((rand() % 100) >= 0 || iLocalPlayerID != 0) // DEBUG: Simulate packet loss
+				pServer->SendUdp(oClientCommandPacket);
+
+			// DEBUG: Keep state history for local player
+			/*if ((rand() % 100) >= 0) {
+				SequencedState_t oSequencedState;
+				oSequencedState.cSequenceNumber = cCurrentCommandSequenceNumber;
+				oSequencedState.oState = oMove.oState;
+				PushStateHistory(oSequencedState);
+			}*/
+		//}
+	}
 }
 
 void NetworkStateAuther::ProcessAuthUpdateTEST()
@@ -63,16 +119,16 @@ void NetworkStateAuther::ProcessAuthUpdateTEST()
 				}
 				else if ((char)(g_cCurrentCommandSequenceNumber - pLocalPlayer->cLatestAuthStateSequenceNumber) > 0)
 				{
-					string str = (string)"inputs empty; " + itos(g_cCurrentCommandSequenceNumber) + ", " + itos(pLocalPlayer->cLatestAuthStateSequenceNumber);
+					string str = (string)"commands empty; " + itos(g_cCurrentCommandSequenceNumber) + ", " + itos(pLocalPlayer->cLatestAuthStateSequenceNumber);
 					//eX0_assert(!oLocallyPredictedInputs.empty(), str);
 					eX0_assert(!oUnconfirmedMoves.empty(), str);
 
-					// Discard all the locally predicted inputs that got deprecated by this server update
+					// Discard all the locally predicted commands that got deprecated by this server update
 					// TODO: There's a faster way to get rid of all old useless packets at once
 					while (!oUnconfirmedMoves.empty()) {
 						if ((char)(pLocalPlayer->cLatestAuthStateSequenceNumber - oUnconfirmedMoves.begin()) > 0)
 						{
-							// This is an outdated predicted input, the server's update supercedes it, thus it's dropped
+							// This is an outdated predicted command, the server's update supercedes it, thus it's dropped
 							oUnconfirmedMoves.pop();
 						} else
 							break;
@@ -93,21 +149,21 @@ void NetworkStateAuther::ProcessAuthUpdateTEST()
 						pLocalPlayer->SetX(fX);
 						pLocalPlayer->SetY(fY);
 
-						eX0_assert((char)(oUnconfirmedMoves.begin() - pLocalPlayer->cLatestAuthStateSequenceNumber) > 0, "outdated input being used");
+						eX0_assert((char)(oUnconfirmedMoves.begin() - pLocalPlayer->cLatestAuthStateSequenceNumber) > 0, "outdated command being used");
 
-						// Run the simulation for all locally predicted inputs after this server update
+						// Run the simulation for all locally predicted commands after this server update
 						float fOriginalOldX = pLocalPlayer->GetOldX();
 						float fOriginalOldY = pLocalPlayer->GetOldY();
 						float fOriginalZ = pLocalPlayer->GetZ();
-						Input_t oInput;
+						Command_t oCommand;
 						for (u_char it1 = oUnconfirmedMoves.begin(); it1 != oUnconfirmedMoves.end(); ++it1)
 						{
-							oInput = oUnconfirmedMoves[it1].oInput;
+							oCommand = oUnconfirmedMoves[it1].oCommand;
 
 							// Set inputs
-							pLocalPlayer->MoveDirection(oInput.cMoveDirection);
-							pLocalPlayer->SetStealth(oInput.cStealth != 0);
-							pLocalPlayer->SetZ(oInput.fZ);
+							pLocalPlayer->MoveDirection(oCommand.cMoveDirection);
+							pLocalPlayer->SetStealth(oCommand.cStealth != 0);
+							pLocalPlayer->SetZ(oCommand.fZ);
 
 							// Run a tick
 							pLocalPlayer->CalcTrajs();

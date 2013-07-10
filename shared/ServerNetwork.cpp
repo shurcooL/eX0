@@ -262,16 +262,16 @@ glfwLockMutex(oPlayerTick);
 					y = static_cast<float>(rand() % 2000 - 1000);
 				} while (ColHandIsPointInside((int)x, (int)y) || !ColHandCheckPlayerPos(&x, &y));
 				pConnection->GetPlayer(cPlayerNumber)->Position(x, y, 0.001f * (rand() % 1000) * Math::TWO_PI);
-				printf("Positioning player %d at %f, %f.\n", pConnection->GetPlayerID(cPlayerNumber), x, y);
+				printf("Positioning player %d at %f, %f, %f.\n", pConnection->GetPlayerID(cPlayerNumber), x, y, pConnection->GetPlayer()->GetZ());
 
+				// DEBUG: Perform the cLastRecvedCommandSequenceNumber synchronization to time
+				double d = glfwGetTime() / (256.0 / g_cCommandRate);
+				d -= floor(d);
+				d *= 256.0;
 				if (false == pConnection->IsLocal()) {
-					// DEBUG: Perform the cLastRecvedCommandSequenceNumber synchronization to time
-					double d = glfwGetTime() / (256.0 / g_cCommandRate);
-					d -= floor(d);
-					d *= 256.0;
 					static_cast<NetworkController *>(pConnection->GetPlayer(cPlayerNumber)->m_pController)->cLastRecvedCommandSequenceNumber = (u_char)d;
-					pConnection->GetPlayer(cPlayerNumber)->cLatestAuthStateSequenceNumber = (u_char)d;
 				}
+				pConnection->GetPlayer(cPlayerNumber)->cLatestAuthStateSequenceNumber = (u_char)d;
 
 				pConnection->GetPlayer(cPlayerNumber)->m_oInputCmdsTEST.clear();			// DEBUG: Is this the right thing to do? Right place to do it?
 				pConnection->GetPlayer(cPlayerNumber)->m_oAuthUpdatesTEST.clear();		// DEBUG: Is this the right thing to do? Right place to do it?
@@ -373,7 +373,7 @@ glfwUnlockMutex(oPlayerTick);
 				pConnection->SendTcp(oCurrentPlayersInfoPacket, PUBLIC_CLIENT);
 
 				// Send a Player Joined Server packet to all the other clients with Public status
-				CPacket oPlayerJoinedServerPacket;
+				CPacket oPlayerJoinedServerPacket(CPacket::BOTH);
 				oPlayerJoinedServerPacket.pack("hc", 0, (u_char)25);
 				oPlayerJoinedServerPacket.pack("c", (u_char)pConnection->GetPlayerID());
 				oPlayerJoinedServerPacket.pack("c", (u_char)pConnection->GetPlayer()->GetName().length());
