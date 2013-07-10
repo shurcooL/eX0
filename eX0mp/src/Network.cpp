@@ -12,9 +12,18 @@ GLFWmutex		oTcpSendMutex;
 
 u_char			cLocalMovementSequenceNumber = 0;
 u_char			cRemoteUpdateSequenceNumber = 0;
-deque<Input_t>	oLocallyPredictedInputs;
-//deque<Input_t>	oUnconfirmedInputs(5);
+//deque<Input_t>	oLocallyPredictedInputs;
+//deque<Input_t>	oUnconfirmedInputs;
 GLFWmutex		oPlayerTick;
+
+/*Move_t			oPredictedUnconfirmedMoves[256];
+u_char			cPredictedUnconfirmedMovesHead = 0;
+u_char			cPredictedUnconfirmedMovesTail = 0;*/
+IndexedCircularBuffer<Move_t>	oUnconfirmedMoves(256);
+
+float			fLastLatency = 0;
+float			fPingPacketTime;
+int				nPingPacketNumber = -1;
 
 // Initialize the networking component
 bool NetworkInit()
@@ -56,11 +65,11 @@ int sendall(SOCKET s, char *buf, int len, int flags)
 
 	int total = 0;        // how many bytes we've sent
 	int bytesleft = len; // how many we have left to send
-	int n;
+	int n = 0;
 
 	while(total < len) {
 		n = send(s, buf+total, bytesleft, flags);
-		if (n == -1) { break; }
+		if (n == SOCKET_ERROR) { break; }
 		total += n;
 		bytesleft -= n;
 	}
@@ -69,7 +78,7 @@ int sendall(SOCKET s, char *buf, int len, int flags)
 
 	glfwUnlockMutex(oTcpSendMutex);
 
-	return (n == -1 || total != len) ? -1 : total; // return -1 on failure, bytes sent on success
+	return (n == SOCKET_ERROR || total != len) ? SOCKET_ERROR : total; // return SOCKET_ERROR on failure, bytes sent on success
 }
 
 // Connect to a server
@@ -264,7 +273,7 @@ void GLFWCALL NetworkThread(void *pArg)
 		glfwSleep(0.0);
 	}
 
-	printf("Network thread has terminated.\n");
+	printf("Network thread has ended.\n");
 }
 
 // Process a received TCP packet
@@ -461,8 +470,9 @@ fTempFloat = static_cast<float>(glfwGetTime());
 						// Reset the sequence numbers for the local player
 						cLocalMovementSequenceNumber = 0;
 						cRemoteUpdateSequenceNumber = 0;
-						oLocallyPredictedInputs.clear();
+						//oLocallyPredictedInputs.clear();
 						//oUnconfirmedInputs.clear();
+						oUnconfirmedMoves.clear();
 					}
 
 					++nActivePlayers;
@@ -559,101 +569,136 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize/*, CClient * oCl
 
 		if (nPacketSize <= 14) return false;		// Check packet size
 		else {
+glfwLockMutex(oPlayerTick);
+
 			u_char cSequenceNumber;
 			u_char cPlayerInfo;
 			float fX, fY, fZ;
 			oPacket.unpack("c", &cSequenceNumber);
 
-			for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+			if (cSequenceNumber == cRemoteUpdateSequenceNumber) {
+				printf("Got a duplicate UDP update packet from the server, discarding.\n");
+			} else if ((char)(cSequenceNumber - cRemoteUpdateSequenceNumber) < 0) {
+				printf("Got an out of order UDP update packet from the server, discarding.\n");
+			} else
 			{
-				oPacket.unpack("c", &cPlayerInfo);
-				if (cPlayerInfo == 1) {
-					// Active player
-					oPacket.unpack("fff", &fX, &fY, &fZ);
-					if (nPlayer == iLocalPlayerID) {
-						/*PlayerGet(nPlayer)->SetOldX(PlayerGet(nPlayer)->GetX());
-						PlayerGet(nPlayer)->SetOldY(PlayerGet(nPlayer)->GetY());
-						PlayerGet(nPlayer)->SetX(fX);
-						PlayerGet(nPlayer)->SetY(fY);*/
-						//PlayerGet(nPlayer)->Position(fX, fY);
-						//PlayerGet(nPlayer)->SetZ(fZ);
-						//PlayerGet(nPlayer)->UpdateInterpolatedPos();
-glfwLockMutex(oPlayerTick);
-						if (cRemoteUpdateSequenceNumber == cSequenceNumber) {
-							printf("Got a duplicate UDP update packet, discarding.\n");
-						} else
-						{
-							++cRemoteUpdateSequenceNumber;
-							if (cRemoteUpdateSequenceNumber != cSequenceNumber) {
-								printf("Lost %d UDP update packet(s) from the server!\n", (u_char)(cSequenceNumber - cRemoteUpdateSequenceNumber));
-							}
-							cRemoteUpdateSequenceNumber = cSequenceNumber;
+				++cRemoteUpdateSequenceNumber;
+				if (cSequenceNumber != cRemoteUpdateSequenceNumber) {
+					printf("Lost %d UDP update packet(s) from the server!\n", (char)(cSequenceNumber - cRemoteUpdateSequenceNumber));
+				}
+				cRemoteUpdateSequenceNumber = cSequenceNumber;
 
-							// DEBUG: Should make sure the player can't see other players
-							// through walls, if he accidents gets warped through a wall
-							PlayerGet(iLocalPlayerID)->SetX(fX);
-							PlayerGet(iLocalPlayerID)->SetY(fY);
+				// Ping time calculation
+				if (nPingPacketNumber >= 0
+				  && (char)(cRemoteUpdateSequenceNumber - nPingPacketNumber) >= 0) {
+					fLastLatency = (float)glfwGetTime() - fPingPacketTime;
+					nPingPacketNumber = -41;
+				}
 
+				for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+				{
+					oPacket.unpack("c", &cPlayerInfo);
+					if (cPlayerInfo == 1) {
+						// Active player
+						oPacket.unpack("fff", &fX, &fY, &fZ);
+						if (nPlayer == iLocalPlayerID) {
 							if (cLocalMovementSequenceNumber == cRemoteUpdateSequenceNumber)
 							{
-								oLocallyPredictedInputs.clear();
-							}
-							else if ((u_char)(cLocalMovementSequenceNumber - cRemoteUpdateSequenceNumber) > 0
-							  && (u_char)(cLocalMovementSequenceNumber - cRemoteUpdateSequenceNumber) <= 100)
-							{
-								//eX0_assert(!oLocallyPredictedInputs.empty(), "!oLocallyPredictedInputs.empty()");
-								string str = (string)"inputs empty; " + itos(cLocalMovementSequenceNumber) + ", " + itos(cRemoteUpdateSequenceNumber);
-								eX0_assert(!oLocallyPredictedInputs.empty(), str);
+								Vector2 oServerPosition(fX, fY);
+								Vector2 oClientPrediction(oUnconfirmedMoves.front().oState.fX, oUnconfirmedMoves.front().oState.fY);
+								// If the client prediction differs from the server's value by more than a treshold amount, snap to server's value
+								if ((oServerPosition - oClientPrediction).SquaredLength() > 0.001f)
+									printf("Snapping to server's position (%f difference).\n", (oServerPosition - oClientPrediction).Length());
 
-								// Run the simulation for all locally predicted inputs since this server update
-								Input_t oInput;
-								while (!oLocallyPredictedInputs.empty()) {
-									oInput = oLocallyPredictedInputs.front();
-									if ((u_char)(cRemoteUpdateSequenceNumber - oInput.cSequenceNumber ) >= 0
-									  && (u_char)(cRemoteUpdateSequenceNumber - oInput.cSequenceNumber ) <= 100)
+								// DEBUG: Should make sure the player can't see other players
+								// through walls, if he accidents gets warped through a wall
+								PlayerGet(iLocalPlayerID)->SetX(fX);
+								PlayerGet(iLocalPlayerID)->SetY(fY);
+
+								//oLocallyPredictedInputs.clear();
+								//oUnconfirmedInputs.clear();
+								oUnconfirmedMoves.clear();
+							}
+							else if ((char)(cLocalMovementSequenceNumber - cRemoteUpdateSequenceNumber) > 0)
+							{
+								string str = (string)"inputs empty; " + itos(cLocalMovementSequenceNumber) + ", " + itos(cRemoteUpdateSequenceNumber);
+								//eX0_assert(!oLocallyPredictedInputs.empty(), str);
+								eX0_assert(!oUnconfirmedMoves.empty(), str);
+
+								// Discard all the locally predicted inputs that got deprecated by this server update
+								// TODO: There's a faster way to get rid of all old useless packets at once
+								while (!oUnconfirmedMoves.empty()) {
+									if ((char)(cRemoteUpdateSequenceNumber - oUnconfirmedMoves.begin()) > 0)
 									{
-										// Outdated predicted input, the server's update supercedes it, so drop it
-										oLocallyPredictedInputs.pop_front();
+										// This is an outdated predicted input, the server's update supercedes it, thus it's dropped
+										oUnconfirmedMoves.pop();
 									} else
 										break;
 								}
 
-								// TODO: There's a faster way to get rid of all old useless packets at once
-								/*if ((u_char)(cRemoteUpdateSequenceNumber - oInput.cSequenceNumber ) >= 0
-								  && (u_char)(cRemoteUpdateSequenceNumber - oInput.cSequenceNumber ) <= 100)
-									continue;*/
-
-								eX0_assert((u_char)(oInput.cSequenceNumber - cRemoteUpdateSequenceNumber) > 0
-									&& (u_char)(oInput.cSequenceNumber - cRemoteUpdateSequenceNumber) <= 100, "outdated input being used");
-
-								// Use all the inputs after the server's update
-								for (deque<Input_t>::iterator it1 = oLocallyPredictedInputs.begin();
-									it1 != oLocallyPredictedInputs.end(); ++it1)
+								Vector2 oServerPosition(fX, fY);
+								Vector2 oClientPrediction(oUnconfirmedMoves.front().oState.fX, oUnconfirmedMoves.front().oState.fY);
+								// If the client prediction differs from the server's value by more than a treshold amount, snap to server's value
+								if ((oServerPosition - oClientPrediction).SquaredLength() > 0.001f)
 								{
-									oInput = *it1;
+									printf("Snapping to server's position (%f difference).\n", (oServerPosition - oClientPrediction).Length());
 
-									// Set inputs
-									PlayerGet(iLocalPlayerID)->MoveDirection(oInput.cMoveDirection);
-									PlayerGet(iLocalPlayerID)->SetZ(oInput.fZ);
+									oUnconfirmedMoves.pop();
 
-									// Run a tick
-									PlayerGet(iLocalPlayerID)->CalcTrajs();
-									PlayerGet(iLocalPlayerID)->CalcColResp();
+									// DEBUG: Should make sure the player can't see other players
+									// through walls, if he accidents gets warped through a wall
+									PlayerGet(iLocalPlayerID)->SetX(fX);
+									PlayerGet(iLocalPlayerID)->SetY(fY);
+
+									eX0_assert((char)(oUnconfirmedMoves.begin() - cRemoteUpdateSequenceNumber) > 0, "outdated input being used");
+
+									// Run the simulation for all locally predicted inputs after this server update
+									float fOriginalOldX = PlayerGet(iLocalPlayerID)->GetOldX();
+									float fOriginalOldY = PlayerGet(iLocalPlayerID)->GetOldY();
+									float fOriginalZ = PlayerGet(iLocalPlayerID)->GetZ();
+									Input_t oInput;
+									for (u_char it1 = oUnconfirmedMoves.begin(); it1 != oUnconfirmedMoves.end(); ++it1)
+									{
+										oInput = oUnconfirmedMoves[it1].oInput;
+
+										// Set inputs
+										PlayerGet(iLocalPlayerID)->MoveDirection(oInput.cMoveDirection);
+										PlayerGet(iLocalPlayerID)->SetZ(oInput.fZ);
+
+										// Run a tick
+										PlayerGet(iLocalPlayerID)->CalcTrajs();
+										PlayerGet(iLocalPlayerID)->CalcColResp();
+									}
+									PlayerGet(iLocalPlayerID)->SetOldX(fOriginalOldX);
+									PlayerGet(iLocalPlayerID)->SetOldY(fOriginalOldY);
+									PlayerGet(iLocalPlayerID)->SetZ(fOriginalZ);
 								}
 							} else {
 								//eX0_assert(false);
 								printf("WTF\n");
 							}
+						} else {
+							// TODO: Create smooth movement, instead of just hard placing the other player
+							PlayerGet(nPlayer)->Position(fX, fY);
+							PlayerGet(nPlayer)->SetZ(fZ);
 						}
-glfwUnlockMutex(oPlayerTick);
-					} else {
-						// TODO: Create smooth movement, instead of just hard placing the other player
-						PlayerGet(nPlayer)->Position(fX, fY);
-						PlayerGet(nPlayer)->SetZ(fZ);
 					}
+				}
+
+				// Drop the moves that have been confirmed now
+				// TODO: There's a faster way to get rid of all old useless packets at once
+				while (!oUnconfirmedMoves.empty())
+				{
+					if ((char)(cRemoteUpdateSequenceNumber - oUnconfirmedMoves.begin()) >= 0)
+					{
+						oUnconfirmedMoves.pop();
+					} else
+						break;
 				}
 			}
 		}
+
+glfwUnlockMutex(oPlayerTick);
 		break;
 	default:
 		printf("Error: Got unknown UDP packet of type %d and size %d.\n", (int)cPacketType, nPacketSize);
@@ -666,9 +711,11 @@ glfwUnlockMutex(oPlayerTick);
 
 void NetworkDestroyThread()
 {
-	if (oNetworkThread < 0) return;
+	if (oNetworkThread < 0)
+		return;
 
 	bNetworkThreadRun = false;
+
 	shutdown(nServerTcpSocket, SD_BOTH);
 
 	glfwWaitThread(oNetworkThread, GLFW_WAIT);

@@ -338,7 +338,7 @@ void GLFWCALL InputProcessMouse(int iButton, int iAction)
 	{
 		switch (iButton) {
 		case GLFW_MOUSE_BUTTON_LEFT:
-			if (iGameState == 0) oPlayers[iLocalPlayerID]->Fire();
+			//if (iGameState == 0) oPlayers[iLocalPlayerID]->Fire();
 			break;
 		case GLFW_MOUSE_BUTTON_RIGHT:
 			//iMouseButtonsDown |= 2;

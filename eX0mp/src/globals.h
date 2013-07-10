@@ -62,6 +62,7 @@ using namespace POLYBOOLEAN;
 #include "Mgc/MgcIntr2DLinLin.h"
 #include "Mgc/MgcDist2DVecLin.h"
 using namespace Mgc;
+#include "IndexedCircularBuffer.h"
 #include "math.h"
 #include "col_hand.h"
 #include "input.h"
@@ -142,8 +143,11 @@ extern volatile bool	bNetworkThreadRun;
 
 extern u_char			cLocalMovementSequenceNumber;
 extern u_char			cRemoteUpdateSequenceNumber;
-extern deque<Input_t>	oLocallyPredictedInputs;
-//extern deque<Input_t>	oUnconfirmedInputs;
+extern IndexedCircularBuffer<Move_t>	oUnconfirmedMoves;
 extern GLFWmutex		oPlayerTick;
+
+extern float			fLastLatency;
+extern float			fPingPacketTime;
+extern int				nPingPacketNumber;
 
 #endif // _globals_H_

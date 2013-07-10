@@ -46,6 +46,10 @@ p = pointer
 using namespace std;	// so that we can use string class
 #pragma warning(once : 4244 4305 4996)
 
+// Classes
+class CClient;
+class CPlayer;
+class CPacket;
 
 /////////////////////
 // custom includes //
@@ -69,10 +73,11 @@ using namespace Mgc;
 #include "game_data.h"
 #include "particle.h"
 #include "weapon.h"
-#include "Packet.h"
-#include "Client.h"
 #include "player.h"
 #include "Network.h"
+#include "Packet.h"
+#include "Client.h"
+#include "Server.h"
 //#include "OGLTextureManager/TextureManager.h"
 
 
@@ -134,5 +139,11 @@ extern CParticle	oParticleEngine;
 //extern GLUquadricObj	*oQuadricObj;
 
 extern SOCKET		nUdpSocket;
+
+extern GLFWthread		oServerThread;
+extern volatile bool	bServerThreadRun;
+
+extern GLFWmutex		oTcpSendMutex;
+extern GLFWmutex		oPlayerTick;
 
 #endif // _globals_H_

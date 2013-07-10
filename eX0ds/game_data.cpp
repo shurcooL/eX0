@@ -1,6 +1,7 @@
 #include "globals.h"
 
-string			sLevelName = "test_orientation"; // "test3"
+string			sLevelName = "test_orientation";
+//string			sLevelName = "test3";
 
 gpc_polygon		oPolyLevel;
 //gpc_tristrip	oTristripLevel;

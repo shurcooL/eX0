@@ -37,7 +37,9 @@ CPlayer::~CPlayer()
 
 void CPlayer::Tick()
 {
-    // is the player dead?
+glfwLockMutex(oPlayerTick);
+
+	// is the player dead?
 	if (IsDead()) return;
 
 	oWeapons[iSelWeapon].Tick();
@@ -46,7 +48,7 @@ void CPlayer::Tick()
 	while (fTicks >= PLAYER_TICK_TIME)
 	{
 		fTicks -= PLAYER_TICK_TIME;
-glfwLockMutex(oPlayerTick);
+
 		// calculate player trajectory
 		CalcTrajs();
 
@@ -54,43 +56,54 @@ glfwLockMutex(oPlayerTick);
 		CalcColResp();
 
 		if (iID == iLocalPlayerID) {
-			// Send the Update Own Position packet
-			/*struct TcpPacketUpdateOwnPosition_t oUpdateOwnPosPacket;
-			oUpdateOwnPosPacket.snPacketSize = htons((short)(sizeof(oUpdateOwnPosPacket)));
-			oUpdateOwnPosPacket.snPacketType = htons((short)20);
-			oUpdateOwnPosPacket.fX = fX;
-			oUpdateOwnPosPacket.fY = fY;
-			oUpdateOwnPosPacket.fZ = fZ;
-			oUpdateOwnPosPacket.chFire = (char)(glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
-
-			if (sendall(nServerTcpSocket, (char *)&oUpdateOwnPosPacket, sizeof(oUpdateOwnPosPacket), 0) == SOCKET_ERROR) {
-				NetworkPrintError("sendall");
-			}*/
+			//if (oUnconfirmedInputs.size() < 101)
 			++cLocalMovementSequenceNumber;
 			Input_t oInput;
-			oInput.cSequenceNumber = cLocalMovementSequenceNumber;
 			oInput.cMoveDirection = (char)nMoveDirection;
 			oInput.fZ = GetZ();
-			if ((u_char)(cLocalMovementSequenceNumber - cRemoteUpdateSequenceNumber) > 1
-			  && (u_char)(cLocalMovementSequenceNumber - cRemoteUpdateSequenceNumber) <= 100) {
-				// Push the input on the deque
-				/*if (oUnconfirmedInputs.size() >= 5) oUnconfirmedInputs.pop_front();
-				oUnconfirmedInputs.push_back(oInput);*/
-				oLocallyPredictedInputs.push_back(oInput);
-				iTempInt = __max(iTempInt, oLocallyPredictedInputs.size());
+			//if (oUnconfirmedInputs.size() < 101)
+			//oUnconfirmedInputs.push_back(oInput);
+			/*oPredictedUnconfirmedMoves[cLocalMovementSequenceNumber].oInput = oInput;
+			if (cPredictedUnconfirmedMovesHead == cPredictedUnconfirmedMovesTail)
+				cPredictedUnconfirmedMovesHead = cLocalMovementSequenceNumber;
+			cPredictedUnconfirmedMovesTail = (u_char)(cLocalMovementSequenceNumber + 1);*/
+			Move_t oMove;
+			oMove.oInput = oInput;
+			oMove.oState.fX = GetX(); oMove.oState.fY = GetY();
+			oUnconfirmedMoves.push(oMove, cLocalMovementSequenceNumber);
+			if ((char)(cLocalMovementSequenceNumber - cRemoteUpdateSequenceNumber) > 1) {
+				//if (oUnconfirmedInputs.size() < 100)
+				//oLocallyPredictedInputs.push_back(oInput);				
+				//iTempInt = __max(iTempInt, oLocallyPredictedInputs.size());
+				iTempInt = __max(iTempInt, oUnconfirmedMoves.size() - 1);
 			}
 
+			// Send the Update Own Position packet
 			CPacket oUpdateOwnPositionPacket;
-			oUpdateOwnPositionPacket.pack("cccf", (u_char)1, // packet type
-												  oInput.cSequenceNumber, // sequence number
-												  oInput.cMoveDirection, oInput.fZ);
-			if ((rand() % 100) >= 0) // DEBUG: Simulate packet loss
+			oUpdateOwnPositionPacket.pack("ccc", (u_char)1, // packet type
+												 cLocalMovementSequenceNumber, // sequence number
+												 (u_char)oUnconfirmedMoves.size());
+			for (u_char it1 = oUnconfirmedMoves.begin(); it1 != oUnconfirmedMoves.end(); ++it1)
+			{
+				oUpdateOwnPositionPacket.pack("cf", oUnconfirmedMoves[it1].oInput.cMoveDirection,
+													oUnconfirmedMoves[it1].oInput.fZ);
+			}
+			if ((rand() % 100) >= 0 || iLocalPlayerID != 0) // DEBUG: Simulate packet loss
 				oUpdateOwnPositionPacket.SendUdp();
+
+			// Ping time calculation
+			if (nPingPacketNumber < -1) {
+				++nPingPacketNumber;
+			} else if (nPingPacketNumber == -1) {
+				fPingPacketTime = (float)glfwGetTime();
+				nPingPacketNumber = cLocalMovementSequenceNumber;
+			}
 		}
-glfwUnlockMutex(oPlayerTick);
 	}
 
 	UpdateInterpolatedPos();
+
+glfwUnlockMutex(oPlayerTick);
 }
 
 // returns number of clips left in the selected weapon
@@ -589,7 +602,8 @@ void CPlayer::Render()
 		sTempString = "max oLocallyPredictedInputs.size(): " + itos(iTempInt);
 		glLoadIdentity();
 		OglUtilsPrint(0, 50 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
-		sTempString = "fTempFloat: " + ftos(fTempFloat);
+		//sTempString = "fTempFloat: " + ftos(fTempFloat);
+		sTempString = "Latency: " + ftos(fLastLatency);
 		glLoadIdentity();
 		OglUtilsPrint(0, 65 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
 
@@ -600,7 +614,7 @@ void CPlayer::Render()
 		sTempString = "cRemoteUpdateSequenceNumber = " + itos(cRemoteUpdateSequenceNumber);
 		glLoadIdentity();
 		OglUtilsPrint(0, 105 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
-		sTempString = "oLocallyPredictedInputs.size() = " + itos(oLocallyPredictedInputs.size());
+		sTempString = "oUnconfirmedMoves.size() = " + itos(oUnconfirmedMoves.size());
 		glLoadIdentity();
 		OglUtilsPrint(0, 120 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
 

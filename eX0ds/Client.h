@@ -1,5 +1,3 @@
-class CPlayer;
-
 class CClient
 {
 public:

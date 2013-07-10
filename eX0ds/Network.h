@@ -7,6 +7,14 @@ class CPacket;
 #define MAX_UDP_PACKET_SIZE		1448
 #define MAX_PACKET_SIZE			__max(MAX_TCP_PACKET_SIZE, MAX_UDP_PACKET_SIZE)
 
+enum JoinStatus {
+	DISCONNECTED = 0,
+	TCP_CONNECTED,
+	ACCEPTED,
+	UDP_CONNECTED,
+	IN_GAME
+};
+
 // Initialize the networking component
 bool NetworkInit(void);
 

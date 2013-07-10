@@ -53,10 +53,16 @@ bool Init(int argc, char *argv[])
 	if (!glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW))
 		return false;
 	//glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
-	glfwSetWindowPos(oDesktopMode.Width - 640, oDesktopMode.Height / 2 - 240);
+	glfwSetWindowPos(oDesktopMode.Width - 650, oDesktopMode.Height / 2 - 240);
 	glfwSetWindowTitle(((string)"eX0 v0.0 (Built on " + __DATE__ + " at " + __TIME__ + ")").c_str());	// set the window title
-
 	glfwSwapInterval(0);		// Turn V-Sync off
+
+	// init OpenGL
+	if (!OglUtilsInitGL()) {
+		//ERROR_HANDLER.SetLastError("OpenGL initilization failed.");
+		printf("OpenGL initilization failed.\n");
+		return false;
+	}
 
 	stringstream x;
 	x << "GLFW_ACCELERATED: " << glfwGetWindowParam(GLFW_ACCELERATED)
@@ -70,10 +76,6 @@ bool Init(int argc, char *argv[])
 	//MessageBox(NULL, x.str().c_str(), "MessageBox1", NULL);
 	printf("%s\n", x.str().c_str());
 
-	// hide the mouse cursor and put in in center
-	glfwDisable(GLFW_MOUSE_CURSOR);
-	glfwSetMousePos(320, 240);
-
 	// sub-init
 	SetGlfwCallbacks();
 	GameDataLoad();						// load game data
@@ -81,17 +83,12 @@ bool Init(int argc, char *argv[])
 	//nPlayerCount = 0; PlayerInit();		// Initialize the players
 	if (!NetworkInit())					// Initialize the networking
 		return false;
+
+	// hide the mouse cursor and put in in center
+	glfwDisable(GLFW_MOUSE_CURSOR);
+	glfwSetMousePos(320, 240);
+
 	SyncRandSeed();
-
-	// init OpenGL
-	if (!OglUtilsInitGL()) {
-		//ERROR_HANDLER.SetLastError("OpenGL initilization failed.");
-		printf("OpenGL initilization failed.\n");
-		return false;
-	}
-
-	// set global variables
-	// ...
 
 	// make sure that the physics won't count all the time passed during init
 	fBaseTime = static_cast<float>(glfwGetTime());
@@ -109,9 +106,9 @@ void Deinit()
 
 	// sub-deinit
 	NetworkDeinit();					// Shutdown the networking component
+	nPlayerCount = 0; PlayerInit();		// delete all players
 	GameDataUnload();					// unload game data
 	OglUtilsDeinitGL();					// Deinit OpenGL stuff
-	nPlayerCount = 0; PlayerInit();		// delete all players
 	// ...
 
 	// close the window

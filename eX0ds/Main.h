@@ -1,3 +1,5 @@
+void eX0_assert(bool expression, string message);
+
 // initialization
 bool Init(int argc, char *argv[]);
 

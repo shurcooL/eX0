@@ -4,16 +4,6 @@
 #define unpack754_32(i)		(unpack754((i), 32, 8))
 #define unpack754_64(i)		(unpack754((i), 64, 11))
 
-class CClient;
-
-enum JoinStatus {
-	DISCONNECTED = 0,
-	TCP_CONNECTED,
-	ACCEPTED,
-	UDP_CONNECTED,
-	IN_GAME
-};
-
 class CPacket
 {
 public:

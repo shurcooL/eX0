@@ -173,7 +173,7 @@
 	<Files>
 		<Filter
 			Name="Source Files"
-			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
+			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx;h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
@@ -181,65 +181,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\col_hand.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\game_data.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\gpc\gpc.c"
-				>
-			</File>
-			<File
-				RelativePath=".\Main.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\math.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\mmgr\mmgr.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Network.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Packet.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\particle.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\player.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\weapon.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\ws-util.cpp"
-				>
-			</File>
-		</Filter>
-		<Filter
-			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
-			>
-			<File
 				RelativePath=".\Client.h"
 				>
 			</File>
 			<File
+				RelativePath=".\col_hand.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\col_hand.h"
+				>
+			</File>
+			<File
+				RelativePath=".\game_data.cpp"
 				>
 			</File>
 			<File
@@ -251,7 +205,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\gpc\gpc.h"
+				RelativePath=".\Main.cpp"
 				>
 			</File>
 			<File
@@ -259,11 +213,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\math.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\math.h"
 				>
 			</File>
 			<File
-				RelativePath=".\mmgr\mmgr.h"
+				RelativePath=".\Network.cpp"
 				>
 			</File>
 			<File
@@ -275,7 +233,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\mmgr\nommgr.h"
+				RelativePath=".\Packet.cpp"
 				>
 			</File>
 			<File
@@ -283,7 +241,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\particle.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\particle.h"
+				>
+			</File>
+			<File
+				RelativePath=".\player.cpp"
 				>
 			</File>
 			<File
@@ -291,95 +257,139 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Server.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Server.h"
+				>
+			</File>
+			<File
+				RelativePath=".\weapon.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\weapon.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ws-util.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\ws-util.h"
 				>
 			</File>
+			<Filter
+				Name="Mgc"
+				>
+				<File
+					RelativePath=".\Mgc\MagicFMLibType.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcDist2DVecLin.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcDist2DVecLin.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcIntr2DLinLin.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcIntr2DLinLin.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcLine2.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcLine2.inl"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcMath.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcMath.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcMath.inl"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcRay2.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcRay2.inl"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcRTLib.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcSegment2.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcSegment2.inl"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcVector2.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcVector2.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Mgc\MgcVector2.inl"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="mmgr"
+				>
+				<File
+					RelativePath=".\mmgr\mmgr.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\mmgr\mmgr.h"
+					>
+				</File>
+				<File
+					RelativePath=".\mmgr\nommgr.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="gpc"
+				>
+				<File
+					RelativePath=".\gpc\gpc.c"
+					>
+				</File>
+				<File
+					RelativePath=".\gpc\gpc.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
-		</Filter>
-		<Filter
-			Name="Mgc"
-			>
-			<File
-				RelativePath=".\Mgc\MagicFMLibType.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcDist2DVecLin.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcDist2DVecLin.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcIntr2DLinLin.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcIntr2DLinLin.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcLine2.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcLine2.inl"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcMath.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcMath.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcMath.inl"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcRay2.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcRay2.inl"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcRTLib.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcSegment2.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcSegment2.inl"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcVector2.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcVector2.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Mgc\MgcVector2.inl"
-				>
-			</File>
 		</Filter>
 	</Files>
 	<Globals>

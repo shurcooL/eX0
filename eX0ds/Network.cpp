@@ -1,8 +1,14 @@
 #include "globals.h"
 
+GLFWmutex		oTcpSendMutex;
+GLFWmutex		oPlayerTick;
+
 // Initialize the networking component
 bool NetworkInit(void)
 {
+	oTcpSendMutex = glfwCreateMutex();
+	oPlayerTick = glfwCreateMutex();
+
 #ifdef WIN32
 	WSADATA wsaData;
 	int nResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -33,6 +39,8 @@ void NetworkPrintError(const char *szMessage)
 
 int sendall(SOCKET s, char *buf, int len, int flags)
 {
+	glfwLockMutex(oTcpSendMutex);
+
 	int total = 0;        // how many bytes we've sent
 	int bytesleft = len; // how many we have left to send
 	int n = 0;
@@ -45,6 +53,8 @@ int sendall(SOCKET s, char *buf, int len, int flags)
 	}
 
 	//*len = total; // return number actually sent here
+
+	glfwUnlockMutex(oTcpSendMutex);
 
 	return (n == SOCKET_ERROR || total != len) ? SOCKET_ERROR : total; // return SOCKET_ERROR on failure, bytes sent on success
 }
@@ -253,31 +263,43 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize, CClient * pClie
 			return false;
 		}
 
-		if (nPacketSize != 7) return false;		// Check packet size
+		if (nPacketSize < 8) return false;		// Check packet size
 		else {
 			u_char cSequenceNumber;
+			u_char cMovesCount;
 			char cMoveDirection;
 			float fZ;
-			oPacket.unpack("ccf", &cSequenceNumber, &cMoveDirection, &fZ);
+			oPacket.unpack("cc", &cSequenceNumber, &cMovesCount);
 
-			if (pClient->cLastMovementSequenceNumber == cSequenceNumber) {
-				printf("Got a duplicate UDP update packet from a client, discarding.\n");
+			if (cSequenceNumber == pClient->cLastMovementSequenceNumber) {
+				printf("Got a duplicate UDP move packet from player %d, discarding.\n", pClient->GetPlayerID());
+			} else if ((char)(cSequenceNumber - pClient->cLastMovementSequenceNumber) < 0) {
+				printf("Got an out of order UDP move packet from player %d, discarding.\n", pClient->GetPlayerID());
 			} else
 			{
+				int nMove = (int)cMovesCount - (char)(cSequenceNumber - pClient->cLastMovementSequenceNumber);
+
 				++pClient->cLastMovementSequenceNumber;
-				if (pClient->cLastMovementSequenceNumber != cSequenceNumber) {
-					printf("Lost %d UDP update packet(s) from a client!\n", (u_char)(cSequenceNumber - pClient->cLastMovementSequenceNumber));
+				if (cSequenceNumber != pClient->cLastMovementSequenceNumber) {
+					printf("Lost %d UDP move packet(s) from player %d!\n", (u_char)(cSequenceNumber - pClient->cLastMovementSequenceNumber), pClient->GetPlayerID());
 				}
 				pClient->cLastMovementSequenceNumber = cSequenceNumber;
 
-				//PlayerGet(pClient->GetPlayerID())->Position(fX, fY);
-				//PlayerGet(pClient->GetPlayerID())->SetZ(fZ);
-				pClient->GetPlayer()->MoveDirection(cMoveDirection);
-				pClient->GetPlayer()->SetZ(fZ);
+				for (int nSkip = 0; nSkip < nMove; ++nSkip)
+					oPacket.unpack("cf", &cMoveDirection, &fZ);
+				for (; nMove < (int)cMovesCount; ++nMove)
+				{
+					oPacket.unpack("cf", &cMoveDirection, &fZ);
+					//printf("%d\n", cSequenceNumber - (cMovesCount - nMove));
 
-				// Player tick
-				pClient->GetPlayer()->CalcTrajs();
-				pClient->GetPlayer()->CalcColResp();
+					// Set the inputs
+					pClient->GetPlayer()->MoveDirection(cMoveDirection);
+					pClient->GetPlayer()->SetZ(fZ);
+
+					// Player tick
+					pClient->GetPlayer()->CalcTrajs();
+					pClient->GetPlayer()->CalcColResp();
+				}
 
 				// Send the Update Others Position packet
 				CPacket oUpdateOthersPositionPacket;
@@ -347,6 +369,9 @@ void NetworkDeinit()
 #else // Linux
 	// Nothing to be done on Linux
 #endif
+
+	glfwDestroyMutex(oTcpSendMutex);
+	glfwDestroyMutex(oPlayerTick);
 }
 
 // Closes a socket
