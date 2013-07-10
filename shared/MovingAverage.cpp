@@ -37,12 +37,8 @@ void MovingAverage::push(double dValue, double dTime)
 	for (rit1 = m_oPointersByTime.rbegin(); rit1 != m_oPointersByTime.rend() && dTime < rit1->first; ++rit1) { ++nInsertedIndex; }
 	m_oPointersByTime.insert(rit1.base(), std::pair<double, std::multiset<double>::iterator>(dTime, oPointerToValue));
 
-	// Remove oldest entries if they are out of the time period covered, and our size is larger than MinSize
-	// This check has to occur at the end, in case the newly added item is actually older than all current ones - meaning it should be the one to get removed
-	while (m_oPointersByTime.front().first < (dTime - m_kdTimeSpan) && size() > m_knMinSize) {
-		m_oValues.erase(m_oPointersByTime.front().second);
-		m_oPointersByTime.pop_front();
-	}
+	// This has to occur at the end, in case the newly added item is actually older than all current ones - meaning it should be the one to get removed
+	trim(dTime);
 
 	// Keep track of the latest positive and negative values
 	if (nInsertedIndex <= m_nLastPositiveValueIndex) m_nLastPositiveValueIndex = std::min<u_int>(m_nLastPositiveValueIndex + 1, size());
@@ -51,13 +47,13 @@ void MovingAverage::push(double dValue, double dTime)
 	if (dValue < 0.0) m_nLastNegativeValueIndex = std::min<u_int>(nInsertedIndex, m_nLastNegativeValueIndex);
 }
 
-// Returns +1 when the there are only positive numbers, -1 when only negative numbers, 0 othewise
-char MovingAverage::Signum() const
+// Removes oldest entries if they are out of the time period covered, and our size is larger than MinSize
+void MovingAverage::trim(double dTime)
 {
-	char bContainsPositiveValues = (m_nLastPositiveValueIndex < size()) ? 1 : 0;
-	char bContainsNegativeValues = (m_nLastNegativeValueIndex < size()) ? 1 : 0;
-
-	return bContainsPositiveValues - bContainsNegativeValues;
+	while (size() > m_knMinSize && m_oPointersByTime.front().first < (dTime - m_kdTimeSpan)) {
+		m_oValues.erase(m_oPointersByTime.front().second);
+		m_oPointersByTime.pop_front();
+	}
 }
 
 void MovingAverage::clear()
@@ -72,23 +68,28 @@ u_int MovingAverage::size() const
 	return m_oValues.size();
 }
 
-// Returns true if there are at least MinSize elements added already
+// Returns true if there are at least MinSize elements added already, and it's not zero
 bool MovingAverage::well_populated() const
 {
-	return size() >= m_knMinSize;
+	return size() >= m_knMinSize && size() > 0;
 }
 
-double MovingAverage::Mean() const
+double MovingAverage::Sum() const
 {
-	if (!well_populated()) return 0;
-
 	double dSum = 0;
 
 	for (std::multiset<double>::const_iterator it1 = m_oValues.begin(); it1 != m_oValues.end(); ++it1) {
 		dSum += *it1;
 	}
 
-	return dSum / m_oValues.size();
+	return dSum;
+}
+
+double MovingAverage::Mean() const
+{
+	if (!well_populated()) return 0;
+
+	return Sum() / m_oValues.size();
 }
 
 double MovingAverage::LowerQuartile() const
@@ -125,6 +126,15 @@ double MovingAverage::WeightedMovingAverage() const
 	}
 
 	return dWeightedSum / (size() * (size() + 1) * 0.5);
+}
+
+// Returns +1 when the there are only positive numbers, -1 when only negative numbers, 0 otherwise
+char MovingAverage::Signum() const
+{
+	char bContainsPositiveValues = (m_nLastPositiveValueIndex < size()) ? 1 : 0;
+	char bContainsNegativeValues = (m_nLastNegativeValueIndex < size()) ? 1 : 0;
+
+	return bContainsPositiveValues - bContainsNegativeValues;
 }
 
 void MovingAverage::Print()

@@ -10,7 +10,8 @@ NetworkConnection::NetworkConnection()
 	  m_nTcpSocket(INVALID_SOCKET),
 	  m_nUdpSocket(INVALID_SOCKET),
 	  m_oUdpAddress(),
-	  m_cSignature()
+	  m_cSignature(),
+	  m_dLastReceivedTime(0)
 {
 	printf("Created a disconnected NetworkConnection.\n");
 }
@@ -20,7 +21,8 @@ NetworkConnection::NetworkConnection(const SOCKET nTcpSocket)
 	  m_nTcpSocket(nTcpSocket),
 	  m_nUdpSocket(INVALID_SOCKET),
 	  m_oUdpAddress(),
-	  m_cSignature()
+	  m_cSignature(),
+	  m_dLastReceivedTime(glfwGetTime())
 {
 	printf("Created a NetworkConnection (socket %d opened).\n", GetTcpSocket());
 }
@@ -52,6 +54,15 @@ const sockaddr_in & NetworkConnection::GetUdpAddress() const { return m_oUdpAddr
 void NetworkConnection::SetSignature(const u_char cSignature[m_knSignatureSize]) { memcpy(m_cSignature, cSignature, m_knSignatureSize); }
 const u_char * NetworkConnection::GetSignature() const { return m_cSignature; }
 
+void NetworkConnection::NotifyDataReceived()
+{
+	m_dLastReceivedTime = glfwGetTime();
+}
+double NetworkConnection::GetTimeSinceLastReceive() const
+{
+	return (glfwGetTime() - m_dLastReceivedTime);
+}
+
 bool NetworkConnection::SendTcp(CPacket & oPacket, JoinStatus nMinimumJoinStatus)
 {
 	if (GetJoinStatus() < nMinimumJoinStatus) {
@@ -63,6 +74,9 @@ bool NetworkConnection::SendTcp(CPacket & oPacket, JoinStatus nMinimumJoinStatus
 		NetworkPrintError("sendall");
 		return false;
 	}
+
+	if (g_pGameSession->GetNetworkMonitor())
+		g_pGameSession->GetNetworkMonitor()->PushSentData(oPacket.size());
 
 	return true;
 }
@@ -88,6 +102,9 @@ bool NetworkConnection::SendUdp(CPacket & oPacket, JoinStatus nMinimumJoinStatus
 		NetworkPrintError("sendudp (send)");
 		return false;
 	}*/
+
+	if (g_pGameSession->GetNetworkMonitor())
+		g_pGameSession->GetNetworkMonitor()->PushSentData(oPacket.size());
 
 	return true;
 }

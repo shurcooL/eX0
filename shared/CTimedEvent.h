@@ -7,25 +7,25 @@ typedef void (*EventFunction_f)(void *);
 class CTimedEvent
 {
 public:
-	CTimedEvent(void);
+	CTimedEvent();
 	CTimedEvent(double dDelayTime, double dInterval, EventFunction_f pEventFunction, void * pArgument);
-	~CTimedEvent(void);
+	~CTimedEvent();
 
-	double GetTime(void) const;
+	double GetTime() const;
 	void SetTime(const double dTime);
-	u_int GetId(void) const;
+	double GetInterval() const;
+	u_int GetId() const;
 	void SetId(const u_int nId);
 
-	void Execute(void);
+	void Execute();
 
 	bool operator <(const CTimedEvent &oOtherEvent) const;
-
-	double			m_dInterval;
 
 private:
 	u_int			m_nId;
 
 	double			m_dTime;
+	double			m_dInterval;
 	EventFunction_f	m_pEventFunction;
 	void			*m_pArgument;
 

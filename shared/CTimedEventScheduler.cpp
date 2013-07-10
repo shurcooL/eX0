@@ -58,8 +58,8 @@ void GLFWCALL CTimedEventScheduler::ThreadFunction(void * pArgument)
 		{
 			pScheduler->m_oEvents.erase(pScheduler->m_oEvents.begin());
 			oEvent.Execute();
-			if (oEvent.m_dInterval > 0) {
-				oEvent.SetTime(oEvent.GetTime() + oEvent.m_dInterval);
+			if (oEvent.GetInterval() > 0) {
+				oEvent.SetTime(oEvent.GetTime() + oEvent.GetInterval());
 				pScheduler->m_oEvents.insert(oEvent);
 			}
 		}

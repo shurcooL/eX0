@@ -10,6 +10,7 @@ public:
 	~NetworkController();
 
 	void ProcessCommand(CPacket & oPacket);
+	void ProcessWpnCommand(CPacket & oPacket);
 
 	bool IsLocal(void) { return false; }
 
@@ -19,7 +20,10 @@ public:
 
 protected:
 	void ProvideNextCommand();
-	void ChildReset();
+
+	void ProvideNextWpnCommand();
+
+	void SubReset();
 
 private:
 	NetworkController(const NetworkController &);

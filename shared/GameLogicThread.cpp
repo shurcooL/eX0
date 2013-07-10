@@ -49,7 +49,7 @@ glfwLockMutex(oPlayerTick);
 				g_dNextTickTime += 1.0 / g_cCommandRate;
 				++g_cCurrentCommandSequenceNumber;
 
-				for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+				for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
 					if (PlayerGet(nPlayer) != NULL)
 						PlayerGet(nPlayer)->Tick();
 				}
@@ -60,45 +60,43 @@ glfwLockMutex(oPlayerTick);
 				//++g_cCurrentCommandSequenceNumber;
 				++g_pGameSession->GlobalStateSequenceNumberTEST;
 			}
-			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+			for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
 				if (PlayerGet(nPlayer) != NULL)
 					PlayerGet(nPlayer)->Tick();
 			}
-			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+			for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
 				if (PlayerGet(nPlayer) != NULL)
 					PlayerGet(nPlayer)->WeaponTickTEST();
 			}
-			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+			for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
 				if (PlayerGet(nPlayer) != NULL) {
-					PlayerGet(nPlayer)->AfterTick();
+					PlayerGet(nPlayer)->ProcessCommands();
 				}
 			}
-			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+			for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
 				if (PlayerGet(nPlayer) != NULL) {
-					PlayerGet(nPlayer)->ProcessAuthUpdateTEST();
+					PlayerGet(nPlayer)->ProcessWpnCommands();
 				}
 			}
-#ifdef EX0_CLIENT
-			// player tick
-			//if (bPaused) { fTempFloat = (float)dTimePassed; dTimePassed = 0.00001; }
-			/*if (pLocalPlayer->GetTeam() != 2 && !pLocalPlayer->IsDead()) {
-				pLocalPlayer->Tick();
-			} else {
-				//pLocalPlayer->FakeTick();
-			}*/
-			//PlayerTick();
-#endif
+			for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+				if (PlayerGet(nPlayer) != NULL) {
+					PlayerGet(nPlayer)->ProcessUpdates();
+				}
+			}
 glfwUnlockMutex(oPlayerTick);
 
 			// particle engine tick
+	double t1 = glfwGetTime();
 glfwLockMutex(oPlayerTick);
 			oParticleEngine.Tick();
 glfwUnlockMutex(oPlayerTick);
+	double td = glfwGetTime() - t1;
+	//if (td > 0.003) printf("particle tick took %.10f ms\n", td * 1000);
 			//if (bPaused) dTimePassed = fTempFloat;
 
 //#ifndef EX0_CLIENT
 glfwLockMutex(oPlayerTick);
-			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+			for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
 				if (PlayerGet(nPlayer) != NULL)
 					PlayerGet(nPlayer)->SendUpdate();
 			}

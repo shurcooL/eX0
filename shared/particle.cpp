@@ -23,14 +23,21 @@ CParticle::~CParticle()
 	//printf("CParticle ~dtor\n");
 }
 
+void CParticle::GetInterpolatedPos(Vector2 *fIntPos, int iParticle)
+{
+	*fIntPos = oParticles[iParticle].oPosition + (float)((g_pGameSession->MainTimer().GetTime() - oParticles[iParticle].dTime + (double)oParticles[iParticle].fRenderTimeOffset) / PARTICLE_TICK_TIME) * oParticles[iParticle].oVelocity;
+}
+
 void CParticle::Render()
 {
 #ifdef EX0_CLIENT
 	Vector2		fIntPos;
 
-	for (int iLoop1 = 0; iLoop1 < iNumParticles; iLoop1++)
+	RenderOffsetCamera(false);
+
+	for (int iLoop1 = 0; iLoop1 < iNumParticles; ++iLoop1)
 	{
-		if (oParticles[iLoop1].iWhatType)
+		if (0 != oParticles[iLoop1].iWhatType)
 		{
 			switch(oParticles[iLoop1].iWhatType)
 			{
@@ -43,9 +50,11 @@ void CParticle::Render()
 				glEnable(GL_LINE_SMOOTH);
 				glEnable(GL_BLEND);
 				glBegin(GL_LINES);
-					glColor4d(1.0, 0.65, 0.05, 0.1);
+					//glColor4d(1.0, 0.65, 0.05, 0.1);
+					glColor4d(1.0, 0.65, 0.05, 0.05);
 					glVertex2d(fIntPos.x - oParticles[iLoop1].oVelocity.x * 0.2, fIntPos.y - oParticles[iLoop1].oVelocity.y * 0.2);
-					glColor4d(0.95, 0.95, 0.1, 0.9);
+					//glColor4d(0.95, 0.95, 0.1, 0.9);
+					glColor4d(0.95, 0.95, 0.1, 0.15);
 					glVertex2d(fIntPos.x + oParticles[iLoop1].oVelocity.x * 0.1, fIntPos.y + oParticles[iLoop1].oVelocity.y * 0.1);
 				glEnd();
 				glDisable(GL_BLEND);
@@ -62,7 +71,7 @@ void CParticle::Render()
 				//fIntPos = oParticles[iLoop1].oPosition;
 				glShadeModel(GL_SMOOTH);
 				glEnable(GL_BLEND);
-				OglUtilsSetMaskingMode(NO_MASKING_MODE);
+				//OglUtilsSetMaskingMode(NO_MASKING_MODE);
 				glBegin(GL_QUADS);
 					glColor4d(0.95, 0.75, 0.1, 0.0);
 					glVertex2d(fIntPos.x - oParticles[iLoop1].oVelocity.UnitCross().UnitCross().x * 5, fIntPos.y - oParticles[iLoop1].oVelocity.UnitCross().UnitCross().y * 5);
@@ -81,7 +90,7 @@ void CParticle::Render()
 					glVertex2f((oParticles[iLoop1].oPosition + 2 * oParticles[iLoop1].oVelocity).x,
 							   (oParticles[iLoop1].oPosition + 2 * oParticles[iLoop1].oVelocity).y);
 				glEnd();
-				OglUtilsSetMaskingMode(WITH_MASKING_MODE);
+				//OglUtilsSetMaskingMode(WITH_MASKING_MODE);
 				glDisable(GL_BLEND);
 				glShadeModel(GL_FLAT);
 				break;
@@ -95,6 +104,44 @@ void CParticle::Render()
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 				OglUtilsSetMaskingMode(WITH_MASKING_MODE);*/
 				break;
+			case WALL_HIT_SPARK:
+				GetInterpolatedPos(&fIntPos, iLoop1);
+				//glColor4f(0.95, 0.95, 0.1, 0.8);
+				glLineWidth(1);
+				glShadeModel(GL_SMOOTH);
+				glEnable(GL_LINE_SMOOTH);
+				glEnable(GL_BLEND);
+				glBegin(GL_LINES);
+					glColor4d(1.0, 0.65, 0.05, 0.1);
+					glVertex2d(fIntPos.x - oParticles[iLoop1].oVelocity.x * 3, fIntPos.y - oParticles[iLoop1].oVelocity.y * 3);
+					glColor4d(0.95, 0.95, 0.1, 0.9);
+					glVertex2d(fIntPos.x + oParticles[iLoop1].oVelocity.x * 0, fIntPos.y + oParticles[iLoop1].oVelocity.y * 0);
+				glEnd();
+				glDisable(GL_BLEND);
+				glDisable(GL_LINE_SMOOTH);
+				glShadeModel(GL_FLAT);
+				glLineWidth(2);
+				break;
+			case BLOOD_SPLATTER:
+				if (PlayerGet(oParticles[iLoop1].iOwnerID) == pLocalPlayer) OglUtilsSetMaskingMode(NO_MASKING_MODE);
+				GetInterpolatedPos(&fIntPos, iLoop1);
+				//glColor4f(0.95, 0.95, 0.1, 0.8);
+				glLineWidth(3);
+				glShadeModel(GL_SMOOTH);
+				glEnable(GL_LINE_SMOOTH);
+				glEnable(GL_BLEND);
+				glBegin(GL_LINES);
+					glColor4d(0.5, 0.1, 0.1, 0.1);
+					glVertex2d(fIntPos.x - oParticles[iLoop1].oVelocity.x * 0, fIntPos.y - oParticles[iLoop1].oVelocity.y * 0);
+					glColor4d(0.990, 0.05, 0.05, 0.9);
+					glVertex2d(fIntPos.x + oParticles[iLoop1].oVelocity.x * 2, fIntPos.y + oParticles[iLoop1].oVelocity.y * 2);
+				glEnd();
+				glDisable(GL_BLEND);
+				glDisable(GL_LINE_SMOOTH);
+				glShadeModel(GL_FLAT);
+				glLineWidth(2);
+				if (PlayerGet(oParticles[iLoop1].iOwnerID) == pLocalPlayer) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
+				break;
 			default:
 				break;
 			}
@@ -105,7 +152,7 @@ void CParticle::Render()
 
 void CParticle::CollisionHandling(int iParticle)
 {
-	Vector2		oVector, oNormal;
+	Vector2		oVector;
 	Segment2	oSegment1;
 	Segment2	oSegment2;
 	int			iQuantity;
@@ -114,15 +161,14 @@ void CParticle::CollisionHandling(int iParticle)
 	switch(oParticles[iParticle].iWhatType)
 	{
 	// bullet
-	case 1:
+	case BULLET:
 		// bullet-wall collision handling
 		oSegment1.Origin() = oParticles[iParticle].oPosition;
 		oSegment1.Direction() = oParticles[iParticle].oVelocity;
 
 		for (int iLoop1 = 0; iLoop1 < oPolyLevel.num_contours; iLoop1++)
 		{
-			int iLoop2;
-			for (iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
+			for (int iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
 			{
 				oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
 				oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
@@ -137,16 +183,21 @@ void CParticle::CollisionHandling(int iParticle)
 
 				if (FindIntersection(oSegment1, oSegment2, iQuantity, oParams))
 				{
-					if (oParams[0] < oParticles[iParticle].fDieAt) {
-						oParticles[iParticle].iWillHit = -1;
-						oParticles[iParticle].fDieAt = oParams[0];
+					if (oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME < oParticles[iParticle].dDieAt) {
+						oParticles[iParticle].iWillHit = NO_PLAYER;
+						oParticles[iParticle].dDieAt = oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME;
+
+						oParticles[iParticle].oHitNormal = oSegment2.Direction().UnitCross();		// the normal
+
+						if (oParticles[iParticle].oHitNormal.Dot(oParticles[iParticle].oVelocity) > 0)
+							oParticles[iParticle].oHitNormal *= -1;
 					}
 				}
 			}
 
 			// last segment
-			oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
-			oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
+			oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[oPolyLevel.contour[iLoop1].num_vertices - 1].x;
+			oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[oPolyLevel.contour[iLoop1].num_vertices - 1].y;
 			oSegment2.Origin() = oVector;
 			oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[0].x - oVector.x;
 			oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[0].y - oVector.y;
@@ -158,9 +209,14 @@ void CParticle::CollisionHandling(int iParticle)
 
 			if (FindIntersection(oSegment1, oSegment2, iQuantity, oParams))
 			{
-				if (oParams[0] < oParticles[iParticle].fDieAt) {
-					oParticles[iParticle].iWillHit = -1;
-					oParticles[iParticle].fDieAt = oParams[0];
+				if (oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME < oParticles[iParticle].dDieAt) {
+					oParticles[iParticle].iWillHit = NO_PLAYER;
+					oParticles[iParticle].dDieAt = oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME;
+
+					oParticles[iParticle].oHitNormal = oSegment2.Direction().UnitCross();		// the normal
+
+					if (oParticles[iParticle].oHitNormal.Dot(oParticles[iParticle].oVelocity) > 0)
+							oParticles[iParticle].oHitNormal *= -1;
 				}
 			}
 		}
@@ -169,47 +225,47 @@ void CParticle::CollisionHandling(int iParticle)
 		oSegment1.Origin() = oParticles[iParticle].oPosition;
 		oSegment1.Direction() = oParticles[iParticle].oVelocity;
 
-		for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
+		for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 		{
 			// a bullet can't hit his owner
 #ifdef EX0_CLIENT
-			if (PlayerGet(iLoop1) == NULL|| iLoop1 == oParticles[iParticle].iOwnerID
+			if (PlayerGet(nPlayer) == NULL|| nPlayer == oParticles[iParticle].iOwnerID
 #else
-			if (PlayerGet(iLoop1)->pConnection == NULL || iLoop1 == oParticles[iParticle].iOwnerID
+			if (PlayerGet(nPlayer)->pConnection == NULL || nPlayer == oParticles[iParticle].iOwnerID
 #endif
-				|| PlayerGet(iLoop1)->IsDead())
+				|| PlayerGet(nPlayer)->IsDead() || PlayerGet(nPlayer)->GetTeam() == 2)
 				continue;
 
-			State_t oPlayerState = PlayerGet(iLoop1)->GetStateInPast(nullptr != dynamic_cast<LocalController *>(PlayerGet(iLoop1)->m_pController) ? 0 : kfInterpolate);
+			State_st oPlayerState = PlayerGet(nPlayer)->GetStateAtTime(oParticles[iParticle].dTime + PARTICLE_TICK_TIME*0.5 - ((PlayerGet(nPlayer)->pConnection == PlayerGet(oParticles[iParticle].iOwnerID)->pConnection) ? 0 : kfInterpolate));
 			oVector.x = oPlayerState.fX;
 			oVector.y = oPlayerState.fY;
 
-			oParams[1] = Distance(oVector, oSegment1, &oParams[0]);
+			oParams[1] = Distance(oVector, oSegment1, oParams);
 
 			if ((float)oParams[1] < PLAYER_HALF_WIDTH)
 			// the bullet will hit this player
 			{
-				if (oParams[0] < oParticles[iParticle].fDieAt)
+				if (oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME < oParticles[iParticle].dDieAt)
 				{
-					oParticles[iParticle].iWillHit = iLoop1;
+					oParticles[iParticle].iWillHit = nPlayer;
 					oParticles[iParticle].fMaxDamage *= Math::FastSin0(0.5f + (PLAYER_HALF_WIDTH - oParams[1]) * Math::HALF_PI / PLAYER_HALF_WIDTH * 0.5f);
-					oParticles[iParticle].fDieAt = oParams[0];
+					oParticles[iParticle].dDieAt = oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME;
+
+					//printf("hit player at %f, %f\n", oPlayerState.fX, oPlayerState.fY);
 				}
 			}
 		}
 		break;
 	// bouncy bullet
-	case 2:
-		oNormal = Vector2::ZERO;
-
+	case BOUNCY_BULLET:
+	//case BLOOD_SPLATTER:
 		// bullet-wall collision handling
 		oSegment1.Origin() = oParticles[iParticle].oPosition;
 		oSegment1.Direction() = oParticles[iParticle].oVelocity;
 
 		for (int iLoop1 = 0; iLoop1 < oPolyLevel.num_contours; iLoop1++)
 		{
-			int iLoop2;
-			for (iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
+			for (int iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
 			{
 				oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
 				oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
@@ -224,18 +280,19 @@ void CParticle::CollisionHandling(int iParticle)
 
 				if (FindIntersection(oSegment1, oSegment2, iQuantity, oParams))
 				{
-					if (oParams[0] < oParticles[iParticle].fDieAt) {
-						oParticles[iParticle].iWillHit = -1;
-						oParticles[iParticle].fDieAt = oParams[0];
+					if (oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME < oParticles[iParticle].dDieAt) {
+						// This particle type doesn't die from walls
+						//oParticles[iParticle].iWillHit = NO_PLAYER;
+						//oParticles[iParticle].dDieAt = oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME;
 
-						oNormal = oSegment2.Direction().UnitCross();		// the normal
+						oParticles[iParticle].oHitNormal = oSegment2.Direction().UnitCross();		// the normal
 					}
 				}
 			}
 
 			// last segment
-			oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
-			oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
+			oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[oPolyLevel.contour[iLoop1].num_vertices - 1].x;
+			oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[oPolyLevel.contour[iLoop1].num_vertices - 1].y;
 			oSegment2.Origin() = oVector;
 			oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[0].x - oVector.x;
 			oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[0].y - oVector.y;
@@ -247,55 +304,106 @@ void CParticle::CollisionHandling(int iParticle)
 
 			if (FindIntersection(oSegment1, oSegment2, iQuantity, oParams))
 			{
-				if (oParams[0] < oParticles[iParticle].fDieAt) {
-					oParticles[iParticle].iWillHit = -1;
-					oParticles[iParticle].fDieAt = oParams[0];
+				if (oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME < oParticles[iParticle].dDieAt) {
+					// This particle type doesn't die from walls
+					//oParticles[iParticle].iWillHit = NO_PLAYER;
+					//oParticles[iParticle].dDieAt = oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME;
 
-					oNormal = oSegment2.Direction().UnitCross();		// the normal
+					oParticles[iParticle].oHitNormal = oSegment2.Direction().UnitCross();		// the normal
 				}
 			}
 		}
 
-		oParticles[iParticle].fDieAt = 10000;		// This particle type doesn't die from walls
-
 		// Bounce the bullet off a wall
-		if (oNormal != Vector2::ZERO) {
-			oParticles[iParticle].oVelocity += oNormal * -2.0f * oNormal.Dot(oParticles[iParticle].oVelocity);
+		if (oParticles[iParticle].oHitNormal != Vector2::ZERO) {
+			oParticles[iParticle].oVelocity += oParticles[iParticle].oHitNormal * -2.0f * oParticles[iParticle].oHitNormal.Dot(oParticles[iParticle].oVelocity);
 			//oParticles[iParticle].oVelocity *= 0.75;
 			oParticles[iParticle].oVelocity *= oParticles[iParticle].oVelocity.Unitize() * 0.9f
-				- fabs(oParticles[iParticle].oVelocity.Dot(oNormal)) * 0.25f;
+				- fabs(oParticles[iParticle].oVelocity.Dot(oParticles[iParticle].oHitNormal)) * 0.25f;
+
+			oParticles[iParticle].oHitNormal = Vector2::ZERO;
 		}
 
 		// bullet-player collision handling
 		oSegment1.Origin() = oParticles[iParticle].oPosition;
 		oSegment1.Direction() = oParticles[iParticle].oVelocity;
 
-		for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
+		for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 		{
 #ifdef EX0_CLIENT
-			if (PlayerGet(iLoop1) == NULL|| iLoop1 == oParticles[iParticle].iOwnerID
+			if (PlayerGet(nPlayer) == NULL|| nPlayer == oParticles[iParticle].iOwnerID
 #else
-			if (PlayerGet(iLoop1)->pConnection == NULL || iLoop1 == oParticles[iParticle].iOwnerID
+			if (PlayerGet(nPlayer)->pConnection == NULL || nPlayer == oParticles[iParticle].iOwnerID
 #endif
-				|| PlayerGet(iLoop1)->IsDead())
+				|| PlayerGet(nPlayer)->IsDead() || PlayerGet(nPlayer)->GetTeam() == 2)
 				continue;
 
-			State_t oPlayerState = PlayerGet(iLoop1)->GetStateInPast(nullptr != dynamic_cast<LocalController *>(PlayerGet(iLoop1)->m_pController) ? 0 : kfInterpolate);
+			State_st oPlayerState = PlayerGet(nPlayer)->GetStateAtTime(oParticles[iParticle].dTime + PARTICLE_TICK_TIME*0.5 - ((PlayerGet(nPlayer)->pConnection == PlayerGet(oParticles[iParticle].iOwnerID)->pConnection) ? 0 : kfInterpolate));
 			oVector.x = oPlayerState.fX;
 			oVector.y = oPlayerState.fY;
 
-			oParams[1] = Distance(oVector, oSegment1, &oParams[0]);
+			oParams[1] = Distance(oVector, oSegment1, oParams);
 
 			if ((float)oParams[1] < PLAYER_HALF_WIDTH)
 			// the bullet will hit this player
 			{
-				if (oParams[0] < oParticles[iParticle].fDieAt)
+				if (oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME < oParticles[iParticle].dDieAt)
 				{
 					// Don't hit players for now
-					/*oParticles[iParticle].iWillHit = iLoop1;
+					/*oParticles[iParticle].iWillHit = nPlayer;
 					oParticles[iParticle].fMaxDamage *= Math::FastSin0(0.5 + (PLAYER_HALF_WIDTH - oParams[1]) * Math::HALF_PI / PLAYER_HALF_WIDTH * 0.5);
-					oParticles[iParticle].fDieAt = oParams[0];
+					oParticles[iParticle].dDieAt = oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME;
 					*/
+				}
+			}
+		}
+		break;
+	case WALL_HIT_SPARK:
+		// bullet-wall collision handling
+		oSegment1.Origin() = oParticles[iParticle].oPosition;
+		oSegment1.Direction() = oParticles[iParticle].oVelocity;
+
+		for (int iLoop1 = 0; iLoop1 < oPolyLevel.num_contours; iLoop1++)
+		{
+			for (int iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
+			{
+				oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
+				oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
+				oSegment2.Origin() = oVector;
+				oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2].x - oVector.x;
+				oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2].y - oVector.y;
+				oSegment2.Direction() = oVector;
+
+				// make sure lines could interesect
+				//if (!ColHandIsSegmentCloseToSegment(oSegment1, oSegment2))
+				//	continue;
+
+				if (FindIntersection(oSegment1, oSegment2, iQuantity, oParams))
+				{
+					if (oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME < oParticles[iParticle].dDieAt) {
+						oParticles[iParticle].iWillHit = NO_PLAYER;
+						oParticles[iParticle].dDieAt = oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME;
+					}
+				}
+			}
+
+			// last segment
+			oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[oPolyLevel.contour[iLoop1].num_vertices - 1].x;
+			oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[oPolyLevel.contour[iLoop1].num_vertices - 1].y;
+			oSegment2.Origin() = oVector;
+			oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[0].x - oVector.x;
+			oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[0].y - oVector.y;
+			oSegment2.Direction() = oVector;
+
+			// make sure lines could interesect
+			//if (!ColHandIsSegmentCloseToSegment(oSegment1, oSegment2))
+			//	continue;
+
+			if (FindIntersection(oSegment1, oSegment2, iQuantity, oParams))
+			{
+				if (oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME < oParticles[iParticle].dDieAt) {
+					oParticles[iParticle].iWillHit = NO_PLAYER;
+					oParticles[iParticle].dDieAt = oParticles[iParticle].dTime + oParams[0] * PARTICLE_TICK_TIME;
 				}
 			}
 		}
@@ -305,101 +413,149 @@ void CParticle::CollisionHandling(int iParticle)
 	}
 }
 
-void CParticle::GetInterpolatedPos(Vector2 *fIntPos, int iParticle)
+void CParticle::HitCheck(int nParticle)
 {
-	*fIntPos = oParticles[iParticle].oPosition + (oParticles[iParticle].fTicks / PARTICLE_TICK_TIME) * oParticles[iParticle].oVelocity;
+	double dCurrentTime = g_pGameSession->LogicTimer().GetTime();
+
+	// Kill the particle if it's supposed to die by hitting something
+	// and its life wasn't over at the time of impact
+	if ( (dCurrentTime >= oParticles[nParticle].dDieAt) )
+		//&& (oParticles[nParticle].dLife > 0 ||													// Either still alive now
+		//	oParticles[nParticle].fDieAt < (1 + oParticles[nParticle].dLife / g_pGameSession->LogicTimer().GetTimePassed())) )		// Hit something before life ended
+	{
+		// give damage to whoever
+		if (oParticles[nParticle].iWillHit != NO_PLAYER) {
+			if (nullptr != pGameServer)
+				PlayerGet(oParticles[nParticle].iWillHit)->GiveHealth(-oParticles[nParticle].fMaxDamage, oParticles[nParticle].iOwnerID);
+//if (oParticles[nParticle].fMaxDamage < 100) bPaused = true;
+			printf("%i hit %i for %f dmg\n", oParticles[nParticle].iOwnerID, oParticles[nParticle].iWillHit, oParticles[nParticle].fMaxDamage);
+
+			// TEST: Spawn another particle
+			for (int n = 0; n < 5; ++n)
+			{
+				// Angle(Normal) + (HALF_PI * 10% * (-100%~+100%))
+				double dRandomAngle = MathCoordToRad(0, 0, (int)(oParticles[nParticle].oVelocity.x * 1000), (int)(oParticles[nParticle].oVelocity.y * 1000)) + Math::HALF_PI + (((rand() % 1001)*0.001) * 2 - 1) * Math::HALF_PI * 0.1;
+				double dVelocity = 15 * (0.75 + (rand() % 1001)*0.001*0.5);		// 5.0 * (75%~125%)
+				AddParticle(oParticles[nParticle].dDieAt,
+					oParticles[nParticle].oPosition.x + (float)(oParticles[nParticle].dDieAt - oParticles[nParticle].dTime) / (float)PARTICLE_TICK_TIME * 0.999f * oParticles[nParticle].oVelocity.x,
+					oParticles[nParticle].oPosition.y + (float)(oParticles[nParticle].dDieAt - oParticles[nParticle].dTime) / (float)PARTICLE_TICK_TIME * 0.999f * oParticles[nParticle].oVelocity.y,
+					// DEBUG: I will need to re-add player's velocity to the equation eventually...
+					Math::Sin((float)dRandomAngle) * (float)dVelocity,
+					Math::Cos((float)dRandomAngle) * (float)dVelocity,
+					BLOOD_SPLATTER, 0,
+					(float)dVelocity / 30.0f + 0.1f, oParticles[nParticle].iWillHit);
+			}
+		}
+		else
+		{
+			// Splash dmg
+			if (oParticles[nParticle].iWhatType == 2) {
+				printf("BOOM at x=%f, y=%f and LogicTime=%.20f\n", oParticles[nParticle].oPosition.x, oParticles[nParticle].oPosition.y, oParticles[nParticle].dDieAt);
+				for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+				{
+					// a bullet can't hit his owner
+					// but a bouncy one can
+#ifdef EX0_CLIENT
+					if (PlayerGet(nPlayer) == NULL/* || nPlayer == oParticles[nParticle].iOwnerID*/
+#else
+					if (PlayerGet(nPlayer)->pConnection == NULL/* || nPlayer == oParticles[nParticle].iOwnerID*/
+#endif
+						|| PlayerGet(nPlayer)->IsDead() || PlayerGet(nPlayer)->GetTeam() == 2)
+						continue;
+
+					State_st oPlayerState = PlayerGet(nPlayer)->GetStateAtTime(oParticles[nParticle].dDieAt - ((PlayerGet(nPlayer)->pConnection == PlayerGet(oParticles[nParticle].iOwnerID)->pConnection) ? 0 : kfInterpolate));
+					//printf("player was at x=%.18f, y=%.18f when p-d\n", oPlayerState.fX, oPlayerState.fY);
+					Vector2 oPlayerPosition;
+					oPlayerPosition.x = oPlayerState.fX;
+					oPlayerPosition.y = oPlayerState.fY;
+
+					Vector2 oExplosionPosition = oParticles[nParticle].oPosition + (float)((oParticles[nParticle].dTime - oParticles[nParticle].dDieAt) / PARTICLE_TICK_TIME) * oParticles[nParticle].oVelocity;
+
+					float fDistance = (oPlayerPosition - oExplosionPosition).Length();
+
+					if (fDistance <= PLAYER_WIDTH * 10)
+					// the bullet will hit this player
+					{
+						float fDamage = 1.0f - (fDistance / (PLAYER_WIDTH * 10));
+						fDamage *= fDamage * 300.0f;		// Max 300 dmg at 0 distance, 0 dmg at max distance, 1/d^2 attenuation
+
+						if (nullptr != pGameServer)
+							PlayerGet(nPlayer)->GiveHealth(-fDamage);
+						printf("%i hit %i for %f dmg [splash dmg from %lf away]\n", oParticles[nParticle].iOwnerID, nPlayer, fDamage, fDistance);
+					}
+				}
+			}
+
+			// Create a smoke grenade cloud
+			if (oParticles[nParticle].iWhatType == BOUNCY_BULLET) {
+				AddParticle(oParticles[nParticle].dDieAt, oParticles[nParticle].oPosition.x, oParticles[nParticle].oPosition.y,
+				  0, 0, SMOKE_CLOUD, 60, 30, oParticles[nParticle].iOwnerID);
+			}
+			// TEST: Spawn another particle
+			else if (oParticles[nParticle].iWhatType == BULLET)
+			{
+				eX0_assert(oParticles[nParticle].oHitNormal != Vector2::ZERO);
+
+				for (int n = 0; n < 5; ++n)
+				{
+					// Angle(Normal) + (HALF_PI * 50% * (-100%~+100%))
+					double dRandomAngle = MathCoordToRad(0, 0, (int)(oParticles[nParticle].oHitNormal.x * 1000), (int)(oParticles[nParticle].oHitNormal.y * 1000)) + Math::HALF_PI + (((rand() % 1001)*0.001) * 2 - 1) * Math::HALF_PI * 0.5;
+					double dVelocity = 5.0 * (0.5 + (rand() % 1001)*0.001);		// 5.0 * (50%~150%)
+					AddParticle(oParticles[nParticle].dDieAt,
+						oParticles[nParticle].oPosition.x + (float)(oParticles[nParticle].dDieAt - oParticles[nParticle].dTime) / (float)PARTICLE_TICK_TIME * 0.999f * oParticles[nParticle].oVelocity.x,
+						oParticles[nParticle].oPosition.y + (float)(oParticles[nParticle].dDieAt - oParticles[nParticle].dTime) / (float)PARTICLE_TICK_TIME * 0.999f * oParticles[nParticle].oVelocity.y,
+						// DEBUG: I will need to re-add player's velocity to the equation eventually...
+						Math::Sin((float)dRandomAngle) * (float)dVelocity,
+						Math::Cos((float)dRandomAngle) * (float)dVelocity,
+						WALL_HIT_SPARK, 0,
+						dVelocity / 15.0 + 0.1, oParticles[nParticle].iOwnerID);
+				}
+			}
+		}
+
+		// kill it
+		oParticles[nParticle].iWhatType = 0;
+	}
 }
 
 void CParticle::Tick()
 {
-	for (int iLoop1 = 0; iLoop1 < iNumParticles; iLoop1++)
+	double dCurrentTime = g_pGameSession->LogicTimer().GetTime();
+
+	for (int iLoop1 = 0; iLoop1 < iNumParticles; ++iLoop1)
 	{
 		// is it an in-use particle?
-		if (oParticles[iLoop1].iWhatType)
+		if (0 != oParticles[iLoop1].iWhatType)
 		{
-			oParticles[iLoop1].fTicks += (float)g_pGameSession->LogicTimer().GetTimePassed();
-			oParticles[iLoop1].fLife -= (float)g_pGameSession->LogicTimer().GetTimePassed();
-
-			// Kill the particle if it's supposed to die by hitting something
-			// and its life wasn't over at the time of impact
-			if ( (oParticles[iLoop1].fTicks / PARTICLE_TICK_TIME) >= oParticles[iLoop1].fDieAt
-				&& (oParticles[iLoop1].fLife > 0 ||													// Either still alive now
-					oParticles[iLoop1].fDieAt < (1 + oParticles[iLoop1].fLife / g_pGameSession->LogicTimer().GetTimePassed())) )		// Hit something before life ended
-			{
-				// give damage to whoever
-				if (oParticles[iLoop1].iWillHit != -1) {
-					PlayerGet(oParticles[iLoop1].iWillHit)->GiveHealth(-oParticles[iLoop1].fMaxDamage);
-//if (oParticles[iLoop1].fMaxDamage < 100) bPaused = true;
-					printf("%i hit %i for %f dmg\n", oParticles[iLoop1].iOwnerID, oParticles[iLoop1].iWillHit, oParticles[iLoop1].fMaxDamage);
-				}
-				//else printf("%i missed\n", oParticles[iLoop1].iOwnerID);
-
-				// kill it and continue w/ the next particle
-				oParticles[iLoop1].iWhatType = 0;
+			HitCheck(iLoop1);
+			if (0 == oParticles[iLoop1].iWhatType)
 				continue;
-			}
-
-			// Kill it if its life is over
-			if (oParticles[iLoop1].fLife <= 0)
-			{
-				// Splash dmg
-				if (oParticles[iLoop1].iWhatType == 2) {
-					for (u_int iLoop2 = 0; iLoop2 < nPlayerCount; iLoop2++)
-					{
-						// a bullet can't hit his owner
-						// but a bouncy one can
-#ifdef EX0_CLIENT
-						if (PlayerGet(iLoop2) == NULL/* || iLoop2 == oParticles[iLoop1].iOwnerID*/
-#else
-						if (PlayerGet(iLoop2)->pConnection == NULL/* || iLoop2 == oParticles[iLoop1].iOwnerID*/
-#endif
-						  || PlayerGet(iLoop2)->IsDead())
-							continue;
-
-						Vector2 oVector;
-						State_t oPlayerState = PlayerGet(iLoop2)->GetStateInPast(nullptr != dynamic_cast<LocalController *>(PlayerGet(iLoop2)->m_pController) ? 0 : kfInterpolate);
-						oVector.x = oPlayerState.fX;
-						oVector.y = oPlayerState.fY;
-
-						oVector -= oParticles[iLoop1].oPosition + (1 + oParticles[iLoop1].fLife / (float)g_pGameSession->LogicTimer().GetTimePassed()) * oParticles[iLoop1].oVelocity;
-
-						float fDistance = oVector.Length();
-
-						if (fDistance <= PLAYER_WIDTH * 10)
-						// the bullet will hit this player
-						{
-							float fDamage = 1.0f - (fDistance / (PLAYER_WIDTH * 10));
-							fDamage *= fDamage * 300.0f;		// Max 300 dmg at 0 distance, 0 dmg at max distance, 1/d^2 attenuation
-
-							PlayerGet(iLoop2)->GiveHealth(-fDamage);
-							printf("%i hit %i for %f dmg [splash dmg from %lf away]\n", oParticles[iLoop1].iOwnerID, iLoop2, fDamage, fDistance);
-						}
-					}
-				}
-
-				// Create a smoke grenade cloud
-				if (oParticles[iLoop1].iWhatType == BOUNCY_BULLET) {
-					AddParticle(oParticles[iLoop1].oPosition.x, oParticles[iLoop1].oPosition.y,
-					  0, 0, SMOKE_CLOUD, 60, 30, oParticles[iLoop1].iOwnerID);
-				}
-
-				// Kill it and continue w/ the next particle
-				oParticles[iLoop1].iWhatType = 0;
-				continue;
-			}
 
 			// DEBUG - This while loops needs to include checking for collisions above
-			while (oParticles[iLoop1].fTicks >= PARTICLE_TICK_TIME)
+			while (dCurrentTime >= oParticles[iLoop1].dTime + PARTICLE_TICK_TIME)
 			{
-				oParticles[iLoop1].fTicks -= PARTICLE_TICK_TIME;
-				if (oParticles[iLoop1].fLife > 1.25f)
-					oParticles[iLoop1].oVelocity *= 0.990f;
-				else {
-					float len = oParticles[iLoop1].oVelocity.Unitize();
-					oParticles[iLoop1].oVelocity *= std::max<float>(0.01f, len - 0.2f);
+				oParticles[iLoop1].dTime += PARTICLE_TICK_TIME;
+
+				if (BOUNCY_BULLET == oParticles[iLoop1].iWhatType) {
+					// DEBUG: This is actually bouncy-bullet-specific stuff (i.e. slow down significantly during its last 1.25 secs of life
+					if (oParticles[iLoop1].dDieAt - dCurrentTime > 1.25)
+						oParticles[iLoop1].oVelocity *= 0.990f;
+					else {
+						float len = oParticles[iLoop1].oVelocity.Unitize();
+						oParticles[iLoop1].oVelocity *= std::max<float>(0.01f, len - 0.2f);
+					}
+				} else {
+					float fVelocity = oParticles[iLoop1].oVelocity.Unitize();
+					//if (fVelocity <= 0.0125f) { oParticles[iLoop1].iWhatType = 0; break; }
+					if (fVelocity + oParticles[iLoop1].fAcceleration > 0.01f) fVelocity += oParticles[iLoop1].fAcceleration; else fVelocity = 0.01f;
+					oParticles[iLoop1].oVelocity *= fVelocity;
 				}
 				oParticles[iLoop1].oPosition += oParticles[iLoop1].oVelocity;
+
 				CollisionHandling(iLoop1);
+				HitCheck(iLoop1);
+				if (0 == oParticles[iLoop1].iWhatType)
+					break;
 			}
 		}
 	}
@@ -433,7 +589,7 @@ void CParticle::SetArraySize(int iSize)
 
 	iNumParticles = iSize;
 
-	oParticles = (struct Particle_t*)realloc(oParticles, iNumParticles * sizeof(struct Particle_t));
+	oParticles = (struct Particle_st*)realloc(oParticles, iNumParticles * sizeof(struct Particle_st));
 	for (; iLoop1 < iNumParticles; iLoop1++)
 	{
 		oParticles[iLoop1].iWhatType = 0;
@@ -447,7 +603,7 @@ void CParticle::Reset()
 	SetArraySize(PARTICLE_INITIAL_SIZE);
 }
 
-void CParticle::AddParticle(float fX, float fY, float fVelX, float fVelY, int iWhatType, float fMaxDamage, float fLife, int iOwnerID)
+void CParticle::AddParticle(double dTime, float fX, float fY, float fVelX, float fVelY, int iWhatType, float fMaxDamage, double dLife, uint8 iOwnerID)
 {
 	int iNextAvailParticle = NextAvailParticle();
 
@@ -455,13 +611,18 @@ void CParticle::AddParticle(float fX, float fY, float fVelX, float fVelY, int iW
 	oParticles[iNextAvailParticle].oPosition.y = fY;
 	oParticles[iNextAvailParticle].oVelocity.x = fVelX;
 	oParticles[iNextAvailParticle].oVelocity.y = fVelY;
+	oParticles[iNextAvailParticle].fAcceleration = 0.0f;
+	if (iWhatType == WALL_HIT_SPARK) oParticles[iNextAvailParticle].fAcceleration = -15.0f * PARTICLE_TICK_TIME;
+	if (iWhatType == BLOOD_SPLATTER) oParticles[iNextAvailParticle].fAcceleration = -30.0f * PARTICLE_TICK_TIME;
 	oParticles[iNextAvailParticle].fMaxDamage = fMaxDamage;
-	oParticles[iNextAvailParticle].fTicks = 0;
-	oParticles[iNextAvailParticle].fLife = fLife;
-	oParticles[iNextAvailParticle].fDieAt = 10000;
-	oParticles[iNextAvailParticle].iWillHit = -1;
+	oParticles[iNextAvailParticle].dTime = dTime;
+	oParticles[iNextAvailParticle].dDieAt = dTime + dLife;
+	oParticles[iNextAvailParticle].iWillHit = NO_PLAYER;
+	oParticles[iNextAvailParticle].oHitNormal = Vector2::ZERO;
 	oParticles[iNextAvailParticle].iOwnerID = iOwnerID;
-	oParticles[iNextAvailParticle].iWhatType = iWhatType;
+	oParticles[iNextAvailParticle].fRenderTimeOffset = (rand() % 1001)*0.001f * 1.0f/60;	// DEBUG: Assuming 60 fps, if higher fps, this value range is too high
+
+	oParticles[iNextAvailParticle].iWhatType = iWhatType;		// Assign iWhatType last to make this function more thread safe
 
 	CollisionHandling(iNextAvailParticle);
 }

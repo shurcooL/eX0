@@ -27,7 +27,7 @@ FpsCounter::~FpsCounter()
 
 std::string FpsCounter::GetFpsString()
 {
-	return m_sName + ": " + toString<double>(m_dFpsRate, 4) + " fps";
+	return m_sName + ": " + to_string<double>(m_dFpsRate, 4) + " fps";
 }
 
 void FpsCounter::CalculateFps(double dTimePassed)

@@ -9,8 +9,9 @@ public:
 	LocalStateAuther(CPlayer & oPlayer);
 	~LocalStateAuther();
 
-	void AfterTick();
-	void ProcessAuthUpdateTEST();
+	void ProcessCommands();
+	void ProcessWpnCommands();
+	void ProcessUpdates();
 	void SendUpdate();
 
 	bool IsLocal(void) { return true; }

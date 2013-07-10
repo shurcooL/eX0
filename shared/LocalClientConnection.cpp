@@ -18,9 +18,9 @@ LocalClientConnection::~LocalClientConnection()
 	printf("LocalClientConnection() ~Dtor.\n");
 }
 
-u_short LocalClientConnection::GetLastLatency() const
+uint16 LocalClientConnection::GetLastLatency() const
 {
-	return 1337;
+	return 13370;
 }
 
 bool LocalClientConnection::SendTcp(CPacket & oPacket, JoinStatus nMinimumJoinStatus)

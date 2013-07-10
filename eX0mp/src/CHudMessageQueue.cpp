@@ -25,11 +25,11 @@ void CHudMessageQueue::AddMessage(string sMessage)
 	if (m_oMessages.size() >= m_nMessageLimit) {
 		// Full message queue
 		m_oMessages.pop_front();
-		m_dMessageTimer = g_pGameSession->RenderTimer().GetTime() + m_dMessageTimeout;
+		m_dMessageTimer = g_pGameSession->MainTimer().GetTime() + m_dMessageTimeout;
 	} else if (m_oMessages.empty()) {
 		// Empty message queue
-		m_dMessageTimer = g_pGameSession->RenderTimer().GetTime() + 1.5 * m_dMessageTimeout;
-	} else if (m_dMessageTimer <= g_pGameSession->RenderTimer().GetTime() + m_kdMessageTimeoutThreshold) {
+		m_dMessageTimer = g_pGameSession->MainTimer().GetTime() + 1.5 * m_dMessageTimeout;
+	} else if (m_dMessageTimer <= g_pGameSession->MainTimer().GetTime() + m_kdMessageTimeoutThreshold) {
 		// Neither full or empty, but the last message is about to disappear
 		m_oMessages.pop_front();
 		m_dMessageTimer += m_dMessageTimeout;
@@ -45,7 +45,7 @@ void CHudMessageQueue::Render()
 
 	if (!m_oMessages.empty())
 	{
-		if (m_dMessageTimer <= g_pGameSession->RenderTimer().GetTime()) {
+		if (m_dMessageTimer <= g_pGameSession->MainTimer().GetTime()) {
 			m_oMessages.pop_front();
 			m_dMessageTimer += m_dMessageTimeout;
 		}
@@ -54,10 +54,10 @@ void CHudMessageQueue::Render()
 		for (std::list<string>::iterator it1 = m_oMessages.begin(); it1 != m_oMessages.end(); ++it1)
 		{
 			glColor3f(0, 0, 0);
-			OglUtilsPrint(m_nTopLeftCornerX + 1, m_nTopLeftCornerY + 1 + nMessageNumber * m_knHorizontalDistance, 0, false, (*it1).c_str());
+			OglUtilsPrint(m_nTopLeftCornerX + 1, m_nTopLeftCornerY + 1 + nMessageNumber * m_knHorizontalDistance, 0, LEFT, (*it1).c_str());
 
 			glColor3f(0.89f, 0.51f, 0.06f);
-			OglUtilsPrint(m_nTopLeftCornerX, m_nTopLeftCornerY + nMessageNumber * m_knHorizontalDistance, 0, false, (*it1).c_str());
+			OglUtilsPrint(m_nTopLeftCornerX, m_nTopLeftCornerY + nMessageNumber * m_knHorizontalDistance, 0, LEFT, (*it1).c_str());
 
 			++nMessageNumber;
 		}

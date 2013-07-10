@@ -13,13 +13,18 @@ public:
 	void UseUpCommandRequest();
 	//bool TryUseUpCommandRequest();
 
+	void RequestNextWpnCommand();
+
 	void Reset();
 
 	virtual bool IsLocal() = 0;
 
 protected:
 	virtual void ProvideNextCommand() = 0;
-	virtual void ChildReset() = 0;
+
+	virtual void ProvideNextWpnCommand() = 0;
+
+	virtual void SubReset() = 0;
 
 	CPlayer & m_oPlayer;
 

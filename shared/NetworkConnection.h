@@ -34,6 +34,9 @@ public:
 	void SetSignature(const u_char cSignature[m_knSignatureSize]);
 	const u_char * GetSignature() const;
 
+	void NotifyDataReceived();
+	double GetTimeSinceLastReceive() const;
+
 	virtual bool SendTcp(CPacket & oPacket, JoinStatus nMinimumJoinStatus = IN_GAME);
 	virtual bool SendUdp(CPacket & oPacket, JoinStatus nMinimumJoinStatus = IN_GAME);
 
@@ -51,6 +54,8 @@ private:
 	sockaddr_in	m_oUdpAddress;
 
 	u_char		m_cSignature[m_knSignatureSize];
+
+	double		m_dLastReceivedTime;		// This contains the time the last packet was received
 };
 
 #endif // __NetworkConnection_H__

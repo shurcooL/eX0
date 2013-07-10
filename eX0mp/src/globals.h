@@ -60,6 +60,10 @@ class CTimedEventScheduler;
 class ClientConnection;
 class FpsCounter;
 class PlayerInputListener;
+class ThroughputMonitor;
+
+struct Command_st;
+struct WpnCommand_st;
 
 /////////////////////
 // custom includes //
@@ -84,8 +88,12 @@ using namespace Mgc;
 #include "CHudMessageQueue.h"
 #include "ogl_utils.h"
 #include "../../shared/game_data.h"
+#include "../../shared/GameTimer.h"
+#include "../../shared/GameSession.h"
 #include "../../shared/particle.h"
-#include "../../shared/weapon.h"
+#include "../../shared/WeaponSystem.h"
+#include "InputListener.h"
+#include "PlayerInputListener.h"
 #include "../../shared/PlayerController.h"
 #include "../../shared/LocalController.h"
 #include "HidController.h"
@@ -109,16 +117,12 @@ using namespace Mgc;
 #include "../../shared/CPacket.h"
 #include "../../shared/CTimedEvent.h"
 #include "../../shared/FpsCounter.h"
-#include "../../shared/GameTimer.h"
 #include "../../shared/CTimedEventScheduler.h"
 #include "../../shared/GameLogicThread.h"
 #include "OGLTextureManager/TextureManager.h"
 #include "../../shared/MovingAverage.h"
-#include "InputListener.h"
-#include "PlayerInputListener.h"
 #include "InputManager.h"
-#include "../../shared/GameSession.h"
-
+#include "../../shared/ThroughputMonitor.h"
 
 //////////////////
 // custom other //
@@ -128,6 +132,8 @@ using namespace Mgc;
 //////////////////////
 // global variables //
 //////////////////////
+extern int nRunModeDEBUG;	// DEBUG: For debug purposes only, remove later
+
 extern volatile int	iGameState;
 extern bool			bPaused;
 
@@ -152,7 +158,7 @@ extern int			nChatMode;
 extern string		sChatString;
 extern CHudMessageQueue		*pChatMessages;
 
-extern u_int		nPlayerCount;
+extern uint8		nPlayerCount;
 extern CPlayer *	pLocalPlayer;
 extern string		sLocalPlayerName;
 //extern CPlayer		*oPlayers[32];

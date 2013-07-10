@@ -10,12 +10,13 @@ LFLAGS = ../../../Libraries/glfw/lib/x11/libglfw.a -L/usr/X11R6/lib -lGL -lGLU \
 	-lX11 -lXrandr -lpthread -lm
 # -lXxf86vm -lXext
 OBJS   = $(SHARED_PATH)GameTimer.cpp $(SHARED_PATH)GameSession.cpp $(SHARED_PATH)RemoteClientConnection.cpp \
-$(SRC_PATH)HidController.cpp $(SRC_PATH)InputManager.cpp $(SRC_PATH)InputListener.cpp $(SRC_PATH)PlayerInputListener.cpp
+$(SRC_PATH)HidController.cpp $(SRC_PATH)InputManager.cpp $(SRC_PATH)InputListener.cpp $(SRC_PATH)PlayerInputListener.cpp \
+$(SHARED_PATH)WeaponSystem.cpp
 
 # Rule for eX0
 eX0: $(OBJS) $(SHARED_PATH)col_hand.cpp $(SHARED_PATH)game_data.cpp $(SRC_PATH)input.cpp $(SRC_PATH)main.cpp \
 $(SHARED_PATH)math.cpp $(SRC_PATH)ogl_utils.cpp $(SHARED_PATH)particle.cpp $(SHARED_PATH)player.cpp \
-$(SRC_PATH)render.cpp $(SHARED_PATH)weapon.cpp \
+$(SRC_PATH)render.cpp \
 $(SHARED_PATH)NetworkConnection.cpp $(SRC_PATH)ServerConnection.cpp $(SHARED_PATH)ClientConnection.cpp \
 $(SRC_PATH)LocalServerConnection.cpp $(SHARED_PATH)LocalClientConnection.cpp \
 $(SRC_PATH)Mgc/MgcDist2DVecLin.cpp $(SRC_PATH)Mgc/MgcIntr2DLinLin.cpp $(SRC_PATH)Mgc/MgcMath.cpp \
@@ -33,7 +34,7 @@ $(SHARED_PATH)NetworkController.cpp $(SHARED_PATH)LocalStateAuther.cpp
 	$(CC) $(CFLAGS) $(SHARED_PATH)col_hand.cpp $(SHARED_PATH)game_data.cpp \
 $(OBJS) $(SRC_PATH)input.cpp $(SRC_PATH)main.cpp \
 $(SHARED_PATH)math.cpp $(SRC_PATH)ogl_utils.cpp $(SHARED_PATH)particle.cpp $(SHARED_PATH)player.cpp \
-$(SRC_PATH)render.cpp $(SHARED_PATH)weapon.cpp \
+$(SRC_PATH)render.cpp \
 $(SHARED_PATH)NetworkConnection.cpp $(SRC_PATH)ServerConnection.cpp $(SHARED_PATH)ClientConnection.cpp \
 $(SRC_PATH)LocalServerConnection.cpp $(SHARED_PATH)LocalClientConnection.cpp \
 $(SRC_PATH)Mgc/MgcDist2DVecLin.cpp $(SRC_PATH)Mgc/MgcIntr2DLinLin.cpp $(SRC_PATH)Mgc/MgcMath.cpp \

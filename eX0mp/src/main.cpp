@@ -1,9 +1,9 @@
 #include "globals.h"
 
-// no console window
-//#pragma comment(linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
-#pragma comment(linker, "/NODEFAULTLIB:\"LIBCMT\"")
-//#pragma comment(linker, "/NODEFAULTLIB:\"LIBC\"")
+#if !defined(EX0_DEBUG) && defined(WIN32)
+	// no console window
+//#	pragma comment(linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
+#endif
 
 volatile bool	bProgramRunning = true;
 volatile int	iGameState = 1;
@@ -11,7 +11,12 @@ bool			bPaused = false;
 
 bool			bWireframe = false;
 bool			bUseDefaultTriangulation = true;
-bool			bStencilOperations = false;
+bool			bStencilOperations =
+#ifdef EX0_DEBUG
+									 false;
+#else
+									 true;
+#endif // EX0_DEBUG
 
 GLFWvidmode		oDesktopMode;
 bool			bFullscreen = false;
@@ -70,7 +75,12 @@ bool Init(int, char *[])
 
 		// create the window
 		glfwGetDesktopMode(&oDesktopMode);
-		glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 8);
+		glfwOpenWindowHint(GLFW_FSAA_SAMPLES,
+#ifdef EX0_DEBUG
+											  8);
+#else
+											  0);
+#endif // EX0_DEBUG
 		glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
 		//if (glfwOpenWindow(1920, 1200, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow()) { printf("Opened a window (try 0)...\n"); } else
 		if (glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
@@ -134,18 +144,18 @@ bool Init(int, char *[])
 		return false;
 	}
 	WeaponInitSpecs();
-	nPlayerCount = 256;					// Set the max player limit for this server
-	//nPlayerCount = 8;					// Set the max player limit for this server
+	//nPlayerCount = 255;					// Set the max player limit for this server
+	nPlayerCount = 16;					// Set the max player limit for this server
 	if (bWindowModeDEBUG) pChatMessages = new CHudMessageQueue(0, 480 - 150, 5, 7.5f);
 	//FpsCounter::Initialize();
 	if (bWindowModeDEBUG)
 		g_pInputManager = new InputManager();
+	g_pGameSession = new GameSession();
 	if (!NetworkInit()) {				// Initialize the networking
 		printf("Couldn't initialize the networking.\n");
 		return false;
 	}
 	pTimedEventScheduler = new CTimedEventScheduler();
-	g_pGameSession = new GameSession();
 	pGameLogicThread = new GameLogicThread();
 	if (nRunModeDEBUG != 0)
 		pGameServer = new GameServer(nRunModeDEBUG != 3);
@@ -162,12 +172,12 @@ void Deinit()
 
 	// Sub-deinit
 	delete pGameLogicThread; pGameLogicThread = nullptr;
-	delete g_pGameSession; g_pGameSession = nullptr;
 	delete pTimedEventScheduler; pTimedEventScheduler = nullptr;
 	delete pGameServer; pGameServer = nullptr;
+	NetworkDeinit();					// Shutdown the networking component
 	// DEBUG: Wrong place? This is done twice on Server-instance, once on Client-instance... Refactor this thoroughly
 	ClientConnection::CloseAll();
-	NetworkDeinit();					// Shutdown the networking component
+	delete g_pGameSession; g_pGameSession = nullptr;
 	delete g_pInputManager; g_pInputManager = nullptr;
 	FpsCounter::DeleteAll();//FpsCounter::Deinitialize();
 	CPlayer::DeleteAll();				// Delete all players
@@ -269,10 +279,10 @@ void Terminate(int nExitCode)
 }
 
 #ifdef WIN32
-BOOL WINAPI CtrlCHandler(DWORD dwCtrlType)
+BOOL WINAPI ConsoleCtrlHandler(DWORD dwCtrlType)
 {
-	if (dwCtrlType == CTRL_C_EVENT || dwCtrlType == CTRL_BREAK_EVENT || dwCtrlType == CTRL_CLOSE_EVENT
-		|| dwCtrlType == CTRL_LOGOFF_EVENT || dwCtrlType == CTRL_SHUTDOWN_EVENT)
+	if (CTRL_C_EVENT == dwCtrlType || CTRL_BREAK_EVENT == dwCtrlType || CTRL_CLOSE_EVENT == dwCtrlType
+		|| CTRL_LOGOFF_EVENT == dwCtrlType || CTRL_SHUTDOWN_EVENT == dwCtrlType)
 	{
 		Terminate(0);
 
@@ -289,11 +299,11 @@ void signal_handler(int sig)
 #endif
 
 // DEBUG
-void DumpStateHistory(std::list<AuthState_t> & oStateHistory)
+void DumpStateHistory(std::list<AuthState_st> & oStateHistory)
 {
 	printf("=== oStateHistory DUMP ====================\n");
 
-	double dCurrentTime = g_pGameSession->RenderTimer().GetTime();
+	double dCurrentTime = g_pGameSession->MainTimer().GetTime();
 	double dCurrentTimepoint = dCurrentTime / (256.0 / g_cCommandRate);
 	dCurrentTimepoint -= static_cast<uint32>(dCurrentTimepoint);
 	dCurrentTimepoint *= 256;
@@ -307,17 +317,100 @@ void DumpStateHistory(std::list<AuthState_t> & oStateHistory)
 	printf("\n");
 }
 
+std::string unescape(char * cstr)
+{
+	std::string str;
+	for (uint32 ch = 0; ch < strlen(cstr); ++ch)
+	{
+		if (cstr[ch] == '"')
+			str = str + "\\\"";
+		else
+			str = str + cstr[ch];
+	}
+	return str;
+}
+
 // main function
-int main(int argc, char *argv[])
+int main(int argc, char * argv[])
 {
 	eX0_assert(sizeof(int8)*8 == 8 && sizeof(uint8)*8 == 8, "sizeof(u/int8) incorrect", true);
 	eX0_assert(sizeof(int16)*8 == 16 && sizeof(uint16)*8 == 16, "sizeof(u/int16) incorrect", true);
 	eX0_assert(sizeof(int32)*8 == 32 && sizeof(uint32)*8 == 32, "sizeof(u/int32) incorrect", true);
 	eX0_assert(sizeof(int64)*8 == 64 && sizeof(uint64)*8 == 64, "sizeof(u/int64) incorrect", true);
 
+	/*printf("^%s^\n", GetCommandLine());
+	for (int i = 0; i < argc; ++i)
+		printf("param %d: ^%s^\n", i, argv[i]);
+	printf("done. press enter."); getchar();
+	printf("exiting.\n");
+	return 0;*/
+
+	/*for (int i = 0; i < argc; ++i)
+		printf("param %d: ^%s^\n", i, argv[i]);
+	printf("\n");
+
+	// Re-run the exe in a cmd environment, so that the console window won't get closed right away
+	// NOTE: All original command line parameters get preserved
+	char * runcode = "-superdupercodethatallowseX0torunforreal";
+	if (argc >= 2 && 0 == strcmp(argv[argc - 1], runcode))
+		argc -= 1;		// Ignore the runcode parameter
+	else {
+		std::string cmd = "(";
+		for (int i = 0; i < argc; ++i) {
+			/*if (nullptr == strchr(argv[i], ' '))	// No space in parameter
+				cmd = cmd + argv[i] + " ";
+			else									// Space in parameter* /
+				cmd = cmd + "\"" + unescape(argv[i]) + "\" ";
+		}
+		cmd = cmd + runcode + ") & echo. & echo If anything went wrong, please copy the log above and send it to shurcooL. & pause";
+		printf("Executing ^%s^\n", cmd.c_str());
+		system(cmd.c_str());
+		return 0;
+	}
+
+	for (int i = 0; i < argc; ++i)
+		printf("param %d: ^%s^\n", i, argv[i]);
+	return 0;*/
+
+	// Re-run the exe in a cmd environment, so that the console window won't get closed right away
+	// NOTE: At this time, all command lines parameters get stripped
+	/*char * runcode = "-superdupercodethatallowseX0torunforreal";
+	if (2 == argc && 0 == strcmp(argv[1], runcode))
+		argc = 1;		// Ignore the runcode parameter
+	else {
+		std::string cmd; cmd = cmd + "(start /b eX0 " + runcode + ") & echo. & echo If anything went wrong, please copy the log above and send it to shurcooL.";
+		system(cmd.c_str());
+		return 0;
+	}*/
+	/*STARTUPINFO siStartupInfo; memset(&siStartupInfo, 0, sizeof(siStartupInfo)); siStartupInfo.cb = sizeof(siStartupInfo);
+	PROCESS_INFORMATION piProcessInfo; memset(&piProcessInfo, 0, sizeof(piProcessInfo));
+	//std::string cmd; cmd = cmd + "cmd /C \"\"" + argv[0] + "\" " + "-param1" + " & echo. & echo If anything went wrong, please copy the log above and send it to shurcooL. & pause";
+	std::string cmd; cmd = cmd + "cmd /C \"\"" + "C:\\Work\\Generation 10\\eX0\\eX0 simple.exe" + "\" -param1 \"-param two\" & pause\"";
+	return CreateProcess(NULL, const_cast<char *>(cmd.c_str()), NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &siStartupInfo, &piProcessInfo);
+	//return CreateProcess("C:\\Windows\\system32\\cmd.exe", "/C calc.exe", NULL, NULL, FALSE, NULL, NULL, NULL, &siStartupInfo, &piProcessInfo);
+	//printf("error: %d\n", GetLastError());
+	//return 0;*/
+
+#if !defined(EX0_DEBUG) && defined(WIN32)
+	// Re-run the exe in a cmd environment, so that the console window won't get closed right away
+	// NOTE: At this time, all command lines parameters get stripped
+	char * runcode = "-superdupercodethatallowseX0torunforreal";
+	if (2 == argc && 0 == strcmp(argv[1], runcode))
+		argc = 1;		// Ignore the runcode parameter
+	else {
+		/*std::string cmd; cmd = cmd + "\"" + argv[0] + "\" " + runcode + " & echo. & echo If anything went wrong, please copy the log above and send it to shurcooL. & pause";
+		system(cmd.c_str());*/
+		STARTUPINFO siStartupInfo; memset(&siStartupInfo, 0, sizeof(siStartupInfo)); siStartupInfo.cb = sizeof(siStartupInfo);
+		PROCESS_INFORMATION piProcessInfo; memset(&piProcessInfo, 0, sizeof(piProcessInfo));
+		std::string cmd; cmd = cmd + "cmd /C \"\"" + argv[0] + "\" " + runcode + " & echo. & echo If anything went wrong, please copy the log above and send it to shurcooL. & pause\"";
+		CreateProcess(NULL, const_cast<char *>(cmd.c_str()), NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &siStartupInfo, &piProcessInfo);
+		return 0;
+	}
+#endif
+
 	// Add a Ctrl+C signal handler, for abrupt termination
 #ifdef WIN32
-	SetConsoleCtrlHandler(&CtrlCHandler, TRUE);
+	SetConsoleCtrlHandler(&ConsoleCtrlHandler, TRUE);
 #else
 	signal(SIGINT, &signal_handler);
 	signal(SIGHUP, &signal_handler);
@@ -342,10 +435,11 @@ int main(int argc, char *argv[])
 	else if (ch == 'b') nRunModeDEBUG = 2;		// Both server and client
 	else if (ch == 'n') nRunModeDEBUG = 3;		// Off-line client/server (no network)
 	else if (ch == 'd') { nRunModeDEBUG = 1; bWindowModeDEBUG = false; }	// Dedicated server (no window)
-	else return 9;
+	else { printf("Invalid mode, exiting.\n"); return 0; }
 #else
 	nRunModeDEBUG = 0;		// Force client-only functionality
-#endif
+	argc = 1;				// Don't allow any command line arguments
+#endif // EX0_DEBUG
 
 	// DEBUG: Set the level name through the 3rd command line param
 	if (argc >= 4)
@@ -356,13 +450,30 @@ int main(int argc, char *argv[])
 		Terminate(1);
 
 	// DEBUG: Set the local player name through the 2nd command line param
-	if (nRunModeDEBUG != 1 && argc >= 3)
-		sLocalPlayerName = argv[2];
+	if (nRunModeDEBUG != 1)
+	{
+		if (argc >= 3)
+			sLocalPlayerName = argv[2];
+#ifndef EX0_DEBUG
+		else {
+			CHAR lpBuffer[256+1];
+			DWORD lpnSize = 256+1;
+			if (GetUserName(lpBuffer, &lpnSize))
+				sLocalPlayerName = lpBuffer;
+		}
+#endif // EX0_DEBUG
+	}
 
 	// Connect to the server
-	if (argc >= 2 && nRunModeDEBUG == 0)	// Client only
+	if (nRunModeDEBUG == 0)	// Client only
 	{
-		NetworkConnect(argv[1], DEFAULT_PORT);
+		glfwSetWindowPos(oDesktopMode.Width - 650 * 2, oDesktopMode.Height / 2 - 240);
+		if (!(argc >= 2 && NetworkConnect(argv[1], DEFAULT_PORT)) &&
+			!NetworkConnect("cse.yorku.ca", DEFAULT_PORT))
+		{
+			Terminate(1);
+		}
+		//NetworkConnect("shurvaio", DEFAULT_PORT);
 	} else if (nRunModeDEBUG == 2)			// Both server and client
 	{
 		// Connect to local server
@@ -450,21 +561,16 @@ glfwUnlockMutex(oPlayerTick);
 		//dBaseTime = glfwGetTime();
 		if (nullptr == pGameServer)
 			g_pGameSession->LogicTimer().Start();
-		g_pGameSession->RenderTimer().Start();
+		g_pGameSession->MainTimer().Start();
 	}
 
 	// Main loop
 	while (bProgramRunning && (!bWindowModeDEBUG || glfwGetWindowParam(GLFW_OPENED)))
 	{
-		// DEBUG: A hack
-		/*static double dPreviousTime = glfwGetTime();
-		double dCurrentTime = glfwGetTime();
-		double dTimePassed = dCurrentTime - dPreviousTime;
-		dPreviousTime = dCurrentTime;*/
-		g_pGameSession->RenderTimer().UpdateTime();
+		g_pGameSession->MainTimer().UpdateTime();
 
 		pFpsCounter->IncrementCounter();
-		FpsCounter::UpdateCounters(g_pGameSession->RenderTimer().GetTime());
+		FpsCounter::UpdateCounters(g_pGameSession->MainTimer().GetTime());
 		if (!bWindowModeDEBUG) FpsCounter::PrintCounters();
 //if (glfwGetKey('O')) {CTimedEventScheduler * p = pTimedEventScheduler; pTimedEventScheduler = NULL; delete p;}
 
@@ -493,35 +599,16 @@ glfwUnlockMutex(oPlayerTick);
 #endif // EX0_CLIENT
 
 glfwLockMutex(oPlayerTick);
-				for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+				for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
 					if (NULL != PlayerGet(nPlayer)) {
-						PlayerGet(nPlayer)->SeekRealtimeInput(g_pGameSession->RenderTimer().GetTimePassed());
+						PlayerGet(nPlayer)->SeekRealtimeInput(g_pGameSession->MainTimer().GetTimePassed());
 					}
 				}
 glfwUnlockMutex(oPlayerTick);
 
 glfwLockMutex(oPlayerTick);
-				// DEBUG: Do this first to make sure there's no mis-match between player position for scene and other player rendering
-				// But this should be done by a separate camera type of thing
-				/*if (pLocalPlayer != NULL) {
-					// TODO: This needs to be worked on... need a better separation between rendering and logic timeframe/player location/etc.
-					pLocalPlayer->fTicks = (float)(g_pGameSession->RenderTimer().GetTime() - (g_dNextTickTime - 1.0 / g_cCommandRate));
-					g_pGameSession->cRenderCurrentCommandSequenceNumberTEST = g_cCurrentCommandSequenceNumber;
-					// DEBUG: Thhis fTicks < 0 thing doesn't work proprly. Get rid of it and everything legacy timing related, replace with current time only
-					if (pLocalPlayer->fTicks < 0)
-					{
-						pLocalPlayer->fTicks += static_cast<float>(1.0 / g_cCommandRate);
-						--g_pGameSession->cRenderCurrentCommandSequenceNumberTEST;
-						printf("NOTE: fTicks was < 0, but not anymore.\n");
-					}
-
-					if (pLocalPlayer->GetTeam() != 2) {
-						if (!pLocalPlayer->IsDead()) {
-							pLocalPlayer->UpdateInterpolatedPos();
-						}
-					}
-				}*/
-				for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+				// DEBUG: But this should be done by a separate camera type of thing
+				for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
 					if (PlayerGet(nPlayer) != NULL)
 						PlayerGet(nPlayer)->UpdateRenderState();
 				}
@@ -537,7 +624,7 @@ glfwUnlockMutex(oPlayerTick);
 				if (bStencilOperations) RenderFOV();
 
 				// Enable the FOV masking
-				if (bStencilOperations && pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
+				if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
 
 				// render all players
 glfwLockMutex(oPlayerTick);
@@ -549,10 +636,13 @@ glfwLockMutex(oPlayerTick);
 glfwUnlockMutex(oPlayerTick);
 
 				// render all particles
+				// TODO: Need to use a different mutex here
+glfwLockMutex(oPlayerTick);
 				RenderParticles();
+glfwUnlockMutex(oPlayerTick);
 
 				// Disable the masking
-				if (bStencilOperations && pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(NO_MASKING_MODE);
+				if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(NO_MASKING_MODE);
 
 				// render HUD
 glfwLockMutex(oPlayerTick);
@@ -567,7 +657,7 @@ glfwUnlockMutex(oPlayerTick);
 				//MainMenuRender();
 			}
 
-			// finish it up
+			// Swap Buffers (and Poll Events)
 			if (!bPaused) glfwSwapBuffers();
 			else { glfwSleep(0.010); glfwPollEvents(); }
 
@@ -575,7 +665,7 @@ glfwUnlockMutex(oPlayerTick);
 			{
 				g_pInputManager->ProcessJoysticks();
 
-				g_pInputManager->TimePassed(g_pGameSession->RenderTimer().GetTimePassed());		// DEBUG: Not the right place
+				g_pInputManager->TimePassed(g_pGameSession->MainTimer().GetTimePassed());		// DEBUG: Not the right place
 
 				glfwSleep(0.0);
 			}

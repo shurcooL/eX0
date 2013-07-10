@@ -39,19 +39,28 @@ float MathCoordToRad(int iX1, int iY1, int iX2, int iY2)
 
 // DEBUG - Not sure if this is entirely memory-usage correct
 // convert int to string
-std::string itos(const int &iInteger)
+std::string itos(const int nInteger)
 {
 	std::ostringstream oStringStream;
-	oStringStream << iInteger;
+	oStringStream << nInteger;
 	return oStringStream.str();
 }
 
 // DEBUG - Not sure if this is entirely memory-usage correct
 // convert float to string
-std::string ftos(const float &fFloat)
+std::string ftos(const float fFloat)
 {
 	std::ostringstream oStringStream;
 	oStringStream << fFloat;
+	return oStringStream.str();
+}
+
+// DEBUG - Not sure if this is entirely memory-usage correct
+// convert double to string
+std::string dtos(const double dDouble)
+{
+	std::ostringstream oStringStream;
+	oStringStream << dDouble;
 	return oStringStream.str();
 }
 

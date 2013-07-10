@@ -11,11 +11,14 @@ public:
 
 	void ProvideRealtimeInput(double dTimePassed);
 
-	PlayerInputListener * m_pPlayerInputListener;
+	PlayerInputListener		m_oPlayerInputListener;
 
 protected:
 	void ProvideNextCommand();
-	void ChildReset();
+
+	void ProvideNextWpnCommand();
+
+	void SubReset();
 
 private:
 	HidController(const HidController &);

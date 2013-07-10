@@ -9,7 +9,10 @@ public:
 	~ThreadSafeQueue();
 
 	bool push(T & oElement);
-	void pop(T & oElement);
+	void pop();
+
+	T & front();
+	const T & front() const;
 
 	bool empty() const;
 	bool full() const;
@@ -22,7 +25,7 @@ private:
 	ThreadSafeQueue & operator =(const ThreadSafeQueue &);
 
 	static const u_int		m_knBufferSize = Tsize + 1;
-	volatile T *			m_pBuffer[m_knBufferSize];
+	const T * volatile		m_pBuffer[m_knBufferSize];
 	volatile u_int			m_nWriteHead;
 	volatile u_int			m_nReadHead;
 };

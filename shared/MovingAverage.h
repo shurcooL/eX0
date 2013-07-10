@@ -9,10 +9,12 @@ public:
 	~MovingAverage();
 
 	void push(double dValue, double dTime);		// Time in seconds
+	void trim(double dTime);
 	void clear();
 
 	u_int size() const;
 	bool well_populated() const;
+	double Sum() const;
 	double Mean() const;
 	double LowerQuartile() const;
 	double WeightedMovingAverage() const;

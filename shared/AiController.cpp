@@ -21,11 +21,11 @@ void AiController::ProvideRealtimeInput(double dTimePassed)
 
 void AiController::ProvideNextCommand()
 {
-	SequencedCommand_t oSequencedCommand;
+	SequencedCommand_st oSequencedCommand;
 
 	// Run around in circles
 	oSequencedCommand.oCommand.cMoveDirection = 0;
-	oSequencedCommand.oCommand.cStealth = 0;
+	oSequencedCommand.oCommand.bStealth = false;
 	oSequencedCommand.oCommand.fZ = m_oPlayer.GetZ();
 	// eDRODx AI
 	/*m_oPlayer.SetStealth(false);
@@ -43,6 +43,11 @@ void AiController::ProvideNextCommand()
 	eX0_assert(m_oPlayer.m_oCommandsQueue.push(oSequencedCommand), "m_oCommandsQueue.push(oCommand) failed, lost a command!!\n");
 }
 
-void AiController::ChildReset()
+void AiController::ProvideNextWpnCommand()
+{
+	// This AI doesn't use weapons yet...
+}
+
+void AiController::SubReset()
 {
 }

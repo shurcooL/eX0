@@ -13,7 +13,10 @@ public:
 
 protected:
 	void ProvideNextCommand();
-	void ChildReset();
+
+	void ProvideNextWpnCommand();
+
+	void SubReset();
 
 private:
 	AiController(const AiController &);

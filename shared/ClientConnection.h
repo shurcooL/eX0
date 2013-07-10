@@ -9,12 +9,12 @@ public:
 	ClientConnection(SOCKET nTcpSocket);
 	~ClientConnection();
 
-	virtual u_short GetLastLatency() const;
+	virtual uint16 GetLastLatency() const;
 	void SetLastLatency(u_short nLastLatency);
 
 	HashMatcher<PingData_t, double> & GetPingSentTimes();
 
-	u_int GetPlayerID() const;
+	uint8 GetPlayerID() const;
 	void SetPlayer(CPlayer * pPlayer);
 	void RemovePlayer();
 	bool HasPlayer() const;
@@ -23,7 +23,7 @@ public:
 	void AddPlayer(CPlayer * pPlayer);
 	void RemovePlayer(CPlayer * pPlayer);
 	CPlayer * GetPlayer(u_int nPlayerNumber);
-	u_int GetPlayerID(u_int nPlayerNumber) { return GetPlayer(nPlayerNumber)->iID; }
+	uint8 GetPlayerID(u_int nPlayerNumber) { return GetPlayer(nPlayerNumber)->iID; }
 	u_int GetPlayerCount() const;
 	bool IsMultiPlayer() const { return GetPlayerCount() > 1; }
 
@@ -54,8 +54,12 @@ public:
 protected:
 	ClientConnection();
 
-private:
 	u_short		m_nLastLatency;
+
+private:
+	ClientConnection(const ClientConnection &);
+	ClientConnection & operator =(const ClientConnection &);
+
 	HashMatcher<PingData_t, double>		m_oPingSentTimes;
 
 	CPlayer *	m_pPlayer;

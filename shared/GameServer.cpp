@@ -47,10 +47,10 @@ GameServer::~GameServer()
 		shutdown(listener, SD_BOTH);
 		shutdown(nUdpSocket, SD_BOTH);
 
+		delete m_pThread;
+
 		// Close the connection to all clients
 		ClientConnection::CloseAll();
-
-		delete m_pThread;
 
 		// Close the server sockets
 		NetworkCloseSocket(listener);
@@ -94,11 +94,11 @@ void GLFWCALL GameServer::ThreadFunction(void * pArgument)
 		printf("Created UDP socket #%d.\n", (int)pGameServer->nUdpSocket);
 
 		// lose the pesky "address already in use" error message
-		/*if (setsockopt(pGameServer->listener, SOL_SOCKET, SO_REUSEADDR, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
-			NetworkPrintError("setsockopt");
+		if (setsockopt(pGameServer->listener, SOL_SOCKET, SO_REUSEADDR, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
+			NetworkPrintError("setsockopt(SO_REUSEADDR)");
 			Terminate(1);
 			return;
-		}*/
+		}
 		// Disable the Nagle algorithm for send coalescing
 		if (setsockopt(pGameServer->listener, IPPROTO_TCP, TCP_NODELAY, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
 			NetworkPrintError("setsockopt(nodelay)");
@@ -166,6 +166,7 @@ void GLFWCALL GameServer::ThreadFunction(void * pArgument)
 	// Main server loop
 	while (pThread->ShouldBeRunning())
 	{
+double t1 = glfwGetTime();
 		pFpsCounter->IncrementCounter();
 
 		read_fds = master; // copy it
@@ -228,6 +229,9 @@ glfwUnlockMutex(oPlayerTick);
 						// Got a UDP packet
 						//printf("Got a UDP %d byte packet from %s:%d!\n", nbytes,
 						//	inet_ntoa(oSenderAddr.sin_addr), ntohs(oSenderAddr.sin_port));
+						if (g_pGameSession->GetNetworkMonitor())
+							g_pGameSession->GetNetworkMonitor()->PushReceivedData(nbytes);
+
 						ClientConnection * pConnection;
 
 						if (nbytes <= 0 || nbytes > MAX_UDP_PACKET_SIZE)
@@ -238,9 +242,10 @@ glfwUnlockMutex(oPlayerTick);
 							bool bUdpHandshakePacket = NetworkProcessUdpHandshakePacket(cUdpBuffer, static_cast<u_short>(nbytes), oSenderAddr, pGameServer->nUdpSocket);
 
 							if (!bUdpHandshakePacket)
-								printf("Got a non-handshake UDP packet from unknown sender (%s:%d), discarding.\n",
-								  inet_ntoa(oSenderAddr.sin_addr), ntohs(oSenderAddr.sin_port));
+								printf("Got a non-handshake UDP packet from unknown sender (%s:%d), discarding.\n", inet_ntoa(oSenderAddr.sin_addr), ntohs(oSenderAddr.sin_port));
 						} else {
+							pConnection->NotifyDataReceived();
+
 							// Process the received UDP packet
 							CPacket oPacket(cUdpBuffer, nbytes);
 							if (!NetworkProcessUdpPacket(oPacket, pConnection)) {
@@ -259,8 +264,7 @@ glfwUnlockMutex(oPlayerTick);
 					}
 
 					nbytes = recv(i, reinterpret_cast<char *>(pConnection->oTcpPacketBuffer.cTcpPacketBuffer) + pConnection->oTcpPacketBuffer.nCurrentPacketSize,
-															  sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer) - pConnection->oTcpPacketBuffer.nCurrentPacketSize,
-															  0);
+													   sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer) - pConnection->oTcpPacketBuffer.nCurrentPacketSize, 0);
 
 					// Recv returned 0 or less than 0
 					if (nbytes <= 0)
@@ -306,8 +310,12 @@ glfwUnlockMutex(oPlayerTick);
 					// Recv returned greater than 0
 					else
 					{
-						// we got some TCP data from a client, process it
 						//printf("Got %d bytes from client #%d\n", nbytes, (int)i);
+						if (g_pGameSession->GetNetworkMonitor())
+							g_pGameSession->GetNetworkMonitor()->PushReceivedData(nbytes);
+
+						// we got some TCP data from a client, process it
+						pConnection->NotifyDataReceived();
 
 						pConnection->oTcpPacketBuffer.nCurrentPacketSize += static_cast<u_short>(nbytes);
 						eX0_assert(pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer), "pConnection->oTcpPacketBuffer.nCurrentPacketSize <= sizeof(pConnection->oTcpPacketBuffer.cTcpPacketBuffer)");
@@ -364,6 +372,8 @@ glfwUnlockMutex(oPlayerTick);
 		}
 
 		// There's no need to Sleep here, since select() will essentially do that automatically whenever there's no data
+double td = glfwGetTime() - t1;
+if (td >= 0.1) printf("some action x (Main server loop) took %.10f ms\n", td * 1000);
 	}
 
 	pThread->ThreadEnded();
@@ -386,7 +396,7 @@ void GameServer::BroadcastPingPacket(void *)
 	memcpy(oPingData.cPingData, (void *)&fPingData, 4);
 	for (int nPingDataByte = 0; nPingDataByte < 4; ++nPingDataByte)
 		oPingPacket.pack("c", oPingData.cPingData[nPingDataByte]);
-	for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+	for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 	{
 		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME)
 		{
@@ -399,7 +409,7 @@ void GameServer::BroadcastPingPacket(void *)
 
 	glfwUnlockMutex(oPlayerTick);
 
-	for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+	for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 	{
 		// Broadcast the packet to all network players that are IN_GAME
 		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME

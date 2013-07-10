@@ -72,7 +72,7 @@ void OglUtilsDeinitGL()
 }
 
 // print text on screen
-void OglUtilsPrint(int iX, int iY, int iFont, bool bCentered, const char *chText)
+void OglUtilsPrint(int iX, int iY, int iFont, PrintAlignment nAlignment, const char *chText)
 {
 	if (chText == NULL)
 		return;
@@ -86,10 +86,12 @@ void OglUtilsPrint(int iX, int iY, int iFont, bool bCentered, const char *chText
 
 	//vsprintf(chAsciiCodes, chText, NULL);
 
-	if (!bCentered)
+	if (LEFT == nAlignment)
 		glTranslatef((GLfloat)iX, (GLfloat)iY, 0.0f);
-	else
+	else if (CENTER == nAlignment)
 		glTranslatef((GLfloat)(iX - strlen(chText) * (iFont == 0 ? 5 : 3)), (GLfloat)iY, 0.0f);
+	else if (RIGHT == nAlignment)
+		glTranslatef((GLfloat)(iX - strlen(chText) * 2 * (iFont == 0 ? 5 : 3)), (GLfloat)iY, 0.0f);
 
 	glListBase(oFontBase[iFont]);
 	//glCallLists(strlen(chAsciiCodes), GL_UNSIGNED_BYTE, chAsciiCodes);
@@ -181,7 +183,7 @@ void OglUtilsSwitchMatrix(int iWhichMatrix)
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 
-		gluPerspective(45.0, 640.0 / 480.0, 100.0, 5000.0);
+		gluPerspective(45.0, 640.0 / 480.0, 1.0, 5000.0);
 		//gluPerspective(45.0, 1.6, 100.0, 5000.0);
 
 		glMatrixMode(GL_MODELVIEW);

@@ -14,7 +14,7 @@ public:
 
 	bool IsLocal();// { return false; }
 
-	u_short GetLastLatency() const;
+	uint16 GetLastLatency() const;
 	void SetLastLatency(u_short nLastLatency);
 
 	HashMatcher<PingData_t, double> & GetPingSentTimes();

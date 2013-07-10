@@ -21,7 +21,11 @@ void NetworkController::ProvideNextCommand()
 {
 }
 
-void NetworkController::ChildReset()
+void NetworkController::ProvideNextWpnCommand()
+{
+}
+
+void NetworkController::SubReset()
 {
 }
 
@@ -31,14 +35,12 @@ void NetworkController::ProcessCommand(CPacket & oPacket)
 	u_char cCommandSeriesNumber;
 	u_char cMovesCount;
 	char cMoveDirection;
-	u_char cStealth;
+	bool bStealth;
 	float fZ;
 	oPacket.unpack("ccc", &cCommandSequenceNumber, &cCommandSeriesNumber, &cMovesCount);
 	cMovesCount += 1;	// De-normalize back to 1 (min value)
 
-	NetworkController * pNetworkController = this;
-
-	if (cCommandSeriesNumber != pNetworkController->cCurrentCommandSeriesNumber) {
+	if (cCommandSeriesNumber != this->cCurrentCommandSeriesNumber) {
 		printf("Got a Command with mismatching series number, ignoring. cCommandSequenceNumber = %d, cMovesCount = %d, ignoring.\n", cCommandSequenceNumber, cMovesCount);
 		return;
 	}
@@ -46,11 +48,11 @@ void NetworkController::ProcessCommand(CPacket & oPacket)
 	//printf("%f NC: got %d cmds\n", g_pGameSession->LogicTimer().GetGameTime(), (int)cMovesCount);
 	for (int nMove = 0; nMove < (int)cMovesCount; ++nMove)
 	{
-		oPacket.unpack("ccf", &cMoveDirection, &cStealth, &fZ);
+		oPacket.unpack("cbf", &cMoveDirection, &bStealth, &fZ);
 
-		SequencedCommand_t oSequencedCommand;
+		SequencedCommand_st oSequencedCommand;
 		oSequencedCommand.oCommand.cMoveDirection = cMoveDirection;
-		oSequencedCommand.oCommand.cStealth = cStealth;
+		oSequencedCommand.oCommand.bStealth = bStealth;
 		oSequencedCommand.oCommand.fZ = fZ;
 		oSequencedCommand.cSequenceNumber = static_cast<u_char>(cCommandSequenceNumber - (cMovesCount - 1) + nMove);
 
@@ -81,17 +83,17 @@ void NetworkController::ProcessCommand(CPacket & oPacket)
 		pNetworkController->cLastRecvedCommandSequenceNumber = cCommandSequenceNumber;
 
 		for (int nSkip = 0; nSkip < nMove; ++nSkip)
-			oPacket.unpack("ccf", &cMoveDirection, &cStealth, &fZ);
+			oPacket.unpack("cbf", &cMoveDirection, &bStealth, &fZ);
 		for (; nMove < (int)cMovesCount; ++nMove)
 		{
-			oPacket.unpack("ccf", &cMoveDirection, &cStealth, &fZ);
+			oPacket.unpack("cbf", &cMoveDirection, &bStealth, &fZ);
 			//printf("execing command %d\n", cCommandSequenceNumber - (cMovesCount - 1) + nMove);
 
-			SequencedCommand_t oSequencedCommand;
+			SequencedCommand_st oSequencedCommand;
 
 			// Set the inputs
 			oSequencedCommand.oCommand.cMoveDirection = cMoveDirection;
-			oSequencedCommand.oCommand.cStealth = cStealth;
+			oSequencedCommand.oCommand.bStealth = bStealth;
 			oSequencedCommand.oCommand.fZ = fZ;
 
 			oSequencedCommand.cSequenceNumber = static_cast<u_char>(cCommandSequenceNumber - (cMovesCount - 1) + nMove);
@@ -100,4 +102,26 @@ void NetworkController::ProcessCommand(CPacket & oPacket)
 			//printf("pushed %d\n", cCommandSequenceNumber - (cMovesCount - 1) + nMove);
 		}
 	}*/
+}
+
+void NetworkController::ProcessWpnCommand(CPacket & oPacket)
+{
+	uint8	cAction;
+	WpnCommand_st oWpnCommand;
+	oPacket.unpack("cd", &cAction, &oWpnCommand.dTime);
+	oWpnCommand.nAction = static_cast<WeaponSystem::WpnAction>(cAction);
+	if (WeaponSystem::FIRE == oWpnCommand.nAction) oPacket.unpack("f", &oWpnCommand.Parameter.fZ);
+	else if (WeaponSystem::CHANGE_WEAPON == oWpnCommand.nAction) oPacket.unpack("c", &oWpnCommand.Parameter.WeaponNumber);
+
+	/* TODO: Add this... Maybe? Think about it.
+	if (cCommandSeriesNumber != this->cCurrentCommandSeriesNumber) {
+		printf("Got a Command with mismatching series number, ignoring. cCommandSequenceNumber = %d, cMovesCount = %d, ignoring.\n", cCommandSequenceNumber, cMovesCount);
+		return;
+	}*/
+
+	WpnCommand_st oIdleWpnCommand = oWpnCommand;
+	oIdleWpnCommand.nAction = WeaponSystem::IDLE;
+
+	eX0_assert(m_oPlayer.m_oWpnCommandsQueue.push(oIdleWpnCommand), "m_oPlayer.m_oWpnCommandsQueue.push(oIdleWpnCommand)");
+	eX0_assert(m_oPlayer.m_oWpnCommandsQueue.push(oWpnCommand), "m_oPlayer.m_oWpnCommandsQueue.push(oWpnCommand)");
 }

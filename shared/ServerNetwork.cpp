@@ -270,7 +270,7 @@ glfwLockMutex(oPlayerTick);
 				pConnection->GetPlayer(cPlayerNumber)->m_oUpdatesQueue.clear();
 
 				// DEBUG: Randomly position the player
-				SequencedState_t oSeqState;
+				SequencedState_st oSeqState;
 				do {
 					oSeqState.oState.fX = static_cast<float>(rand() % 2000 - 1000);
 					oSeqState.oState.fY = static_cast<float>(rand() % 2000 - 1000);
@@ -343,7 +343,7 @@ glfwUnlockMutex(oPlayerTick);
 				// Send a Current Players Info to the new client
 				CPacket oCurrentPlayersInfoPacket;
 				oCurrentPlayersInfoPacket.pack("hc", 0, (u_char)21);
-				for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+				for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 				{
 					// Include the client who's connecting and all clients with at least Public status
 					if ((PlayerGet(nPlayer) != NULL && (PlayerGet(nPlayer)->pConnection == NULL || PlayerGet(nPlayer)->pConnection->GetJoinStatus() >= PUBLIC_CLIENT))
@@ -450,8 +450,7 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, ClientConnection * pConnection)
 				pConnection->SetLastLatency(static_cast<u_short>(ceil(dLatency * 10000)));
 				//printf("#%d RTT = %.4lf ms -> %d\n", pConnection->GetPlayerID(), dLatency * 1000, pConnection->GetLastLatency());
 			} catch (int) {
-				// TODO: Investigate why I get this error a few times in a 5-min LAN session (perhaps duplicate packet? - yep, most likely, there were many duplicate command packets)
-				printf("DEBUG: Couldn't find a ping sent time match.\n");
+				printf("DEBUG: Couldn't find a ping sent time match (perhaps due to a duplicate Pong packet).\n");
 			}
 			/*if (pConnection->GetPingSentTimes().MatchAndRemoveAfter(oPingData)) {
 				double dLatency = g_pGameSession->LogicTimer().GetRealTime() - pConnection->GetPingSentTimes().GetLastMatchedValue();
@@ -470,9 +469,24 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, ClientConnection * pConnection)
 
 		if (nDataSize < 9) return false;		// Check packet size
 		else {
-glfwLockMutex(oPlayerTick);
+//glfwLockMutex(oPlayerTick);
 			static_cast<NetworkController *>(pConnection->GetPlayer()->m_pController)->ProcessCommand(oPacket);
-glfwUnlockMutex(oPlayerTick);
+//glfwUnlockMutex(oPlayerTick);
+		}
+		break;
+	// Weapon Command Packet TEST
+	case 3:
+		// Check if this client has NOT entered game
+		if (pConnection->GetJoinStatus() < IN_GAME) {
+			printf("Error: This client hasn't yet entered game, ignoring UDP packet.\n");
+			return false;
+		}
+
+		if (nDataSize != 9 && nDataSize != 10 && nDataSize != 13) return false;		// Check packet size
+		else {
+//glfwLockMutex(oPlayerTick);
+			static_cast<NetworkController *>(pConnection->GetPlayer()->m_pController)->ProcessWpnCommand(oPacket);
+//glfwUnlockMutex(oPlayerTick);
 		}
 		break;
 	default:

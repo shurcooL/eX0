@@ -61,7 +61,7 @@ bool ServerConnection::Connect(const char * szHostname, u_short nPort)
 	printf("Connecting to %s.\n", szHostname);
 	if (connect(nTcpSocket, (sockaddr *)&oServerAddress, sizeof(oServerAddress)) == SOCKET_ERROR) {
 	    NetworkPrintError("connect");
-	    Terminate(1);
+	    return false;
 	}
 	sockaddr_in	oLocalTcpAddress;
 	socklen_t			nLocalTcpAddressLength = sizeof(oLocalTcpAddress);

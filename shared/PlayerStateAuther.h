@@ -8,8 +8,9 @@ public:
 	PlayerStateAuther(CPlayer & oPlayer);
 	virtual ~PlayerStateAuther();
 
-	virtual void AfterTick() = 0;
-	virtual void ProcessAuthUpdateTEST() = 0;
+	virtual void ProcessCommands() = 0;
+	virtual void ProcessWpnCommands() = 0;
+	virtual void ProcessUpdates() = 0;
 	virtual void SendUpdate() = 0;
 
 	virtual bool IsLocal(void) = 0;

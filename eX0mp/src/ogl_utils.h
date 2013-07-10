@@ -5,6 +5,8 @@
 #define	WITH_MASKING_MODE		1
 #define RENDER_TO_MASK_MODE		2
 
+enum PrintAlignment { LEFT, CENTER, RIGHT };
+
 bool OglUtilsInitGL();
 
 void OglUtilsDeinitGL();
@@ -13,7 +15,7 @@ void OglUtilsInitFont();
 
 void OglUtilsKillFont();
 
-void OglUtilsPrint(int iX, int iY, int iFont, bool bCentered, const char *chText);
+void OglUtilsPrint(int iX, int iY, int iFont, PrintAlignment nAlignment, const char *chText);
 //void OglUtilsPrint(int iX, int iY, int iFont, bool bCentered, const char *chFmt, ...);
 
 void OglUtilsSwitchMatrix(int iWhichMatrix);

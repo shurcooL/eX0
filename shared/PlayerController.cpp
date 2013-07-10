@@ -43,9 +43,14 @@ void PlayerController::UseUpCommandRequest()
 	}
 }*/
 
+void PlayerController::RequestNextWpnCommand()
+{
+	ProvideNextWpnCommand();
+}
+
 void PlayerController::Reset()
 {
 	m_nCommandRequests = 0;
 
-	ChildReset();
+	SubReset();
 }

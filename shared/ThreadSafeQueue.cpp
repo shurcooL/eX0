@@ -20,13 +20,32 @@ template <typename T, u_int Tsize> bool ThreadSafeQueue<T, Tsize>::push(T & oEle
 		return false;
 }
 
-template <typename T, u_int Tsize> void ThreadSafeQueue<T, Tsize>::pop(T & oElement)
+template <typename T, u_int Tsize> void ThreadSafeQueue<T, Tsize>::pop()
 {
 	if (!empty()) {
-		oElement = *const_cast<T *>(m_pBuffer[m_nReadHead]);
 		delete m_pBuffer[m_nReadHead];
 		m_nReadHead = (m_nReadHead + 1) % m_knBufferSize;
 	}
+	else
+		throw 1;
+}
+
+template <typename T, u_int Tsize> T & ThreadSafeQueue<T, Tsize>::front()
+{
+	if (!empty()) {
+		return *const_cast<T *>(m_pBuffer[m_nReadHead]);
+	}
+	else
+		throw 1;
+}
+
+template <typename T, u_int Tsize> const T & ThreadSafeQueue<T, Tsize>::front() const
+{
+	if (!empty()) {
+		return *m_pBuffer[m_nReadHead];
+	}
+	else
+		throw 1;
 }
 
 template <typename T, u_int Tsize> inline bool ThreadSafeQueue<T, Tsize>::empty() const

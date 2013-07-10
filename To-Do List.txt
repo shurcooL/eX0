@@ -1,5 +1,13 @@
 eX0 To-Do List (highest priority on top)
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+/?-Refactor the WpnCommand packet sending code so that when a gun is empty, the client won't flood the server with 500+ packets/sec of impossible FIRE wpn commands.
+-Fix the WpnCommand packet sending code not to spam same weapon change packets.
+-Look into why oParticleEngine.Tick(); sometimes takes >3ms even without any active particles (when doing heavy multitasking, i.e. >1 eX0 instances running).
+-Partially rewrite the particle class so that there are particle-prototypes that define each particle's starting parameters (rather than them always being custom supplied by AddParticle()).
+-Improve the packet parsing system, so that the server isn't vulnerable to badly formed packets, i.e. throw exceptions when parsing fails, and drop the misbehaving client. Do this nicely.
+-Remove CPlayer::GlobalStateSequenceNumberTEST because it's just an alias for latest predicted state seq number I think (aka m_oPlayer.oStateHistory.front().oState.cSequenceNumber). Actually, maybe I can't quite do that, because on server, there is no latest predicted state per se...
+-Particle engine class probably also needs a mutex to protect particle logic updates and rendering from interfering w/ each other.
+//-PlayerInputListener class probably needs a mutex to disallow being polled by the Logic thread when it's being updated by the Main thread. Added a mutex sub-call to all InputListeners. Done.
 //-FIX[rare]: 0 <= 256.00015 <= 1; fHistoryTicks not in range: 256.00015. Fixed. It happens when fTicks >= fTickTime and from->to states are 0->1. Just added a (fCurrentTimepoint >= 256) check when fCurrentTimepoint is calculated. Done.
 -Establish a clear ownership relationship between Connection and Player classes (i.e. Connection owns its Players).
 xx-Consider if PlayerController should go inside LocalStateAuther rather than CPlayer. No, definitely not (b/c NSA also uses a controller).

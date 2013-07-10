@@ -20,8 +20,6 @@ GLFWmutex		oUdpSendMutex;
 double			g_dNextTickTime = GLFW_INFINITY;
 GLFWmutex		oPlayerTick;
 
-//IndexedCircularBuffer<Move_t, u_char>	oUnconfirmedMoves;
-
 MovingAverage	oRecentLatency(60.0, 10);
 MovingAverage	oRecentTimeDifference(60.0, 10);
 HashMatcher<PingData_t, double>	oPongSentTimes(PING_SENT_TIMES_HISTORY);
@@ -136,11 +134,7 @@ bool NetworkConnect(const char * szHostname, u_short nPort)
 	else
 		pServer = new ServerConnection();
 
-	if (!pServer->Connect(szHostname, nPort)) {
-		return false;
-	}
-
-	return true;
+	return (true == pServer->Connect(szHostname, nPort));
 }
 
 bool NetworkCreateThread()
@@ -205,6 +199,11 @@ void GLFWCALL NetworkThread(void * pArgument)
 			// we got some data from a client, process it
 			} else {
 				//printf("Got %d bytes from server\n", nbytes);
+				if (g_pGameSession->GetNetworkMonitor())
+					g_pGameSession->GetNetworkMonitor()->PushReceivedData(nbytes);
+
+				pServer->NotifyDataReceived();
+				if (pLocalPlayer && pLocalPlayer->pConnection) pLocalPlayer->pConnection->NotifyDataReceived();
 
 				snCurrentPacketSize += static_cast<u_short>(nbytes);
 				eX0_assert(snCurrentPacketSize <= sizeof(buf), "snCurrentPacketSize <= sizeof(buf)");
@@ -257,6 +256,11 @@ void GLFWCALL NetworkThread(void * pArgument)
 			} else {
 				// Got a UDP packet
 				//printf("Got a UDP %d byte packet from server!\n", nbytes);
+				if (g_pGameSession->GetNetworkMonitor())
+					g_pGameSession->GetNetworkMonitor()->PushReceivedData(nbytes);
+
+				pServer->NotifyDataReceived();
+				if (pLocalPlayer && pLocalPlayer->pConnection) pLocalPlayer->pConnection->NotifyDataReceived();				
 
 				// Process the received UDP packet
 				CPacket oPacket(cUdpBuffer, nbytes);
@@ -400,13 +404,9 @@ bool NetworkProcessTcpPacket(CPacket & oPacket)
 		if (nDataSize != 0) return false;		// Check packet size
 		else {
 			glfwLockMutex(oJoinGameMutex);
-			if (bFinishedSyncingClock)
-			{
-				// Join Game
-				NetworkJoinGame();
-			}
-			else
-				bGotPermissionToEnter = true;
+			bGotPermissionToEnter = true;
+			// Try to Join Game
+			NetworkTryJoinGame();
 			glfwUnlockMutex(oJoinGameMutex);
 		}
 		break;
@@ -468,7 +468,7 @@ bool NetworkProcessTcpPacket(CPacket & oPacket)
 			float fX, fY, fZ;
 
 			int nActivePlayers = 0;
-			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+			for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 			{
 				oPacket.unpack("c", &cNameLength);
 				if (cNameLength > 0) {
@@ -647,6 +647,32 @@ glfwLockMutex(oPlayerTick);
 glfwUnlockMutex(oPlayerTick);
 		}
 		break;
+	// Player Was Hit
+	case 40:
+		// Check if we have fully joined the server
+		if (pServer->GetJoinStatus() < PUBLIC_CLIENT) {
+			printf("Error: Not yet fully joined the server.\n");
+			return false;
+		}
+
+		if (nDataSize != 5) return false;		// Check packet size
+		else {
+glfwLockMutex(oPlayerTick);
+
+			u_char cPlayerId;
+			float fHealthGiven;
+			oPacket.unpack("cf", &cPlayerId, &fHealthGiven);
+
+			if (PlayerGet(cPlayerId) == NULL) {
+				printf("WARNING: Got a Player Was Hit packet, but player %d was not in game.\n", cPlayerId);
+				return false;
+			}
+
+			PlayerGet(cPlayerId)->GiveHealth(fHealthGiven);
+
+glfwUnlockMutex(oPlayerTick);
+		}
+		break;
 	default:
 		printf("Error: Got unknown TCP packet of type %d and data size %d.\n", cPacketType, nDataSize);
 		return false;
@@ -654,6 +680,17 @@ glfwUnlockMutex(oPlayerTick);
 	}
 
 	return true;
+}
+
+void NetworkTryJoinGame()
+{
+	if (bGotPermissionToEnter && bFinishedSyncingClock)
+	{
+		bGotPermissionToEnter = bFinishedSyncingClock = false;
+
+		// Join Game
+		NetworkJoinGame();
+	}
 }
 
 void NetworkJoinGame()
@@ -732,13 +769,9 @@ bool NetworkProcessUdpPacket(CPacket & oPacket)
 					+ dShortestLatencyRemoteTime + 0.5 * dShortestLatency + 0.0000135);
 
 				glfwLockMutex(oJoinGameMutex);
-				if (bGotPermissionToEnter)
-				{
-					// Join Game
-					NetworkJoinGame();
-				}
-				else
-					bFinishedSyncingClock = true;
+				bFinishedSyncingClock = true;
+				// Try to Join Game
+				NetworkTryJoinGame();
 				glfwUnlockMutex(oJoinGameMutex);
 			}
 		}
@@ -758,9 +791,42 @@ bool NetworkProcessUdpPacket(CPacket & oPacket)
 
 		if (nDataSize < 1 + (u_int)nPlayerCount) return false;		// Check packet size
 		else {
+//glfwLockMutex(oPlayerTick);
+			NetworkStateAuther::ProcessUpdate(oPacket);
+//glfwUnlockMutex(oPlayerTick);
+		}
+		break;
+	// Weapon Action Packet TEST
+	case 4:
+		// Check if we have entered the game
+		if (pServer->GetJoinStatus() < IN_GAME) {
+			printf("Error: Not yet entered the game.\n");
+			return false;
+		}
+
+		if (nDataSize != 10 && nDataSize != 11 && nDataSize != 14) return false;		// Check packet size
+		else {
+			/* This packet is very similar to server's Wpn Command packet (UDP #3), maybe use the same proc function later on
+glfwLockMutex(oPlayerTick);
+			static_cast<NetworkController *>(pConnection->GetPlayer()->m_pController)->ProcessWpnCommand(oPacket);
+glfwUnlockMutex(oPlayerTick);*/
+
 glfwLockMutex(oPlayerTick);
 
-			NetworkStateAuther::ProcessUpdate(oPacket);
+			uint8	cPlayerId;
+			uint8	cAction;
+			WpnCommand_st oWpnCommand;
+			oPacket.unpack("c", &cPlayerId);
+			oPacket.unpack("cd", &cAction, &oWpnCommand.dTime);
+			oWpnCommand.nAction = static_cast<WeaponSystem::WpnAction>(cAction);
+			if (WeaponSystem::FIRE == oWpnCommand.nAction) oPacket.unpack("f", &oWpnCommand.Parameter.fZ);
+			else if (WeaponSystem::CHANGE_WEAPON == oWpnCommand.nAction) oPacket.unpack("c", &oWpnCommand.Parameter.WeaponNumber);
+
+			WpnCommand_st oIdleWpnCommand = oWpnCommand;
+			oIdleWpnCommand.nAction = WeaponSystem::IDLE;
+
+			PlayerGet(cPlayerId)->m_oWpnCommandsQueue.push(oIdleWpnCommand);
+			PlayerGet(cPlayerId)->m_oWpnCommandsQueue.push(oWpnCommand);
 
 glfwUnlockMutex(oPlayerTick);
 		}
@@ -772,7 +838,7 @@ glfwUnlockMutex(oPlayerTick);
 			return false;
 		}
 
-		if (nDataSize != 4 + 2 * nPlayerCount) return false;		// Check packet size
+		if (nDataSize != 4 + 2 * static_cast<uint32>(nPlayerCount)) return false;		// Check packet size
 		else {
 			PingData_t oPingData;
 			oPacket.unpack("cccc", &oPingData.cPingData[0], &oPingData.cPingData[1], &oPingData.cPingData[2], &oPingData.cPingData[3]);
@@ -792,7 +858,7 @@ printf("\nt3-t2 = %f ms\n", (t3-t2)*1000);
 printf("t-t = %f ms\n", -(glfwGetTime()-glfwGetTime())*1000);*/
 //double t1=glfwGetTime();
 			// Update the last latency for all players
-			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+			for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 			{
 				u_short nLastLatency;
 
@@ -852,7 +918,7 @@ printf("      and %f ms in t3\n", t3d*1000);*/
 					}
 				} //else printf("Time diff %.5lf ms (l-r)\n", ((dLocalTimeAtPongSend + dLocalTimeAtPungReceive) * 0.5 - dServerTime) * 1000);
 			} catch (...) {
-				printf("Error: We never got a ping packet with this oPingData, but got a pung packet! Doesn't make sense.");
+				printf("Error: We never got a ping packet with this oPingData, but got a pung packet! Doesn't make sense (unless it's a duplicate Pung packet).");
 				return false;
 			}
 		}

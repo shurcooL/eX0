@@ -2,8 +2,10 @@
 #ifndef __GlobalSettings_H__
 #define __GlobalSettings_H__
 
-#define EX0_DEBUG
-#define EX0_VERSION "0.002"
+#ifdef _DEBUG
+#	define EX0_DEBUG
+#endif
+#define EX0_VERSION "0.0071"
 
 #ifdef EX0_CLIENT
 #	define EX0_PRODUCT_STRING "eX0"

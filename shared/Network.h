@@ -72,6 +72,8 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, ClientConnection * pConnection);
 #ifdef EX0_CLIENT
 void NetworkSendUdpHandshakePacket(void *pArgument);
 
+void NetworkTryJoinGame();
+
 void NetworkJoinGame();
 
 void NetworkShutdownThread();

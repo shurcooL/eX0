@@ -5,17 +5,17 @@
 template <typename Th, typename T> class HashMatcher
 {
 public:
-	HashMatcher(u_int nMaxSize);
+	HashMatcher(const u_int nMaxSize);
 	~HashMatcher();
 
-	void push(Th oHash, T oValue);
-	T MatchAndRemoveAfter(Th oHash);
+	void push(const Th oHash, const T oValue);
+	T MatchAndRemoveAfter(const Th oHash);
 
 private:
 	HashMatcher(const HashMatcher &);
 	HashMatcher & operator =(const HashMatcher &);
 
-	std::list<std::pair<Th, T> >	m_oData;
+	std::list<std::pair<Th, T> >	m_oData;		// The back of the list has the latest entries
 	const u_int						m_knMaxSize;
 };
 

@@ -151,19 +151,35 @@ bool ClientConnection::BroadcastUdp(CPacket & oPacket, JoinStatus nMinimumJoinSt
 	return true;
 }
 
-bool ClientConnection::BroadcastUdpExcept(CPacket & /*oPacket*/, ClientConnection * /*pConnection*/, JoinStatus /*nMinimumJoinStatus*/)
+bool ClientConnection::BroadcastUdpExcept(CPacket & oPacket, ClientConnection * pConnection, JoinStatus nMinimumJoinStatus)
 {
-	// TODO
-	printf("BroadcastUdpExcept failed because it's not finished.\n");
-	throw 0;
+	for (std::list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1)
+	{
+		// Broadcast the packet to all players that are connected, except the specified one
+		if (*it1 != pConnection && (*it1)->GetJoinStatus() >= nMinimumJoinStatus
+			&& (oPacket.GetSendMode() == CPacket::BOTH || (oPacket.GetSendMode() == CPacket::NETWORK && !(*it1)->IsLocal()))) {
+			/*if (sendudp((*it1)->GetUdpSocket(), (char *)oPacket.GetPacket(), oPacket.size(), 0,
+				(sockaddr *)&(*it1)->GetUdpAddress(), sizeof((*it1)->GetUdpAddress())) != static_cast<int>(oPacket.size()))
+			{
+				NetworkPrintError("sendudp (sendto)");
+				return false;
+			}*/
+			(*it1)->SendUdp(oPacket, nMinimumJoinStatus);
+		}
+	}
+	return true;
 }
 
-u_short ClientConnection::GetLastLatency() const { return m_nLastLatency; }
+uint16 ClientConnection::GetLastLatency() const
+{
+	//return std::max<uint16>(m_nLastLatency, static_cast<uint16>(GetTimeSinceLastReceive() * 10000));
+	return m_nLastLatency;
+}
 void ClientConnection::SetLastLatency(u_short nLastLatency) { m_nLastLatency = nLastLatency; }
 
 HashMatcher<PingData_t, double> & ClientConnection::GetPingSentTimes() { return m_oPingSentTimes; }
 
-u_int ClientConnection::GetPlayerID() const { return (m_pPlayer == NULL) ? 123 : m_pPlayer->iID; }
+uint8 ClientConnection::GetPlayerID() const { return (m_pPlayer == NULL) ? 123 : m_pPlayer->iID; }
 void ClientConnection::SetPlayer(CPlayer * pPlayer)
 {
 	eX0_assert(pPlayer != NULL, "null pPlayer parameter");

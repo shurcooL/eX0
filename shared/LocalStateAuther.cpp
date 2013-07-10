@@ -14,12 +14,18 @@ LocalStateAuther::~LocalStateAuther()
 {
 }
 
-void LocalStateAuther::AfterTick()
+void LocalStateAuther::ProcessCommands()
 {
+	// If the player is dead, ignore and remove any outstanding commands
+	if (true == m_oPlayer.IsDead()) {
+		while (!m_oPlayer.m_oCommandsQueue.empty())
+			m_oPlayer.m_oCommandsQueue.pop();
+	}
+
 	while (!m_oPlayer.m_oCommandsQueue.empty() && m_oPlayer.m_pController->GetCommandRequests() > 0)
 	{
-		SequencedCommand_t oSequencedCommand;
-		m_oPlayer.m_oCommandsQueue.pop(oSequencedCommand);
+		SequencedCommand_st oSequencedCommand = m_oPlayer.m_oCommandsQueue.front();
+		m_oPlayer.m_oCommandsQueue.pop();
 
 		// TODO: Check if we're missing some states, and fill in the blanks, instead of waiting for 255 more states
 		if (oSequencedCommand.cSequenceNumber == m_oPlayer.oLatestAuthStateTEST.cSequenceNumber)
@@ -30,7 +36,7 @@ void LocalStateAuther::AfterTick()
 			m_oPlayer.oLatestAuthStateTEST = m_oPlayer.PhysicsTickTEST(m_oPlayer.oLatestAuthStateTEST, oSequencedCommand);
 
 			// Add the new state to player's state history
-			AuthState_t oAuthState;
+			AuthState_st oAuthState;
 			oAuthState.oState = m_oPlayer.oLatestAuthStateTEST;
 			oAuthState.bAuthed = true;
 			m_oPlayer.PushStateHistory(oAuthState);
@@ -39,7 +45,52 @@ void LocalStateAuther::AfterTick()
 	}
 }
 
-void LocalStateAuther::ProcessAuthUpdateTEST()
+void LocalStateAuther::ProcessWpnCommands()
+{
+	// If the player is dead, ignore and remove any outstanding commands
+	if (true == m_oPlayer.IsDead()) {
+		while (!m_oPlayer.m_oWpnCommandsQueue.empty())
+			m_oPlayer.m_oWpnCommandsQueue.pop();
+	}
+
+	while (!m_oPlayer.m_oWpnCommandsQueue.empty())
+	{
+		/*const*/ WpnCommand_st oWpnCommand = m_oPlayer.m_oWpnCommandsQueue.front();
+
+		if (m_oPlayer.GetSelWeaponTEST().IsCommandOutdated(oWpnCommand, nullptr == dynamic_cast<LocalController *>(m_oPlayer.m_pController)))
+		{
+			m_oPlayer.m_oWpnCommandsQueue.pop();
+			if (nullptr == dynamic_cast<LocalController *>(m_oPlayer.m_pController))	// Not local controller
+				printf("LSA: WARNING!!! wpn command %d outdated, ignoring (either client's cheating,\nor I mistakenly ignored his valid input!\n", static_cast<int>(oWpnCommand.nAction));
+		}
+		else if (m_oPlayer.GetSelWeaponTEST().IsReadyForNextCommand(oWpnCommand))
+		{
+			m_oPlayer.m_oWpnCommandsQueue.pop();
+
+			//printf("chop at x=%f, y=%f, z=%f\n", oState.fX, oState.fY, oWpnCommand.fZ);
+			bool bImportantCommand = m_oPlayer.GetSelWeaponTEST().ProcessWpnCommand(oWpnCommand);
+			//printf("received on s oWpnCommand.dTime= %.20f\n", oWpnCommand.dTime);
+			//printf("fire command USED by pl#%d\n", m_oPlayer.iID);
+
+			if (bImportantCommand && nullptr != pGameServer) {
+				// TEST: Send the Weapon Action packet
+				CPacket oWpnActionPacket;
+				oWpnActionPacket.pack("cc", (uint8)4, (uint8)m_oPlayer.iID);
+				oWpnActionPacket.pack("cd", (uint8)oWpnCommand.nAction, oWpnCommand.dTime);
+				if (WeaponSystem::FIRE == oWpnCommand.nAction) oWpnActionPacket.pack("f", oWpnCommand.Parameter.fZ);
+				else if (WeaponSystem::CHANGE_WEAPON == oWpnCommand.nAction) oWpnActionPacket.pack("c", oWpnCommand.Parameter.WeaponNumber);
+				ClientConnection::BroadcastUdpExcept(oWpnActionPacket, m_oPlayer.pConnection);
+			}
+		}
+		else
+		{
+			//printf("only future command avail\n");
+			break;
+		}
+	}
+}
+
+void LocalStateAuther::ProcessUpdates()
 {
 }
 
@@ -57,7 +108,7 @@ void LocalStateAuther::SendUpdate()
 		// Send the Update Others Position packet
 		CPacket oServerUpdatePacket;
 		oServerUpdatePacket.pack("cc", (u_char)2, m_oPlayer.pConnection->cCurrentUpdateSequenceNumber);
-		for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+		for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 		{
 			if (PlayerGet(nPlayer) != NULL && (PlayerGet(nPlayer)->pConnection == NULL || PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME)
 				&& PlayerGet(nPlayer)->GetTeam() != 2)

@@ -1,6 +1,11 @@
 #include "globals.h"
 
-int		iCameraType = 0;
+int		iCameraType
+#ifdef EX0_DEBUG
+					= 0;
+#else
+					= 2;
+#endif // EX0_DEBUG
 
 CHudMessageQueue	*pChatMessages = NULL;
 
@@ -99,7 +104,7 @@ void RenderHUD()
 	OglUtilsSwitchMatrix(SCREEN_SPACE_MATRIX);
 	glLoadIdentity();
 	glColor3f(1, 1, 1);
-	//OglUtilsPrint(320, 0, 0, true, (char *)sFpsString.c_str());
+	//OglUtilsPrint(320, 0, 0, CENTER, (char *)sFpsString.c_str());
 
 	// Render FPS Counters
 	u_int nOffset = 0;
@@ -107,15 +112,21 @@ void RenderHUD()
 	for (std::list<FpsCounter *>::iterator it1 = oFpsCounters.begin(); it1 != oFpsCounters.end(); ++it1)
 	{
 		string sFpsCounterString = (*it1)->GetFpsString();
-		glColor3f(0, 0, 0); OglUtilsPrint(1, nOffset * 8 + 1, 1, false, (char *)sFpsCounterString.c_str());
-		glColor3f(1, 1, 1); OglUtilsPrint(0, nOffset++ * 8, 1, false, (char *)sFpsCounterString.c_str());
+		glColor3f(0, 0, 0); OglUtilsPrint(1, nOffset * 8 + 1, 1, LEFT, (char *)sFpsCounterString.c_str());
+		glColor3f(1, 1, 1); OglUtilsPrint(0, nOffset++ * 8, 1, LEFT, (char *)sFpsCounterString.c_str());
 	}
 
 	if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2 && bSelectTeamReady)
 	{
 		if (pLocalPlayer->IsReloading() && !pLocalPlayer->IsDead())
 		{
-			OglUtilsPrint(0, 408, 0, false, "reloading!");
+			OglUtilsPrint(0, 408, 0, LEFT, "reloading!");
+			//OglUtilsPrint(320, 240-10, 0, CENTER, "reloading!");
+		}
+		else if (-1 != pLocalPlayer->GetSelWeaponTEST().ChangingWeaponTo() && !pLocalPlayer->IsDead())
+		{
+			OglUtilsPrint(0, 408, 0, LEFT, ("changing to " + itos(pLocalPlayer->GetSelWeaponTEST().ChangingWeaponTo() + 1) + "st/nd/rd/th gun!").c_str());
+			//OglUtilsPrint(320, 240-10, 0, CENTER, ("changing to " + itos(pLocalPlayer->GetSelWeaponTEST().ChangingWeaponTo() + 1) + "st/nd/rd/th gun!").c_str());
 		}
 		if (pLocalPlayer->GetHealth() <= 40.0)
 			glColor3d(0.9, 0.1, 0.1);
@@ -124,19 +135,19 @@ void RenderHUD()
 		else
 			glColor3d(1, 1, 1);
 		sTempString = (std::string)"health: " + itos((int)ceil(pLocalPlayer->GetHealth()));
-		OglUtilsPrint(0, 426, 0, false, (char *)sTempString.c_str());
+		OglUtilsPrint(0, 426, 0, LEFT, (char *)sTempString.c_str());
 		glColor3f(1, 1, 1);
-		sTempString = (string)"ammo: " + itos(pLocalPlayer->GetSelClipAmmo());
-		OglUtilsPrint(0, 444, 0, false, (char *)sTempString.c_str());
-		sTempString = (string)"clips: " + itos(pLocalPlayer->GetSelClips());
-		OglUtilsPrint(0, 462, 0, false, (char *)sTempString.c_str());
+		sTempString = (string)"ammo: " + itos(pLocalPlayer->GetAmmo());
+		OglUtilsPrint(0, 444, 0, LEFT, (char *)sTempString.c_str());
+		sTempString = (string)"clips: " + itos(pLocalPlayer->GetClips());
+		OglUtilsPrint(0, 462, 0, LEFT, (char *)sTempString.c_str());
 	}
 
 	// Print the chat string
 	if (nChatMode) {
 		sTempString = (string)"Say: " + sChatString;
-		if ((long)(g_pGameSession->RenderTimer().GetTime() * 4) % 2) sTempString += "_";
-		OglUtilsPrint(0, 18, 0, false, (char *)sTempString.c_str());
+		if ((long)(g_pGameSession->MainTimer().GetTime() * 4) % 2) sTempString += "_";
+		OglUtilsPrint(0, 18, 0, LEFT, (char *)sTempString.c_str());
 	}
 
 	// Print chat messages
@@ -146,19 +157,19 @@ void RenderHUD()
 	if (bSelectTeamDisplay && bSelectTeamReady)
 	{
 		glColor3d(0.2, 0.95, 0.2);
-		OglUtilsPrint(0, 250 + 15 * 0, 0, false, "Choose your team:");
+		OglUtilsPrint(0, 250 + 15 * 0, 0, LEFT, "Choose your team:");
 		glColor3d(0.2, pLocalPlayer->GetTeam() != 0 ? 0.95 : 0.3, 0.2);
-		OglUtilsPrint(0, 250 + 15 * 1, 0, false, "1. Red");
+		OglUtilsPrint(0, 250 + 15 * 1, 0, LEFT, "1. Red");
 		glColor3d(0.2, pLocalPlayer->GetTeam() != 1 ? 0.95 : 0.3, 0.2);
-		OglUtilsPrint(0, 250 + 15 * 2, 0, false, "2. Blue");
+		OglUtilsPrint(0, 250 + 15 * 2, 0, LEFT, "2. Blue");
 		glColor3d(0.2, pLocalPlayer->GetTeam() != 2 ? 0.95 : 0.3, 0.2);
-		OglUtilsPrint(0, 250 + 15 * 3, 0, false, "3. Spectator");
+		OglUtilsPrint(0, 250 + 15 * 3, 0, LEFT, "3. Spectator");
 		glColor3d(0.2, 0.95, 0.2);
-		OglUtilsPrint(0, 250 + 15 * 4, 0, false, "0. Cancel");
+		OglUtilsPrint(0, 250 + 15 * 4, 0, LEFT, "0. Cancel");
 	} else if (bSelectTeamDisplay && !bSelectTeamReady)
 	{
 		glColor3d(0.2, 0.95, 0.2);
-		OglUtilsPrint(0, 250 + 15 * 0, 0, false, "Choose your team: Wait...");
+		OglUtilsPrint(0, 250 + 15 * 0, 0, LEFT, "Choose your team: Wait...");
 	}
 
 	/*sTempString = ftos(oPlayers[1]->GetIntX());
@@ -186,63 +197,68 @@ void RenderHUD()
 		glColor3f(1, 1, 1);
 
 		if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) {
-			State_t oRenderState = pLocalPlayer->GetRenderState();
+			State_st oRenderState = pLocalPlayer->GetRenderState();
 			sTempString = "x: " + ftos(oRenderState.fX);
 			glLoadIdentity();
-			OglUtilsPrint(0, 35, 1, false, (char *)sTempString.c_str());
+			OglUtilsPrint(0, 35, 1, LEFT, (char *)sTempString.c_str());
 			sTempString = "y: " + ftos(oRenderState.fY);
 			glLoadIdentity();
-			OglUtilsPrint(0, 35+7, 1, false, (char *)sTempString.c_str());
+			OglUtilsPrint(0, 35+7, 1, LEFT, (char *)sTempString.c_str());
 			sTempString = "z: " + ftos(oRenderState.fZ);
 			glLoadIdentity();
-			OglUtilsPrint(0, 35+14, 1, false, (char *)sTempString.c_str());
+			OglUtilsPrint(0, 35+14, 1, LEFT, (char *)sTempString.c_str());
 			/*sTempString = "vel: " + ftos(pLocalPlayer->GetVelocity());
 			glLoadIdentity();
-			OglUtilsPrint(80, 35, 1, false, (char *)sTempString.c_str());*/
+			OglUtilsPrint(80, 35, 1, LEFT, (char *)sTempString.c_str());*/
 		}
 
-		for (u_int iLoop1 = 0; iLoop1 < nPlayerCount && iLoop1 < 10; ++iLoop1)
+		for (uint8 nPlayer = 0; nPlayer < nPlayerCount && nPlayer < 10; ++nPlayer)
 		{
-			if (PlayerGet(iLoop1) != NULL) {
+			if (PlayerGet(nPlayer) != NULL) {
 				glLoadIdentity();
-if (PlayerGet(iLoop1)->pConnection == NULL) {
-	printf("  OMG OMG 3: render pConnection == nuLL for PlayerGet(%d)\n", iLoop1);
-	//printf("\n");
-	continue;
-}
-				sTempString = (string)"pl#" + itos(iLoop1) + " name: '" + PlayerGet(iLoop1)->GetName()
-					+ "' hp: " + itos((int)PlayerGet(iLoop1)->GetHealth())
-					+ " lat: " + ftos(PlayerGet(iLoop1)->pConnection->GetLastLatency() * 0.1f)
-					+ " lassn: " + itos(PlayerGet(iLoop1)->oLatestAuthStateTEST.cSequenceNumber);
-				OglUtilsPrint(0, 60 + iLoop1 * 8, 1, false, (char *)sTempString.c_str());
+				sTempString = (string)"#" + itos(nPlayer) + ": '" + PlayerGet(nPlayer)->GetName()
+					+ "' hp: " + itos((int)PlayerGet(nPlayer)->GetHealth())
+					+ " lat: " + ftos(PlayerGet(nPlayer)->pConnection->GetLastLatency() * 0.1f)
+					+ " lassn: " + itos(PlayerGet(nPlayer)->oLatestAuthStateTEST.cSequenceNumber);
+				OglUtilsPrint(0, 60 + nPlayer * 8, 1, LEFT, (char *)sTempString.c_str());
 			}
 		}
 
 		sTempString = "max oLocallyPredictedInputs.size(): " + itos(iTempInt);
 		glLoadIdentity();
-		OglUtilsPrint(0, 145, 1, false, (char *)sTempString.c_str());
+		OglUtilsPrint(0, 145, 1, LEFT, (char *)sTempString.c_str());
 		/*sTempString = "fTempFloat: " + ftos(fTempFloat);
 		glLoadIdentity();
-		OglUtilsPrint(0, 180, 0, false, (char *)sTempString.c_str());*/
+		OglUtilsPrint(0, 180, 0, LEFT, (char *)sTempString.c_str());*/
 
 		// Networking info
 		sTempString = "GlobalStateSequenceNumberTEST = " + itos(g_pGameSession->GlobalStateSequenceNumberTEST);
 		glLoadIdentity();
-		OglUtilsPrint(0, 145+7, 1, false, (char *)sTempString.c_str());
+		OglUtilsPrint(0, 145+7, 1, LEFT, (char *)sTempString.c_str());
 		if (pServer != NULL) {
 			sTempString = "cLastUpdateSequenceNumber = " + itos(pServer->cLastUpdateSequenceNumber);
 			glLoadIdentity();
-			OglUtilsPrint(0, 145+14, 1, false, (char *)sTempString.c_str());
+			OglUtilsPrint(0, 145+14, 1, LEFT, (char *)sTempString.c_str());
 		}
 		if (pLocalPlayer != NULL) {
-			sTempString = "oUnconfirmedCommands.size() = " + itos(pLocalPlayer->oUnconfirmedCommands.size());
+			sTempString = "oUnconfirmedMoves.size() = " + itos(pLocalPlayer->oUnconfirmedMoves.size());
 			glLoadIdentity();
-			OglUtilsPrint(0, 145+21, 1, false, (char *)sTempString.c_str());
+			OglUtilsPrint(0, 145+21, 1, LEFT, (char *)sTempString.c_str());
 		}
 
 		//OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
 		//RenderOffsetCamera(false);
 		//OglUtilsSetMaskingMode(WITH_MASKING_MODE);
+
+		// Network Monitor
+		if (g_pGameSession->GetNetworkMonitor()) {
+			sTempString = "up: " + to_string<double>(g_pGameSession->GetNetworkMonitor()->GetSentTraffic() * 0.001);
+			glLoadIdentity();
+			OglUtilsPrint(640, 30, 1, RIGHT, (char *)sTempString.c_str());
+			sTempString = "down: " + to_string<double>(g_pGameSession->GetNetworkMonitor()->GetReceivedTraffic() * 0.001);
+			glLoadIdentity();
+			OglUtilsPrint(640, 37, 1, RIGHT, (char *)sTempString.c_str());
+		}
 	}
 }
 
@@ -260,7 +276,15 @@ void RenderPlayers()
 	if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) {
 		/*for (int i = 0; i <= 1; ++i)
 			pLocalPlayer->RenderInPast(kfInterpolate * i);*/
+		//pLocalPlayer->RenderInPast(-0.25);
 		pLocalPlayer->Render();
+	}
+
+	// Render player inside masks
+	for (std::vector<CPlayer *>::iterator it1 = CPlayer::m_oPlayers.begin(); it1 < CPlayer::m_oPlayers.end(); ++it1) {
+		if (*it1 != NULL && (*it1)->GetTeam() != 2) {
+			(*it1)->RenderInsideMask();
+		}
 	}
 }
 
@@ -306,14 +330,22 @@ void RenderOffsetCamera(bool bLocalPlayerReferenceFrame)
 			/*glTranslatef(0, 0, -200);
 			glRotatef(-40, 1, 0, 0);
 			glTranslatef(0, -40, 0);*/
+		} else if (iCameraType == 4) {
+			glTranslatef(0, 0, -40);
+			glTranslatef(0, -5, 0);
+		} else if (iCameraType == 5) {
+			glTranslatef(0, 0, -340);
+			glTranslatef(0, -5, 0);
+			glRotatef((pLocalPlayer->GetRenderState().fZ * Math::RAD_TO_DEG), 0, 0, -1);
+			glRotatef(27.634f, 0, 0, -1);
 		}
 
 		// Translate to a reference frame (either global, or local to the local player)
 		if (!bLocalPlayerReferenceFrame) {
-			State_t oRenderState = pLocalPlayer->GetRenderState();
+			State_st oRenderState = pLocalPlayer->GetRenderState();
 			glRotatef((oRenderState.fZ * Math::RAD_TO_DEG), 0, 0, 1);
 			glTranslatef(-oRenderState.fX, -oRenderState.fY, 0);
-			/*State_t oState = pLocalPlayer->GetStateInPast(kfInterpolate);
+			/*State_st oState = pLocalPlayer->GetStateInPast(kfInterpolate);
 			//glRotatef(oState.fZ * Math::RAD_TO_DEG, 0, 0, 1);
 			glRotatef((pLocalPlayer->GetZ() * Math::RAD_TO_DEG), 0, 0, 1);
 			glTranslatef(-oState.fX, -oState.fY, 0);*/
@@ -367,7 +399,7 @@ void RenderFOV()
 // Creates the FOV mask
 void RenderCreateFOVMask()
 {
-	State_t oRenderState = pLocalPlayer->GetRenderState();
+	State_st oRenderState = pLocalPlayer->GetRenderState();
 
 	int iLoop1, iLoop2;
 	Vector2 oVector;
@@ -441,7 +473,7 @@ void RenderCreateFOVMask()
 
 void RenderSmokeFOVMask(Mgc::Vector2 oSmokePosition, float fSmokeRadius)
 {
-	State_t oRenderState = pLocalPlayer->GetRenderState();
+	State_st oRenderState = pLocalPlayer->GetRenderState();
 
 	const float		fSmokeMaskLength = 750;
 	const int		nSubdivisions = 4;

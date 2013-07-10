@@ -101,7 +101,7 @@ void GLFWCALL InputProcessKey(int iKey, int iAction)
 			case GLFW_KEY_ENTER:
 			case GLFW_KEY_KP_ENTER:
 				nChatMode = 0;
-				glfwDisable(GLFW_KEY_REPEAT);
+				//glfwDisable(GLFW_KEY_REPEAT);
 				// Send the chat string
 				if (sChatString.length() > 0) {
 					// Send the text message packet
@@ -114,7 +114,7 @@ void GLFWCALL InputProcessKey(int iKey, int iAction)
 			// Escape key
 			case GLFW_KEY_ESC:
 				nChatMode = 0;
-				glfwDisable(GLFW_KEY_REPEAT);
+				//glfwDisable(GLFW_KEY_REPEAT);
 				break;
 			// Backspace key
 			case GLFW_KEY_BACKSPACE:
@@ -140,17 +140,13 @@ void GLFWCALL InputProcessKey(int iKey, int iAction)
 				Terminate(0);		// Normal shutdown
 			}
 			break;
-		// 'r' - reload
-		case 'R':
-			if (iGameState == 0) pLocalPlayer->Reload();
-			break;
 		// 'b' - buy clips
 		case 'B':
 			if (iGameState == 0) pLocalPlayer->BuyClip();
 			break;
 		// 'v' - change camera view
 		case 'V':
-#define CAMERA_TYPES	(4)
+#define CAMERA_TYPES	(6)
 			if (GLFW_PRESS == glfwGetKey(GLFW_KEY_LSHIFT) || GLFW_PRESS == glfwGetKey(GLFW_KEY_RSHIFT))
 				iCameraType = (iCameraType - 1 + CAMERA_TYPES) % CAMERA_TYPES;
 			else
@@ -169,14 +165,14 @@ void GLFWCALL InputProcessKey(int iKey, int iAction)
 			if (iGameState == 0) {
 glfwLockMutex(oPlayerTick);
 				if (!pLocalPlayer->IsDead()) {
-					for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1) {
-						if (PlayerGet(iLoop1) == NULL || PlayerGet(iLoop1) == pLocalPlayer) continue;
-						State_t oRenderState = pLocalPlayer->GetRenderState();
-						State_t oOtherPlayer = PlayerGet(iLoop1)->GetRenderState();
+					for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+						if (PlayerGet(nPlayer) == NULL || PlayerGet(nPlayer) == pLocalPlayer) continue;
+						State_st oRenderState = pLocalPlayer->GetRenderState();
+						State_st oOtherPlayer = PlayerGet(nPlayer)->GetRenderState();
 						if (pow((oRenderState.fX + Math::Sin(oRenderState.fZ) * PLAYER_WIDTH) - oOtherPlayer.fX, 2)
 						  + pow((oRenderState.fY + Math::Cos(oRenderState.fZ) * PLAYER_WIDTH) - oOtherPlayer.fY, 2)
 						  <= PLAYER_HALF_WIDTH_SQR)
-							PlayerGet(iLoop1)->GiveHealth(-150);
+							PlayerGet(nPlayer)->GiveHealth(-150);
 					}
 					pLocalPlayer->GiveHealth(-150);
 				}
@@ -194,21 +190,23 @@ glfwUnlockMutex(oPlayerTick);
 			break;
 		// DEBUG: Toggle on/off the stencil operations
 		case GLFW_KEY_F4:
+#ifdef EX0_DEBUG
 			bStencilOperations = !bStencilOperations;
 			printf("Turned %s stencil operations.\n", bStencilOperations ? "ON" : "OFF");
+#endif // EX0_DEBUG
 			break;
 		// chat
 		case GLFW_KEY_ENTER:
 		case GLFW_KEY_KP_ENTER:
 			sChatString = "";
 			nChatMode = 2;
-			glfwEnable(GLFW_KEY_REPEAT);
+			//glfwEnable(GLFW_KEY_REPEAT);		// DEBUG: Disabled because it's causing 'stuck key' issues with current temp implementation of PlayerInputListener
 			break;
 		// chat
 		case 'T':
 			sChatString = "";
 			nChatMode = 1;
-			glfwEnable(GLFW_KEY_REPEAT);
+			//glfwEnable(GLFW_KEY_REPEAT);		// DEBUG: Disabled because it's causing 'stuck key' issues with current temp implementation of PlayerInputListener
 			break;
 		// Select Team display
 		case 'J':
@@ -328,14 +326,14 @@ glfwUnlockMutex(oPlayerTick);
 			}
 			break;
 		case '=':
-			for (int i = 0; i < 10 && pLocalPlayer->pConnection->GetPlayerCount() < 256; ++i)
+			for (int i = 0; i < 10 && pLocalPlayer->pConnection->GetPlayerCount() < nPlayerCount; ++i)
 			{//Bot test
 glfwLockMutex(oPlayerTick);
 				int nBotNumber = pLocalPlayer->pConnection->GetPlayerCount();
 				CPlayer * pTestPlayer = new CPlayer();
 				std::string sName = "Test Mimic " + itos(nBotNumber);
 				pTestPlayer->SetName(sName);
-				if ((rand() % 100) >= 20)
+				if ((nBotNumber % 10) < 8)
 					pTestPlayer->m_pController = new AiController(*pTestPlayer);
 				else
 					pTestPlayer->m_pController = new HidController(*pTestPlayer);
@@ -357,8 +355,10 @@ glfwUnlockMutex(oPlayerTick);
 			{//Kick last player
 				if (pLocalPlayer->pConnection->GetPlayerCount() <= 1) break;
 
+glfwLockMutex(oPlayerTick);
 				CPlayer * pPlayerToRemove = pLocalPlayer->pConnection->GetPlayer(pLocalPlayer->pConnection->GetPlayerCount() - 1);
 				pLocalPlayer->pConnection->RemovePlayer(pPlayerToRemove);
+glfwUnlockMutex(oPlayerTick);
 
 				// Send a Player Left Server to all the other clients
 				CPacket oPlayerLeftServerPacket(CPacket::BOTH);
@@ -483,7 +483,7 @@ void GLFWCALL InputProcessMouse(int iButton, int iAction)
 		case GLFW_MOUSE_BUTTON_RIGHT:
 			break;
 		case GLFW_MOUSE_BUTTON_MIDDLE:
-			if (iGameState == 0 && nullptr != pLocalPlayer) pLocalPlayer->iSelWeapon = ((pLocalPlayer->iSelWeapon == 3) ? 2 : 3);
+			//if (iGameState == 0 && nullptr != pLocalPlayer) pLocalPlayer->iSelWeapon = ((pLocalPlayer->iSelWeapon == 3) ? 2 : 3);
 			break;
 		default:
 			break;

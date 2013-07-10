@@ -10,13 +10,15 @@ GameSession * g_pGameSession = NULL;
 GameSession::GameSession()
 	: GlobalStateSequenceNumberTEST(0),
 	  m_oLogicTimer(),
-	  m_oRenderTimer()
+	  m_oMainTimer(),
+	  m_pNetworkMonitor(new ThroughputMonitor())
 {
-	m_oLogicTimer.StartSyncingTimer(&m_oRenderTimer);
+	m_oLogicTimer.StartSyncingTimer(&m_oMainTimer);
 }
 
 GameSession::~GameSession()
 {
+	delete m_pNetworkMonitor; m_pNetworkMonitor = nullptr;
 }
 
 GameTimer & GameSession::LogicTimer()
@@ -24,7 +26,12 @@ GameTimer & GameSession::LogicTimer()
 	return m_oLogicTimer;
 }
 
-GameTimer & GameSession::RenderTimer()
+GameTimer & GameSession::MainTimer()
 {
-	return m_oRenderTimer;
+	return m_oMainTimer;
+}
+
+ThroughputMonitor * GameSession::GetNetworkMonitor()
+{
+	return m_pNetworkMonitor;
 }

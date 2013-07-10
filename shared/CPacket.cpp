@@ -8,25 +8,24 @@
 #endif // EX0_CLIENT
 
 CPacket::CPacket(SendMode nSendMode)
+	: m_pBuffer(new u_char[MAX_PACKET_SIZE]),
+	  m_nSize(0),
+	  m_bOwnBuffer(true),
+	  m_pBufferPosition(m_pBuffer),
+	  m_nPacketType(WRITE_ONLY),
+	  m_nSendMode(nSendMode)
 {
-	m_pBuffer = new u_char[MAX_PACKET_SIZE];
-	m_nSize = 0;
-	m_bOwnBuffer = true;
-	m_pBufferPosition = m_pBuffer;
-	m_nPacketType = WRITE_ONLY;
-	m_nSendMode = nSendMode;
 }
 
 CPacket::CPacket(u_char * pBuffer, u_int nSize)
+	: m_pBuffer(pBuffer),
+	  m_nSize(nSize),
+	  m_bOwnBuffer(false),
+	  m_pBufferPosition(m_pBuffer),
+	  m_nPacketType(READ_ONLY),
+	  m_nSendMode(BOTH)		// Not used/needed in the READ_ONLY version of CPacket
 {
 	eX0_assert(nSize > 0, "nSize > 0");
-
-	m_pBuffer = pBuffer;
-	m_nSize = nSize;
-	m_bOwnBuffer = false;
-	m_pBufferPosition = m_pBuffer;
-	m_nPacketType = READ_ONLY;
-	m_nSendMode = BOTH;		// Not used/needed in the READ_ONLY version of CPacket
 }
 
 CPacket::~CPacket()
@@ -73,7 +72,7 @@ void CPacket::ConvertToReadOnly()
 /*
 ** pack() -- store data dictated by the format string in the buffer
 **
-**  c - 8-bit char
+**  c - 8-bit char          b - 8-bit bool
 **  h - 16-bit              l - 32-bit
 **  f - float, 32-bit       d - double, 64-bit
 **  t - std::string (known length)
@@ -90,6 +89,7 @@ u_int CPacket::pack(char *format, ...)
 	int l;
 	long long ll;
 	char c;
+	bool b;
 	float f;
 	double d;
 	char *s;
@@ -117,7 +117,13 @@ u_int CPacket::pack(char *format, ...)
 		case 'c': // 8-bit
 			size += 1;
 			c = static_cast<char>(va_arg(ap, int)); // promoted
-			*m_pBufferPosition++ = (c>>0)&0xff;
+			*m_pBufferPosition++ = c & 0xFF;
+			break;
+
+		case 'b': // 8-bit
+			size += 1;
+			b = (0 != va_arg(ap, int)); // promoted
+			*m_pBufferPosition++ = b ? 0xFF : 0;
 			break;
 
 		case 'f': // float
@@ -192,6 +198,7 @@ void CPacket::unpack(char *format, ...)
 	int pf;
 	long long pd;
 	char *c;
+	bool *b;
 	float *f;
 	double *d;
 	char *s;
@@ -217,6 +224,11 @@ void CPacket::unpack(char *format, ...)
 		case 'c': // 8-bit
 			c = va_arg(ap, char *);
 			*c = *m_pBufferPosition++;
+			break;
+
+		case 'b': // 8-bit
+			b = va_arg(ap, bool *);
+			*b = (0 != *m_pBufferPosition++);
 			break;
 
 		case 'f': // float
