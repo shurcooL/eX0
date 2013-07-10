@@ -1,11 +1,11 @@
-#define		PLAYER_TICK_TIME		0.045
-//#define		PLAYER_TICK_TIME		0.100
-//#define		PLAYER_TICK_TIME		1.0
-#define		PLAYER_WIDTH			15.49193
-#define		PLAYER_HALF_WIDTH		7.74597
-#define		PLAYER_WIDTH_SQR		240.0
-#define		PLAYER_HALF_WIDTH_SQR	60.0
-#define		PLAYER_COL_DET_TOLERANCE 0.005
+#define		PLAYER_TICK_TIME		0.045f
+//#define		PLAYER_TICK_TIME		0.25f
+//#define		PLAYER_TICK_TIME		1.0f
+#define		PLAYER_WIDTH			15.49193f
+#define		PLAYER_HALF_WIDTH		7.74597f
+#define		PLAYER_WIDTH_SQR		240.0f
+#define		PLAYER_HALF_WIDTH_SQR	60.0f
+#define		PLAYER_COL_DET_TOLERANCE 0.005f
 
 class CPlayer
 {
@@ -50,6 +50,9 @@ public:
 	int			iSelWeapon;
 	float		fAimingDistance;
 
+	bool		bConnected;
+	SOCKET		nTcpSocket;
+
 private:
 	float		fX, fY;
 	float		fOldX, fOldY;
@@ -69,4 +72,12 @@ private:
 // allocate memory for all the players
 void PlayerInit();
 
+// Returns a player
+CPlayer * PlayerGet(int nPlayerID);
+
+// Returns a player from their socket number
+CPlayer * PlayerGetFromSocket(SOCKET nSocket);
+
 void PlayerTick();
+
+int PlayerGetFreePlayerID();

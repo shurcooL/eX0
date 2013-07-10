@@ -8,7 +8,7 @@ float		fFilteredMouseMovedX = 0;
 float		fFilteredMouseMovedY = 0;
 int			iMouseButtonsDown;
 float		fMouseSensitivity = 0.25f;
-bool		bAutoReload = false;
+bool		bAutoReload = true;
 
 int			nChatMode;
 string		sChatString;
@@ -137,8 +137,18 @@ void InputProcessKey(int iKey, int iAction)
 				nChatMode = 0;
 				// Send the chat string
 				// DEBUG: Finish
-				if (sChatString.length() > 0)
+				if (sChatString.length() > 0) {
+					// Send the text message packet
+					struct TcpPacketSendTextMessage_t oSendMessagePacket;
+					oSendMessagePacket.snPacketSize = htons((short)(4 + sChatString.length()));
+					oSendMessagePacket.snPacketType = htons((short)10);
+					memcpy(&oSendMessagePacket.chTextMessage, sChatString.c_str(), sChatString.length());
+
+					if (sendall(nServerSocket, (char *)&oSendMessagePacket, 4 + sChatString.length(), 0) == SOCKET_ERROR) {
+						NetworkPrintError("sendall");
+					}
 					printf("Sent: \"%s\"\n", sChatString.c_str());
+				}
 				break;
 			// Escape key
 			case GLFW_KEY_ESC:
@@ -190,7 +200,7 @@ void InputProcessKey(int iKey, int iAction)
 		// DEBUG: Insta-Knife
 		case 'F':
 			if (!oPlayers[iLocalPlayerID]->IsDead()) {
-				for (int iLoop1 = 0; iLoop1 < iNumPlayers; ++iLoop1) {
+				for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1) {
 					if (iLoop1 == iLocalPlayerID) continue;
 					if (pow((oPlayers[iLocalPlayerID]->GetIntX() + Math::Sin(oPlayers[iLocalPlayerID]->GetZ()) * PLAYER_WIDTH) - oPlayers[iLoop1]->GetIntX(), 2)
 					  + pow((oPlayers[iLocalPlayerID]->GetIntY() + Math::Cos(oPlayers[iLocalPlayerID]->GetZ()) * PLAYER_WIDTH) - oPlayers[iLoop1]->GetIntY(), 2)

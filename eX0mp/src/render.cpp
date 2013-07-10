@@ -140,7 +140,7 @@ void RenderHUD(void)
 // render all players
 void RenderPlayers()
 {
-	for (int iLoop1 = 0; iLoop1 < iNumPlayers; iLoop1++)
+	for (int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 	{
 		oPlayers[iLoop1]->Render();
 	}

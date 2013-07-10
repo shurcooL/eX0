@@ -60,7 +60,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="glfw.lib opengl32.lib glu32.lib"
+				AdditionalDependencies="glfw.lib opengl32.lib glu32.lib Ws2_32.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -134,7 +134,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="glfw.lib opengl32.lib glu32.lib"
+				AdditionalDependencies="glfw.lib opengl32.lib glu32.lib Ws2_32.lib"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -221,6 +221,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Network.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Network.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\NetworkIncludes.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\ogl_utils.cpp"
 				>
 			</File>
@@ -258,6 +270,14 @@
 			</File>
 			<File
 				RelativePath=".\src\weapon.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\ws-util.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\ws-util.h"
 				>
 			</File>
 			<Filter

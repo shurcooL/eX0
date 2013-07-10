@@ -159,7 +159,7 @@ void CParticle::CollisionHandling(int iParticle)
 		oSegment1.Origin() = oParticles[iParticle].oPosition;
 		oSegment1.Direction() = oParticles[iParticle].oVelocity;
 
-		for (iLoop1 = 0; iLoop1 < iNumPlayers; iLoop1++)
+		for (iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 		{
 			// a bullet can't hit his owner
 			if (iLoop1 == oParticles[iParticle].iOwnerID || oPlayers[iLoop1]->IsDead())
@@ -253,7 +253,7 @@ void CParticle::CollisionHandling(int iParticle)
 		oSegment1.Origin() = oParticles[iParticle].oPosition;
 		oSegment1.Direction() = oParticles[iParticle].oVelocity;
 
-		for (iLoop1 = 0; iLoop1 < iNumPlayers; iLoop1++)
+		for (iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 		{
 			// a bullet can't hit his owner
 			if (iLoop1 == oParticles[iParticle].iOwnerID || oPlayers[iLoop1]->IsDead())
@@ -321,7 +321,7 @@ void CParticle::Tick()
 			{
 				// Splash dmg
 				if (oParticles[iLoop1].iWhatType == 2) {
-					for (int iLoop2 = 0; iLoop2 < iNumPlayers; iLoop2++)
+					for (int iLoop2 = 0; iLoop2 < nPlayerCount; iLoop2++)
 					{
 						// a bullet can't hit his owner
 						// but a bouncy one can

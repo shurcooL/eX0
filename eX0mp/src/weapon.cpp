@@ -94,7 +94,7 @@ void CWeapon::Fire()
 				// inaccuracy
 				// ... rotate the player
 				// DEBUG: A temporary hack for recoil
-				//oPlayers[iOwnerID]->Rotate(((rand() % 1000)/1000.0f * 0.25f - 0.125) * oWeaponSpecs[iWhatWeapon].fInaccuracy);
+				oPlayers[iOwnerID]->Rotate(((rand() % 1000)/1000.0f * 0.25f - 0.125) * oWeaponSpecs[iWhatWeapon].fInaccuracy);
 			}
 			else if (iClipAmmo <= 0)
 			{
@@ -180,7 +180,7 @@ void WeaponInitSpecs()
 	// silenced m4a1
 	oWeaponSpecs[1].sName = "silenced m4a1";
 	oWeaponSpecs[1].iWhatType = CParticle::BULLET;		// bullets
-	oWeaponSpecs[1].iClips = 4;
+	oWeaponSpecs[1].iClips = 6;
 	oWeaponSpecs[1].iMaxClips = 6;
 	oWeaponSpecs[1].iClipAmmo = 30;
 	oWeaponSpecs[1].fROF = 0.100;

@@ -1,6 +1,6 @@
 #include "globals.h"
 
-int		iNumPlayers;
+int		nPlayerCount;
 int		iLocalPlayerID = 0;
 CPlayer	*oPlayers[32];
 
@@ -24,6 +24,10 @@ CPlayer::CPlayer()
 	iTeam = 0;
 	bEmptyClicked = true;
 	fTicks = 0;
+
+	// Network related
+	bConnected = false;
+	nTcpSocket = INVALID_SOCKET;
 }
 
 CPlayer::~CPlayer()
@@ -48,6 +52,22 @@ void CPlayer::Tick()
 
 		// do collision response for player
 		CalcColResp();
+
+		if (iID == iLocalPlayerID) {
+			// Send the Update Own Position packet
+			struct TcpPacketUpdateOwnPosition_t oUpdateOwnPosPacket;
+			oUpdateOwnPosPacket.snPacketSize = htons((short)(sizeof(oUpdateOwnPosPacket)));
+			oUpdateOwnPosPacket.snPacketType = htons((short)20);
+			oUpdateOwnPosPacket.fX = fX;
+			oUpdateOwnPosPacket.fY = fY;
+			oUpdateOwnPosPacket.fZ = fZ;
+			oUpdateOwnPosPacket.chFire = (char)(glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
+
+			if (sendall(nServerSocket, (char *)&oUpdateOwnPosPacket, sizeof(oUpdateOwnPosPacket), 0) == SOCKET_ERROR) {
+				NetworkPrintError("sendall");
+			}
+			//printf("Sent update own position packet.\n");
+		}
 	}
 
 	UpdateInterpolatedPos();
@@ -143,8 +163,8 @@ void CPlayer::CalcTrajs()
 	}
 	else
 	{
-		fVelX = Math::Sin((float)nMoveDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 1.5);
-		fVelY = Math::Cos((float)nMoveDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 1.5);
+		fVelX = Math::Sin((float)nMoveDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 2.0);
+		fVelY = Math::Cos((float)nMoveDirection * 0.785398f + fZ) * (3.5 - iIsStealth * 2.0);
 	}*/
 	// DEBUG - this is STILL not finished, need to redo properly
 	// need to do linear acceleration and deceleration
@@ -199,7 +219,7 @@ void CPlayer::CalcColResp()
 		if (!ColHandCheckPlayerPos(&fX, &fY, &oShortestDistance, &oClosestPoint, &iWhichCont, &iWhichVert))
 		{
 			// DEBUG - player-player collision
-			/*for (int iLoop1 = 0; iLoop1 < iNumPlayers; iLoop1++)
+			/*for (int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 			{
 				// dont check for collision with yourself
 				if (iLoop1 == iID)
@@ -232,7 +252,7 @@ void CPlayer::CalcColResp()
 	// player-player collision - only check if we're moving
 	/*if (fVelX || fVelY)
 	{
-		for (int iLoop1 = 0; iLoop1 < iNumPlayers; iLoop1++)
+		for (int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 		{
 			// dont check for collision with yourself
 			if (iLoop1 == iID)
@@ -348,8 +368,8 @@ float CPlayer::GetVelY()
 float CPlayer::GetZ()
 {
 	// DEBUG - yet another hack.. replace it with some proper network-syncronyzed view bobbing
-	//return fZ + Math::Sin(glfwGetTime() * 7.5) * GetVelocity() * 0.005;
-	return fZ;
+	return fZ + Math::Sin(glfwGetTime() * 7.5) * GetVelocity() * 0.005;
+	//return fZ;
 }
 
 float CPlayer::GetVelocity()
@@ -447,6 +467,7 @@ void CPlayer::Render()
 		//if (Trace(oPlayers[iLocalPlayerID]->GetIntX(), oPlayers[iLocalPlayerID]->GetIntY(), fIntX, fIntY))
 		//{
 			glPushMatrix();
+			RenderOffsetCamera(false);
 			glTranslatef(fIntX, fIntY, 0);
 			glRotatef(this->GetZ() * Math::RAD_TO_DEG, 0, 0, -1);
 			glBegin(GL_QUADS);
@@ -512,7 +533,7 @@ void CPlayer::Render()
 		glLoadIdentity();
 		OglUtilsPrint(150, 20, 0, false, (char *)sTempString.c_str());
 
-		for (int iLoop1 = 0; iLoop1 < iNumPlayers; iLoop1++)
+		for (int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 		{
 			glLoadIdentity();
 			sTempString = (string)"player #" + itos(iLoop1) + " health: " + ftos(oPlayers[iLoop1]->GetHealth())
@@ -522,7 +543,10 @@ void CPlayer::Render()
 
 		sTempString = "particle array size: " + itos(iTempInt);
 		glLoadIdentity();
-		OglUtilsPrint(0, 50 + iNumPlayers * 10, 0, false, (char*)sTempString.c_str());
+		OglUtilsPrint(0, 50 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
+		sTempString = "fTempFloat: " + ftos(fTempFloat);
+		glLoadIdentity();
+		OglUtilsPrint(0, 65 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
 
 		OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
 		RenderOffsetCamera(false);
@@ -556,7 +580,7 @@ void PlayerInit()
 	{
 		if (oPlayers[iLoop1] != NULL) delete oPlayers[iLoop1];
 
-		if (iLoop1 < iNumPlayers)
+		if (iLoop1 < nPlayerCount)
 		{
 			oPlayers[iLoop1] = new CPlayer();
 			oPlayers[iLoop1]->iID = iLoop1;
@@ -566,9 +590,26 @@ void PlayerInit()
 	}
 }
 
+// Returns a player
+CPlayer * PlayerGet(int nPlayerID)
+{
+	if (nPlayerID < nPlayerCount) return oPlayers[nPlayerID];
+	else return NULL;
+}
+
+// Returns a player from their socket number
+CPlayer * PlayerGetFromSocket(SOCKET nSocket)
+{
+	for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
+		if (PlayerGet(nPlayer)->nTcpSocket == nSocket)
+			return PlayerGet(nPlayer);
+
+	return NULL;
+}
+
 void PlayerTick()
 {
-	for (int iLoop1 = 0; iLoop1 < iNumPlayers; iLoop1++)
+	for (int iLoop1 = 0; iLoop1 < nPlayerCount; iLoop1++)
 	{
 		oPlayers[iLoop1]->Tick();
 	}
@@ -577,30 +618,16 @@ void PlayerTick()
 	//oPlayers[iLocalPlayerID]->UpdateInterpolatedPos();
 }
 
-	/*Vector2		oVector;
-	Real		oDistance;
-
-	for (int iLoop1 = 0; iLoop1 < iNumPlayers; iLoop1++)
+int PlayerGetFreePlayerID()
+{
+	for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
 	{
-		// dont check for collision with yourself
-		if (iLoop1 == iLocalPlayerID)
-			continue;
-
-		oVector.x = oPlayers[iLocalPlayerID]->GetX() - oPlayers[iLoop1]->GetX();
-		oVector.y = oPlayers[iLocalPlayerID]->GetY() - oPlayers[iLoop1]->GetY();
-		oDistance = oVector.Length();
-
-		if (oDistance < PLAYER_WIDTH && 1)
-		// we're colliding with the other player
+		// Check if we've found a free player ID
+		if (!oPlayers[iLoop1]->bConnected)
 		{
-			fTempFloat = (oVector.x / (oDistance / PLAYER_WIDTH) - oVector.x) / 2.0;
-			oPlayers[iLocalPlayerID]->SetX(oPlayers[iLocalPlayerID]->GetX() + fTempFloat);
-			oPlayers[iLoop1]->SetX(oPlayers[iLoop1]->GetX() - fTempFloat);
-			fTempFloat = (oVector.y / (oDistance / PLAYER_WIDTH) - oVector.y) / 2.0;
-			oPlayers[iLocalPlayerID]->SetY(oPlayers[iLocalPlayerID]->GetY() + fTempFloat);
-			oPlayers[iLoop1]->SetY(oPlayers[iLoop1]->GetY() - fTempFloat);
-
-			// TODO: a temp fix - find a better way
-			PlayerCalcColResp();
+			return iLoop1;
 		}
-	}*/
+	}
+
+	return -1;		// No free player IDs; server is full
+}
