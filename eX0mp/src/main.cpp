@@ -60,7 +60,7 @@ bool Init(int argc, char *argv[])
 
 	// create the window
 	glfwGetDesktopMode(&oDesktopMode);
-	glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 32);
+	glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 0);
 	glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
 	if (glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW)
 			&& glfwGetWindowParam(GLFW_ACCELERATED) && glfwGetWindowParam(GLFW_STENCIL_BITS) || CloseBadWindow())
@@ -415,12 +415,12 @@ glfwUnlockMutex(oPlayerTick);
 			OglUtilsSetMaskingMode(WITH_MASKING_MODE);
 
 			// render all players
-glfwLockMutex(oPlayerTick);
+//glfwLockMutex(oPlayerTick);
 			//PlayerGet(iLocalPlayerID)->RenderInPast(2 * oPlayers[iLocalPlayerID]->GetZ());
 			//PlayerGet(iLocalPlayerID)->RenderInPast(Math::TWO_PI - 2 * oPlayers[iLocalPlayerID]->GetZ());
 			//for (int i = 1; i <= 100; i += 1) PlayerGet(0/*iLocalPlayerID*/)->RenderInPast(i * 0.1f);
 			//PlayerGet(iLocalPlayerID)->RenderInPast(kfInterpolate);
-glfwUnlockMutex(oPlayerTick);
+//glfwUnlockMutex(oPlayerTick);
 			RenderPlayers();
 
 			// render all particles

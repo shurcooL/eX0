@@ -1,3 +1,5 @@
+Solved.
+
 *** glibc detected *** double free or corruption (!prev): 0x08079978 ***
 Abort
 

@@ -1,3 +1,5 @@
+Solved.
+
 Client:
 Joining team Red.
 cLastAckedCommandSequenceNumber (in packet 28) = 78, while cCurrentCommandSequen

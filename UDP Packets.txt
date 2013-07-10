@@ -15,12 +15,13 @@ Packet Type (char) - 1 byte
 
 Client -> Server TCP Packets:
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-1. Client Command (size >= 8):
+1. Client Command (size >= 9):
 cCommandSequenceNumber (char)
 cCommandSeriesNumber (char)
 cMovesCount (char)
 [
 	cMoveDirection (char)
+	cStealth (char)
 	fZ (float)
 ]
 

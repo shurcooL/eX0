@@ -33,6 +33,7 @@ bool GameDataLoadTextures()
 	// load 1st font texture
 	oTextureIDs.iFonts[0] = TEXMANAGER.LoadTexture("data/fonts/font1.tga");
 	oTextureIDs.iFloor = TEXMANAGER.LoadTexture("data/textures/floor.tga");
+	oTextureIDs.nM4A1MuzzleFlash = TEXMANAGER.LoadTexture("data/textures/m4a1_muzzle_flashes.tga");
 	// ...
 
 	// no error checking just yet

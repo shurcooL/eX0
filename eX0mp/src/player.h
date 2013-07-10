@@ -23,8 +23,8 @@ typedef struct {
 
 typedef struct {
 	char	cMoveDirection;
+	u_char	cStealth;
 	float	fZ;
-	//char	cStealth;
 } Input_t;
 
 typedef struct {

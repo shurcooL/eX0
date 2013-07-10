@@ -914,6 +914,7 @@ if (PlayerGet(nPlayer)->bFirstUpdate) printf("Got first update (new %d), oUnconf
 
 										// Set inputs
 										PlayerGet(iLocalPlayerID)->MoveDirection(oInput.cMoveDirection);
+										PlayerGet(iLocalPlayerID)->SetStealth(oInput.cStealth != 0);
 										PlayerGet(iLocalPlayerID)->SetZ(oInput.fZ);
 
 										// Run a tick

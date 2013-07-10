@@ -2,6 +2,7 @@ struct TextureIDs_t
 {
 	int iFonts[1];
 	int	iFloor;
+	int nM4A1MuzzleFlash;
 };
 
 void GameDataLoad(void);

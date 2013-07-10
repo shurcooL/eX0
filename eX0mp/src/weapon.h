@@ -38,12 +38,13 @@ public:
 	~CWeapon();
 
 	void Tick();
+	void Render();
 	void Init(int iWhoIsOwner, int iWeapon);
 	void Fire();
-	void Reload();
 	int GetClips();
 	int GetClipAmmo();
 	void GiveClip();
+	void StartReloading();
 	bool IsReloading();
 
 private:
@@ -52,8 +53,12 @@ private:
 	int		iClips;
 	int		iClipAmmo;
 	bool	bReloading;
-	bool	bShouldReload;
-	float	fTimer;
+	bool	bReloadRequested;
+	double	dTimer;
+
+	enum MuzzleFlashState { READY, VISIBLE, COOLDOWN } m_oMuzzleFlashState;
+
+	void Reload();
 };
 
 // initialize all weapons specs

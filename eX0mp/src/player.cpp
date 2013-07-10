@@ -100,6 +100,7 @@ void CPlayer::Tick()
 				++cCurrentCommandSequenceNumber;
 				Input_t oInput;
 				oInput.cMoveDirection = (char)nMoveDirection;
+				oInput.cStealth = (u_char)iIsStealth;
 				oInput.fZ = GetZ();
 				//if (oUnconfirmedInputs.size() < 101)
 				//oUnconfirmedInputs.push_back(oInput);
@@ -119,8 +120,9 @@ void CPlayer::Tick()
 												 (u_char)(oUnconfirmedMoves.size() - 1));
 				for (u_char it1 = oUnconfirmedMoves.begin(); it1 != oUnconfirmedMoves.end(); ++it1)
 				{
-					oClientCommandPacket.pack("cf", oUnconfirmedMoves[it1].oInput.cMoveDirection,
-													oUnconfirmedMoves[it1].oInput.fZ);
+					oClientCommandPacket.pack("ccf", oUnconfirmedMoves[it1].oInput.cMoveDirection,
+													 oUnconfirmedMoves[it1].oInput.cStealth,
+													 oUnconfirmedMoves[it1].oInput.fZ);
 				}
 				if ((rand() % 100) >= 0 || iLocalPlayerID != 0) // DEBUG: Simulate packet loss
 					oClientCommandPacket.SendUdp();
@@ -184,7 +186,7 @@ void CPlayer::Reload()
 	// is the player dead?
 	if (IsDead()) return;
 
-	oWeapons[iSelWeapon].Reload();
+	oWeapons[iSelWeapon].StartReloading();
 }
 
 bool CPlayer::IsReloading()
@@ -219,8 +221,6 @@ void CPlayer::SetStealth(bool bOn)
 	if (IsDead()) return;
 
 	iIsStealth = (int)bOn;
-
-	if (iIsStealth) printf("Stealth ON!\n");
 }
 
 // A partial reset of the player state that happens when the player respawns (or changes team, etc.)
@@ -644,9 +644,9 @@ void CPlayer::Render()
 			glVertex2i(1, 11);
 		glEnd();
 		gluPartialDisk(oQuadricObj, 6, 8, 12, 1, 30.0, 300.0);
+		OglUtilsSetMaskingMode(WITH_MASKING_MODE);
 
 		// Draw the aiming-guide
-		OglUtilsSetMaskingMode(WITH_MASKING_MODE);
 		glLineWidth(1.0);
 		glEnable(GL_LINE_SMOOTH);
 		glEnable(GL_BLEND);
@@ -668,6 +668,9 @@ void CPlayer::Render()
 			glVertex2i(-5, fAimingDistance);
 			glVertex2i(5, fAimingDistance);
 		glEnd();*/
+
+		// Render the weapon
+		oWeapons[iSelWeapon].Render();
 
 		RenderOffsetCamera(false);
 	}
@@ -705,6 +708,9 @@ void CPlayer::Render()
 		glDisable(GL_BLEND);
 		glDisable(GL_LINE_SMOOTH);
 		glLineWidth(2.0);*/
+
+			// Render the weapon
+			oWeapons[iSelWeapon].Render();
 
 			glPopMatrix();
 		//}

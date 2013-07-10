@@ -450,7 +450,7 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, CClient * pClient)
 			return false;
 		}
 
-		if (nDataSize < 8) return false;		// Check packet size
+		if (nDataSize < 9) return false;		// Check packet size
 		else {
 glfwLockMutex(oPlayerTick);
 
@@ -458,6 +458,7 @@ glfwLockMutex(oPlayerTick);
 			u_char cCommandSeriesNumber;
 			u_char cMovesCount;
 			char cMoveDirection;
+			u_char cStealth;
 			float fZ;
 			oPacket.unpack("ccc", &cCommandSequenceNumber, &cCommandSeriesNumber, &cMovesCount);
 			cMovesCount += 1;
@@ -491,14 +492,15 @@ printf("Got first command from client %d, last %d, with %d moves\n", cCommandSeq
 				pClient->cLastCommandSequenceNumber = cCommandSequenceNumber;
 
 				for (int nSkip = 0; nSkip < nMove; ++nSkip)
-					oPacket.unpack("cf", &cMoveDirection, &fZ);
+					oPacket.unpack("ccf", &cMoveDirection, &cStealth, &fZ);
 				for (; nMove < (int)cMovesCount; ++nMove)
 				{
-					oPacket.unpack("cf", &cMoveDirection, &fZ);
+					oPacket.unpack("ccf", &cMoveDirection, &cStealth, &fZ);
 					//printf("execing command %d\n", cCommandSequenceNumber - (cMovesCount - 1) + nMove);
 
 					// Set the inputs
 					pClient->GetPlayer()->MoveDirection(cMoveDirection);
+					pClient->GetPlayer()->SetStealth(cStealth != 0);
 					pClient->GetPlayer()->SetZ(fZ);
 
 					// Player tick
