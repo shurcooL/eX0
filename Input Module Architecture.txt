@@ -1,10 +1,10 @@
 class InputManager;
 
-void GLFWCALL InputManager::ProcessKey(int nKey, int nAction);
-void GLFWCALL InputManager::ProcessChar(int nChar, int nAction);
-void GLFWCALL InputManager::ProcessMouseButton(int nMouseButton, int nAction);
-void GLFWCALL InputManager::ProcessMousePos(int nX, int nY);
-void GLFWCALL InputManager::ProcessMouseWheel(int nPosition);
+static void GLFWCALL InputManager::ProcessKey(int nKey, int nAction);
+static void GLFWCALL InputManager::ProcessChar(int nChar, int nAction);
+static void GLFWCALL InputManager::ProcessMouseButton(int nMouseButton, int nAction);
+static void GLFWCALL InputManager::ProcessMousePos(int nX, int nY);
+static void GLFWCALL InputManager::ProcessMouseWheel(int nPosition);
 void InputManager::RegisterListener(InputListener *);
 
 InputListener stack:
@@ -15,11 +15,11 @@ Menu
 
 class InputListener;
 
-virtual void GLFWCALL InputListener::ProcessKey(int nKey, int nAction);
-virtual void GLFWCALL InputListener::ProcessChar(int nChar, int nAction);
-virtual void GLFWCALL InputListener::ProcessMouseButton(int nMouseButton, int nAction);
-virtual void GLFWCALL InputListener::ProcessMousePos(int nX, int nY);
-virtual void GLFWCALL InputListener::ProcessMouseWheel(int nPosition);
+virtual void InputListener::ProcessKey(int nKey, int nAction);
+virtual void InputListener::ProcessChar(int nChar, int nAction);
+virtual void InputListener::ProcessMouseButton(int nMouseButton, int nAction);
+virtual void InputListener::ProcessMousePos(int nX, int nY);
+virtual void InputListener::ProcessMouseWheel(int nPosition);
 
 void InputListener::BindKey(int nKey, KeyState?);
 void InputListener::BindMouseButton(int nMouseButton, MouseButtonState?);

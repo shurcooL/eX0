@@ -12,7 +12,7 @@ bool		bAutoReload = true;
 int			nChatMode;
 string		sChatString;
 
-bool		bSelectTeamDisplay = true;
+bool		bSelectTeamDisplay = false;
 bool		bSelectTeamReady = false;		// Indicates we're ready to select a team, ie. got a response to previous request
 
 // do mouse movement calcs
@@ -212,11 +212,58 @@ glfwUnlockMutex(oPlayerTick);
 				bSelectTeamDisplay = bSelectTeamReady = false;
 				pLocalPlayer->GiveHealth(-150);
 
-				// Send a Join Team Request packet
-				CPacket oJoinTeamRequest;
-				oJoinTeamRequest.pack("hcc", 0, (u_char)27, (u_char)0);
-				oJoinTeamRequest.CompleteTpcPacketSize();
-				pServer->SendTcp(oJoinTeamRequest);
+				if (pServer != NULL) {
+					// Send a Join Team Request packet
+					CPacket oJoinTeamRequest;
+					oJoinTeamRequest.pack("hcc", 0, (u_char)27, (u_char)0);
+					oJoinTeamRequest.CompleteTpcPacketSize();
+					pServer->SendTcp(oJoinTeamRequest);
+				} else {
+glfwLockMutex(oPlayerTick);
+					pLocalPlayer->SetTeam(0);
+
+					// Create a Player Joined Team packet
+					CPacket oPlayerJoinedTeamPacket;
+					oPlayerJoinedTeamPacket.pack("hcc", 0, (u_char)28, pLocalPlayer->iID);
+					oPlayerJoinedTeamPacket.pack("c", (u_char)pLocalPlayer->GetTeam());
+
+					if (pLocalPlayer->GetTeam() != 2)
+					{
+						pLocalPlayer->RespawnReset();
+
+						// DEBUG: Randomly position the player
+						float x, y;
+						do {
+							x = static_cast<float>(rand() % 2000 - 1000);
+							y = static_cast<float>(rand() % 2000 - 1000);
+						} while (ColHandIsPointInside((int)x, (int)y) || !ColHandCheckPlayerPos(&x, &y));
+						pLocalPlayer->Position(x, y, 0.001f * (rand() % 1000) * Math::TWO_PI);
+						printf("Positioning player %d at %f, %f.\n", pLocalPlayer->iID, x, y);
+
+						pLocalPlayer->m_oInputCmdsTEST.clear();			// DEBUG: Is this the right thing to do? Right place to do it?
+						pLocalPlayer->m_oAuthUpdatesTEST.clear();		// DEBUG: Is this the right thing to do? Right place to do it?
+
+						oPlayerJoinedTeamPacket.pack("c", pLocalPlayer->cLatestAuthStateSequenceNumber);
+						oPlayerJoinedTeamPacket.pack("fff", pLocalPlayer->GetX(),
+							pLocalPlayer->GetY(), pLocalPlayer->GetZ());
+					}
+
+					u_int cPlayerID = pLocalPlayer->iID;
+					int cTeam = pLocalPlayer->GetTeam();
+					printf("Player #%d (name '%s') joined team %d.\n", cPlayerID, PlayerGet(cPlayerID)->GetName().c_str(), cTeam);
+					pChatMessages->AddMessage(((int)cPlayerID == iLocalPlayerID ? "Joined " : PlayerGet(cPlayerID)->GetName() + " joined ")
+						+ (cTeam == 0 ? "team Red" : (cTeam == 1 ? "team Blue" : "Spectators")) + ".");
+
+					if (cPlayerID == iLocalPlayerID)
+					{
+						oUnconfirmedMoves.clear();
+						bSelectTeamReady = true;
+					}
+glfwUnlockMutex(oPlayerTick);
+
+					oPlayerJoinedTeamPacket.CompleteTpcPacketSize();
+					ClientConnection::BroadcastTcp(oPlayerJoinedTeamPacket, PUBLIC_CLIENT);
+				}
 			}
 			break;
 		case '2':

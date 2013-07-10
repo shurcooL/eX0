@@ -185,6 +185,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\ClientConnection.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\ClientConnection.h"
+				>
+			</File>
+			<File
 				RelativePath="..\shared\col_hand.cpp"
 				>
 			</File>
@@ -305,6 +313,22 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\LocalServer.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\LocalServer.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\LocalStateAuther.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\LocalStateAuther.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\main.cpp"
 				>
 			</File>
@@ -342,6 +366,14 @@
 			</File>
 			<File
 				RelativePath="..\shared\NetworkConnection.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\NetworkController.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\NetworkController.h"
 				>
 			</File>
 			<File
@@ -410,6 +442,18 @@
 			</File>
 			<File
 				RelativePath=".\src\ServerConnection.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\ServerNetwork.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\Thread.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\Thread.h"
 				>
 			</File>
 			<File
@@ -557,38 +601,6 @@
 				</File>
 			</Filter>
 			<Filter
-				Name="mmgr"
-				>
-				<File
-					RelativePath=".\src\mmgr\mmgr.cpp"
-					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\src\mmgr\mmgr.h"
-					>
-				</File>
-				<File
-					RelativePath=".\src\mmgr\nommgr.h"
-					>
-				</File>
-			</Filter>
-			<Filter
 				Name="OGLTextureManager"
 				>
 				<File
@@ -669,6 +681,38 @@
 				</File>
 				<File
 					RelativePath=".\src\PolyBoolean\triamono.cpp"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="mmgr"
+				>
+				<File
+					RelativePath=".\src\mmgr\mmgr.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						ExcludedFromBuild="true"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						ExcludedFromBuild="true"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\src\mmgr\mmgr.h"
+					>
+				</File>
+				<File
+					RelativePath=".\src\mmgr\nommgr.h"
 					>
 				</File>
 			</Filter>

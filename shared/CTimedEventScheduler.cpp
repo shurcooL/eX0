@@ -2,7 +2,6 @@
 #include <GL/glfw.h>
 #include <set>
 #include <string>
-using std::multiset;
 
 /*#ifdef EX0_CLIENT
 #	include "../eX0mp/src/mmgr/mmgr.h"
@@ -104,7 +103,7 @@ bool CTimedEventScheduler::CheckEventById(u_int nId)
 
 	glfwLockMutex(m_oSchedulerMutex);
 
-	for (multiset<CTimedEvent>::iterator it1 = m_oEvents.begin(); it1 != m_oEvents.end(); ++it1)
+	for (std::multiset<CTimedEvent>::iterator it1 = m_oEvents.begin(); it1 != m_oEvents.end(); ++it1)
 	{
 		if (it1->GetId() == nId)
 		{
@@ -124,7 +123,7 @@ void CTimedEventScheduler::RemoveEventById(u_int nId)
 
 	glfwLockMutex(m_oSchedulerMutex);
 
-	for (multiset<CTimedEvent>::iterator it1 = m_oEvents.begin(); it1 != m_oEvents.end(); ++it1)
+	for (std::multiset<CTimedEvent>::iterator it1 = m_oEvents.begin(); it1 != m_oEvents.end(); ++it1)
 	{
 		if (it1->GetId() == nId)
 		{

@@ -14,7 +14,7 @@ LocalController::~LocalController()
 {
 }
 
-bool LocalController::RequestInput(u_char cSequenceNumber)
+bool LocalController::RequestInput(u_char/* cSequenceNumber*/)
 {
 	// set stealth
 	if (glfwGetKey(GLFW_KEY_LSHIFT) || glfwGetKey(GLFW_KEY_RSHIFT))

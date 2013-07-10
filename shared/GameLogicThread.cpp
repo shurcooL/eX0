@@ -68,12 +68,14 @@ void GLFWCALL GameLogicThread::Thread(void * pArgument)
 		// in game
 		{
 #ifdef EX0_CLIENT
-			// mouse moved?
-			InputMouseMovCalcs();
+			if (pLocalPlayer != NULL) {
+				// mouse moved?
+				InputMouseMovCalcs();
 
-			// key or mouse button held down?
-			InputKeyHold();
-			InputMouseHold();
+				// key or mouse button held down?
+				InputKeyHold();
+				InputMouseHold();
+			}
 #endif
 
 glfwLockMutex(oPlayerTick);
@@ -113,14 +115,14 @@ glfwUnlockMutex(oPlayerTick);
 			/*oParticleEngine.Tick();
 			if (bPaused) dTimePassed = fTempFloat;*/
 
-#ifndef EX0_CLIENT
+//#ifndef EX0_CLIENT
 glfwLockMutex(oPlayerTick);
 			for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
 				if (PlayerGet(nPlayer) != NULL)
 					PlayerGet(nPlayer)->SendUpdate();
 			}
 glfwUnlockMutex(oPlayerTick);
-#endif
+//#endif
 		}
 
 		glfwSleep(0.0001);

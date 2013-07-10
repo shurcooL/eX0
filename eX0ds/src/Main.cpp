@@ -3,7 +3,7 @@
 
 #pragma comment(linker, "/NODEFAULTLIB:\"LIBCMT\"")
 
-volatile int	iGameState = 0;
+volatile int	iGameState = 1;
 bool		bKeepRunning = true;
 double		dTimePassed = 0;
 double		dCurTime = 0;
@@ -24,8 +24,10 @@ void eX0_assert(bool expression, string message)
 bool Init(int, char *[])
 {
 	// init glfw
-	if (!glfwInit())
+	if (!glfwInit()) {
+		printf("Couldn't init GLFW...\n");
 		return false;
+	}
 	printf("Main thread tid = %d.\n", glfwGetThreadID());
 
 	// Initialize components
@@ -40,10 +42,9 @@ bool Init(int, char *[])
 		return false;
 	}
 	pTimedEventScheduler = new CTimedEventScheduler();
-	if (!ServerInit()) {				// Initialize the server
-		printf("Couldn't initialize the server.\n");
-		return false;
-	}
+	pGameLogicThread = new GameLogicThread();
+	pLocalServer = new LocalServer();
+
 	SyncRandSeed();
 
 	return true;
@@ -55,8 +56,9 @@ void Deinit()
 	printf("Deinit\n");
 
 	// Sub-deinit
+	delete pGameLogicThread; pGameLogicThread = NULL;
 	delete pTimedEventScheduler; pTimedEventScheduler = NULL;
-	ServerDeinit();
+	delete pLocalServer; pLocalServer = NULL;
 	NetworkDeinit();					// Shutdown the networking component
 	CPlayer::RemoveAll();				// Delete all players
 	GameDataUnload();					// unload game data
@@ -73,6 +75,7 @@ void SyncRandSeed(void)
 	//srand(static_cast<unsigned int>(time(NULL)));
 }
 
+// quits
 void Terminate(int nExitCode)
 {
 	if (nGlobalExitCode == 0) nGlobalExitCode = nExitCode;
@@ -157,14 +160,6 @@ return 0;*/
 	if (!Init(argc, argv))
 		Terminate(1);
 
-pGameLogicThread = new GameLogicThread();
-
-	if (!ServerStart())
-	{
-		printf("Couldn't start the server, exiting.\n");
-		Terminate(1);
-	} else printf("Started the server successfully.\n");
-
 	CTimedEvent oEvent(ceil(glfwGetTime() * 0.01) * 100, 100.0, &PrintHi, NULL);
 	pTimedEventScheduler->ScheduleEvent(oEvent);
 
@@ -202,11 +197,9 @@ glfwUnlockMutex(oPlayerTick);
 		glfwSleep(0.0001);
 	}
 
-delete pGameLogicThread;
-
 	// Clean up and exit nicely
 	Deinit();
 
-	printf("Returning %d from main(). %s\n", nGlobalExitCode, nGlobalExitCode == 0 ? ":)" : ">_<");
+	printf("Returning %d from main(). %s\n", nGlobalExitCode, nGlobalExitCode == 0 ? ":) :) :) :) :) :)))" : ">___________________<");
 	return 0;
 }

@@ -11,15 +11,15 @@ public:
 	void Render(void);
 
 private:
-	list<string>	m_oMessages;
-	double			m_dMessageTimer;
+	std::list<string>	m_oMessages;
+	double				m_dMessageTimer;
 
-	int				m_nTopLeftCornerX;
-	int				m_nTopLeftCornerY;
-	u_int			m_nMessageLimit;
-	double			m_dMessageTimeout;
+	int					m_nTopLeftCornerX;
+	int					m_nTopLeftCornerY;
+	u_int				m_nMessageLimit;
+	double				m_dMessageTimeout;
 
-	GLFWmutex		m_oMessageMutex;
+	GLFWmutex			m_oMessageMutex;
 
 	static const double	m_kdMessageTimeoutThreshold;
 	static const int	m_knHorizontalDistance;

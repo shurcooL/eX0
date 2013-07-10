@@ -1,5 +1,8 @@
 #include "globals.h"
 
+string			sLevelName = "test_orientation";
+//string			sLevelName = "test3";
+
 gpc_polygon		oPolyLevel;
 gpc_tristrip	oTristripLevel;
 
@@ -8,14 +11,19 @@ PAREA			*pPolyBooleanLevel = NULL;
 
 TextureIDs_t oTextureIDs;
 
-void GameDataLoad()
+bool GameDataLoad()
 {
 	// load all textures
 	GameDataLoadTextures();
 
 	// DEBUG - temporarily just open a level right away
-	//GameDataOpenLevel("levels/test3.wwl");
-	//GameDataOpenLevel("levels/test_orientation.wwl");
+	printf("Loading level '%s'.\n", sLevelName.c_str());
+	string sLevelPath = "../eX0mp/levels/" + sLevelName + ".wwl";
+	if (!GameDataOpenLevel(sLevelPath.c_str()))
+		return false;
+	else printf("Successfully loaded '%s'.\n", sLevelPath.c_str());
+
+	return true;
 }
 
 void GameDataUnload()
@@ -42,7 +50,7 @@ bool GameDataLoadTextures()
 }
 
 // load a level in memory
-void GameDataOpenLevel(const char *chFileName)
+bool GameDataOpenLevel(const char *chFileName)
 {
 	FILE	*pFile;
 
@@ -64,7 +72,7 @@ void GameDataOpenLevel(const char *chFileName)
 #else
 		printf("%s\n", sMessage.c_str());
 #endif
-		Terminate(1);
+		return false;
 	}
 
 	// DEBUG: Open the same level with PolyBoolean
@@ -83,6 +91,8 @@ void GameDataOpenLevel(const char *chFileName)
 	}
 	printf("gpc tri: triangle count = %d; vertex count = %d; tristrips = %d\n", nTotalTriangles, nTotalVertices, oTristripLevel.num_strips);
 	printf("PB tri: triangle count = %d; vertex count = %d\n", pPolyBooleanLevel->tnum, 3 * pPolyBooleanLevel->tnum);
+
+	return true;
 }
 
 // close currently opened level, free memory, reset vars

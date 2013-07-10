@@ -177,11 +177,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\src\ClientConnection.cpp"
+				RelativePath="..\shared\ClientConnection.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\ClientConnection.h"
+				RelativePath="..\shared\ClientConnection.h"
 				>
 			</File>
 			<File
@@ -265,6 +265,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\LocalServer.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\LocalServer.h"
+				>
+			</File>
+			<File
 				RelativePath="..\shared\LocalStateAuther.cpp"
 				>
 			</File>
@@ -286,10 +294,6 @@
 			</File>
 			<File
 				RelativePath="..\shared\math.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Network.cpp"
 				>
 			</File>
 			<File
@@ -349,11 +353,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Server.cpp"
+				RelativePath="..\shared\ServerNetwork.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Server.h"
+				RelativePath="..\shared\Thread.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\Thread.h"
 				>
 			</File>
 			<File

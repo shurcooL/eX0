@@ -57,9 +57,9 @@ public:
 	float GetY();
 	float GetOldX();
 	float GetOldY();
-#ifdef EX0_CLIENT
+//#ifdef EX0_CLIENT
 	void PushStateHistory(SequencedState_t & oSequencedState);
-#endif
+//#endif // EX0_CLIENT
 	void SetX(float fValue);
 	void SetY(float fValue);
 	void SetOldX(float fValue);
@@ -67,7 +67,7 @@ public:
 	void Position(float fNewX, float fNewY, float fNewZ);
 #ifdef EX0_CLIENT
 	void Position(float fNewX, float fNewY, float fNewZ, u_char cSequenceNumber);
-#endif
+#endif // EX0_CLIENT
 	float GetVelX();
 	float GetVelY();
 	void SetVelX(float fValue);
@@ -91,17 +91,18 @@ public:
 	bool IsDead();
 	string & GetName();
 	void SetName(string & sNewName);
-#ifdef EX0_CLIENT
+//#ifdef EX0_CLIENT
 	void RespawnReset();
+#ifdef EX0_CLIENT
 	void SetLastLatency(u_short nLastLatency);
 	u_short GetLastLatency() const;
-#endif
+#endif // EX0_CLIENT
 	PlayerController * m_pController;
 	PlayerStateAuther * m_pStateAuther;
 	void Tick();
-	void AfterTick() { if (m_pStateAuther) m_pStateAuther->AfterTick(); }
-	void ProcessAuthUpdateTEST() { if (m_pStateAuther) m_pStateAuther->ProcessAuthUpdateTEST(); }
-	void SendUpdate() { if (m_pStateAuther) m_pStateAuther->SendUpdate(); }
+	void AfterTick()				{ if (m_pStateAuther) m_pStateAuther->AfterTick(); }
+	void ProcessAuthUpdateTEST()	{ if (m_pStateAuther) m_pStateAuther->ProcessAuthUpdateTEST(); }
+	void SendUpdate()				{ if (m_pStateAuther) m_pStateAuther->SendUpdate(); }
 	double		m_dNextUpdateTime;
 
 	u_char		cLatestAuthStateSequenceNumber;
@@ -116,9 +117,9 @@ public:
 	float		fTicks;
 	float		fTickTime;
 	float		fOldZ;
-#ifndef EX0_CLIENT
+//#ifndef EX0_CLIENT
 	ClientConnection * pConnection;
-#endif
+//#endif
 
 	static void RemoveAll();
 
@@ -140,16 +141,17 @@ private:
 	string		sName;
 	int			m_nTeam;
 
-#ifdef EX0_CLIENT
-	list<SequencedState_t>		oStateHistory;		// The front has the latest entries
-	State_t						oOnlyKnownState;
+//#ifdef EX0_CLIENT
+	std::list<SequencedState_t>		oStateHistory;		// The front has the latest entries
+	State_t							oOnlyKnownState;
 
+#ifdef EX0_CLIENT
 	u_short		m_nLastLatency;
 
 	State_t GetStateInPast(float fTimeAgo);
-#endif
+#endif // EX0_CLIENT
 
-	static vector<CPlayer *>		m_oPlayers;
+	static std::vector<CPlayer *>		m_oPlayers;
 
 	static void Add(CPlayer * pPlayer);
 	static void Add(CPlayer * pPlayer, u_int nPlayerId);

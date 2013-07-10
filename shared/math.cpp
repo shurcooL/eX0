@@ -41,7 +41,7 @@ float MathCoordToRad(int iX1, int iY1, int iX2, int iY2)
 // convert int to string
 std::string itos(const int &iInteger)
 {
-	stringstream oStringStream;
+	std::ostringstream oStringStream;
 	oStringStream << iInteger;
 	return oStringStream.str();
 }
@@ -50,7 +50,7 @@ std::string itos(const int &iInteger)
 // convert float to string
 std::string ftos(const float &fFloat)
 {
-	stringstream oStringStream;
+	std::ostringstream oStringStream;
 	oStringStream << fFloat;
 	return oStringStream.str();
 }

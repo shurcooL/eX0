@@ -1,5 +1,11 @@
-#include "globals.h"
+// TODO: Properly fix this, by making this file independent of globals.h
+#ifdef EX0_CLIENT
+#	include "../eX0mp/src/globals.h"
+#else
+#	include "../eX0ds/src/globals.h"
+#endif // EX0_CLIENT
 
+#ifndef EX0_CLIENT
 GLFWmutex		oTcpSendMutex;
 GLFWmutex		oUdpSendMutex;
 
@@ -79,6 +85,7 @@ int sendudp(SOCKET s, const char *buf, int len, int flags, const sockaddr *to, i
 
 	return nResult;
 }
+#endif // EX0_CLIENT
 
 // Process a received TCP packet
 bool NetworkProcessTcpPacket(CPacket & oPacket, ClientConnection *& pConnection)
@@ -104,7 +111,7 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, ClientConnection *& pConnection)
 			for (int nSignatureByte = 0; nSignatureByte < NetworkConnection::m_knSignatureSize; ++nSignatureByte)
 				oPacket.unpack("c", &cSignature[nSignatureByte]);
 
-			if (snVersion == 1 && memcmp(szPassphrase, "somerandompass01", 16) == 0)
+			if (snVersion == NETWORK_PROTOCOL_VERSION && memcmp(szPassphrase, NETWORK_PROTOCOL_PASSPHRASE, 16) == 0)
 			{
 				// Valid Join Server Request packet
 				printf("Got a valid Join Server Request packet! yay.. yay... ;/\n");
@@ -218,6 +225,8 @@ glfwLockMutex(oPlayerTick);
 
 			if (pConnection->GetPlayer()->GetTeam() != 2)
 			{
+				pConnection->GetPlayer()->RespawnReset();
+
 				// DEBUG: Randomly position the player
 				float x, y;
 				do {
@@ -312,7 +321,7 @@ glfwUnlockMutex(oPlayerTick);
 				for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 				{
 					// Include the client who's connecting and all clients with at least Public status
-					if ((PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() >= PUBLIC_CLIENT)
+					if ((PlayerGet(nPlayer) != NULL && (PlayerGet(nPlayer)->pConnection == NULL || PlayerGet(nPlayer)->pConnection->GetJoinStatus() >= PUBLIC_CLIENT))
 						|| nPlayer == pConnection->GetPlayerID())
 					{
 						oCurrentPlayersInfoPacket.pack("c", (u_char)PlayerGet(nPlayer)->GetName().length());
@@ -488,6 +497,7 @@ bool NetworkProcessUdpHandshakePacket(u_char * cPacket, u_short nPacketSize, soc
 		return false;
 }
 
+#ifndef EX0_CLIENT
 // Shutdown the networking component
 void NetworkDeinit()
 {
@@ -513,3 +523,4 @@ void NetworkCloseSocket(SOCKET nSocket)
 
 	nSocket = INVALID_SOCKET;
 }
+#endif // EX0_CLIENT

@@ -392,7 +392,7 @@ void CParticle::Tick()
 					oParticles[iLoop1].oVelocity *= 0.990f;
 				else {
 					float len = oParticles[iLoop1].oVelocity.Unitize();
-					oParticles[iLoop1].oVelocity *= max<float>(0.01f, len - 0.2f);
+					oParticles[iLoop1].oVelocity *= std::max<float>(0.01f, len - 0.2f);
 				}
 				oParticles[iLoop1].oPosition += oParticles[iLoop1].oVelocity;
 				CollisionHandling(iLoop1);

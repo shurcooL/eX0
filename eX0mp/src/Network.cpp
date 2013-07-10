@@ -24,7 +24,7 @@ IndexedCircularBuffer<Move_t, u_char>	oUnconfirmedMoves;
 MovingAverage	oRecentLatency(60.0, 10);
 MovingAverage	oRecentTimeDifference(60.0, 10);
 HashMatcher<PingData_t, double>	oPongSentTimes(PING_SENT_TIMES_HISTORY);
-vector<double>	oSentTimeRequestPacketTimes(256);
+std::vector<double>		oSentTimeRequestPacketTimes(256);
 u_char			cNextTimeRequestSequenceNumber = 0;
 double			dShortestLatency = 1000;
 double			dShortestLatencyLocalTime;
@@ -141,7 +141,8 @@ bool NetworkConnect(const char * szHostname, u_short nPort)
 	// Create and send a Join Server Request packet
 	pServer->GenerateSignature();
 	CPacket oJoinServerRequestPacket;
-	oJoinServerRequestPacket.pack("hchs", 0, (u_char)1, 1, "somerandompass01");
+	if (strlen(NETWORK_PROTOCOL_PASSPHRASE) != 16) throw 1;
+	oJoinServerRequestPacket.pack("hchs", 0, (u_char)1, NETWORK_PROTOCOL_VERSION, NETWORK_PROTOCOL_PASSPHRASE);
 	for (int nSignatureByte = 0; nSignatureByte < NetworkConnection::m_knSignatureSize; ++nSignatureByte)
 		oJoinServerRequestPacket.pack("c", pServer->GetSignature()[nSignatureByte]);
 	oJoinServerRequestPacket.CompleteTpcPacketSize();
@@ -579,9 +580,9 @@ glfwLockMutex(oPlayerTick);
 			oPacket.unpack("c", &cPlayerID);
 
 			if (cPlayerID == iLocalPlayerID)
-				printf("Got a Player Left Server packet, with the local player ID %d.", iLocalPlayerID);
+				printf("WARNING: Got a Player Left Server packet, with the local player ID %d.", iLocalPlayerID);
 			if (PlayerGet(cPlayerID) == NULL) {
-				printf("Got a Player Left Server packet, but player %d was not in game.\n", cPlayerID);
+				printf("WARNING: Got a Player Left Server packet, but player %d was not in game.\n", cPlayerID);
 				return false;
 			}
 
@@ -619,8 +620,11 @@ glfwLockMutex(oPlayerTick);
 			PlayerGet(cPlayerID)->SetTeam(cTeam);
 			if (PlayerGet(cPlayerID)->GetTeam() != 2)
 			{
-				// This resets the variables and increments the Command Series Number
+				// This resets the variables
 				PlayerGet(cPlayerID)->RespawnReset();
+
+				// Increment the Command packet series
+				static_cast<NetworkStateAuther *>(PlayerGet(cPlayerID)->m_pStateAuther)->cCurrentCommandSeriesNumber += 1;
 
 				oPacket.unpack("cfff", &cLastCommandSequenceNumber, &fX, &fY, &fZ);
 				PlayerGet(cPlayerID)->cLatestAuthStateSequenceNumber = cLastCommandSequenceNumber;
@@ -682,6 +686,7 @@ void NetworkJoinGame()
 	printf("Entered the game.\n");
 	iGameState = 0;
 
+	bSelectTeamDisplay = true;
 	bSelectTeamReady = true;
 }
 

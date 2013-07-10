@@ -26,6 +26,9 @@ int				iTempInt = 0;
 
 int				nGlobalExitCode = 0;
 
+// DEBUG: A hack to decide whether or not to run local server
+int nRunModeDEBUG;
+
 void eX0_assert(bool expression, string message)
 {
 	if (!expression) {
@@ -102,7 +105,7 @@ bool Init(int, char *[])
 		return false;
 	}
 
-	stringstream x;
+	std::stringstream x;
 	x << "CPU Count: " << glfwGetNumberOfProcessors()
 	  << "\nGL Renderer: " << glGetString(GL_VENDOR) << " " << glGetString(GL_RENDERER) << " v" << glGetString(GL_VERSION)
 	  << "\nGLFW_ACCELERATED: " << glfwGetWindowParam(GLFW_ACCELERATED)
@@ -117,15 +120,23 @@ bool Init(int, char *[])
 	//MessageBox(NULL, x.str().c_str(), "MessageBox1", NULL);
 	printf("%s\n", x.str().c_str());
 
-	// sub-init
+	// Initialize components
 	SetGlfwCallbacks();
-	GameDataLoad();						// load game data
+	if (!GameDataLoad()) {				// load game data
+		printf("Couldn't load game data.\n");
+		return false;
+	}
 	WeaponInitSpecs();
+	nPlayerCount = 8;					// Set the max player limit for this server
 	pChatMessages = new CHudMessageQueue(0, 480 - 150, 5, 7.5f);
+	if (!NetworkInit()) {				// Initialize the networking
+		printf("Couldn't initialize the networking.\n");
+		return false;
+	}
 	pTimedEventScheduler = new CTimedEventScheduler();
 	pGameLogicThread = new GameLogicThread();
-	if (!NetworkInit())					// Initialize the networking
-		return false;
+	if (nRunModeDEBUG != 0)
+		pLocalServer = new LocalServer();
 
 	SyncRandSeed();
 
@@ -143,6 +154,7 @@ void Deinit()
 	// sub-deinit
 	delete pGameLogicThread; pGameLogicThread = NULL;
 	delete pTimedEventScheduler; pTimedEventScheduler = NULL;
+	delete pLocalServer; pLocalServer = NULL;
 	NetworkDeinit();					// Shutdown the networking component
 	CPlayer::RemoveAll();				// Delete all players
 	delete pChatMessages; pChatMessages = NULL;
@@ -346,21 +358,40 @@ int main(int argc, char *argv[])
 	// Print the version and date/time built
 	printf("%s\n\n", EX0_BUILD_STRING);
 
+	char ch = static_cast<char>(getchar());
+	if (ch == 's') nRunModeDEBUG = 1;
+	else if (ch == 'b') nRunModeDEBUG = 2;
+	else nRunModeDEBUG = 0;
+
 	// initialize
 	if (!Init(argc, argv))
 		Terminate(1);
-
-	// DEBUG - This is a hack - we only need to position the players here... But I called RestartGame() to do that
-	//RestartGame();
 
 	// DEBUG: Set the local player name through the 2nd command line param
 	if (argc >= 3)
 		sLocalPlayerName = argv[2];
 
 	// Connect to the server
-	if (argc >= 2)
+	if (argc >= 2 && nRunModeDEBUG == 0)
 	{
 		NetworkConnect(argv[1], DEFAULT_PORT);
+	} else if (nRunModeDEBUG == 2)
+	{
+		//NetworkConnect(argv[1], DEFAULT_PORT);
+glfwLockMutex(oPlayerTick);
+		pLocalPlayer = new CPlayer(iLocalPlayerID);
+		pLocalPlayer->m_pController = new LocalController(*pLocalPlayer);
+		pLocalPlayer->m_pStateAuther = new LocalStateAuther(*pLocalPlayer);
+
+		pLocalPlayer->fTickTime = 1.0f / g_cCommandRate;
+
+		// Start the game
+		printf("Entered the game.\n");
+		//iGameState = 0;
+
+		bSelectTeamDisplay = true;
+		bSelectTeamReady = true;
+glfwUnlockMutex(oPlayerTick);
 	}
 
 	//GetReady();
@@ -396,7 +427,7 @@ int main(int argc, char *argv[])
 			if (bStencilOperations) RenderFOV();
 
 			// Enable the FOV masking
-			OglUtilsSetMaskingMode(WITH_MASKING_MODE);
+			if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
 
 			// render all players
 glfwLockMutex(oPlayerTick);
@@ -411,7 +442,7 @@ glfwUnlockMutex(oPlayerTick);
 			RenderParticles();
 
 			// Disable the masking
-			OglUtilsSetMaskingMode(NO_MASKING_MODE);
+			if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(NO_MASKING_MODE);
 
 			// render HUD
 glfwLockMutex(oPlayerTick);
@@ -440,6 +471,6 @@ glfwUnlockMutex(oPlayerTick);
 	// Clean up and exit nicely
 	Deinit();
 
-	printf("Returning %d from main(). %s\n", nGlobalExitCode, nGlobalExitCode == 0 ? ":)" : ">_<");
+	printf("Returning %d from main(). %s\n", nGlobalExitCode, nGlobalExitCode == 0 ? ":) :) :) :) :) :)))" : ">___________________<");
 	return 0;
 }

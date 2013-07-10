@@ -1,8 +1,5 @@
 #include <set>
 #include <list>
-using std::multiset;
-using std::list;
-using std::pair;
 #include <stdio.h>
 #include "NetworkIncludes.h"
 
@@ -31,14 +28,14 @@ MovingAverage::~MovingAverage()
 void MovingAverage::push(double dValue, double dTime)
 {
 	// Insert the given value
-	multiset<double>::iterator oPointerToValue;
+	std::multiset<double>::iterator oPointerToValue;
 	oPointerToValue = m_oValues.insert(dValue);
 
 	// And keep track of it in a list sorted by time (end of list contains the latest entries)
-	list<pair<double, multiset<double>::iterator> >::reverse_iterator rit1;
+	std::list<std::pair<double, std::multiset<double>::iterator> >::reverse_iterator rit1;
 	u_int nInsertedIndex = 0;
 	for (rit1 = m_oPointersByTime.rbegin(); rit1 != m_oPointersByTime.rend() && dTime < rit1->first; ++rit1) { ++nInsertedIndex; }
-	m_oPointersByTime.insert(rit1.base(), pair<double, multiset<double>::iterator>(dTime, oPointerToValue));
+	m_oPointersByTime.insert(rit1.base(), std::pair<double, std::multiset<double>::iterator>(dTime, oPointerToValue));
 
 	// Remove oldest entries if they are out of the time period covered, and our size is larger than MinSize
 	// This check has to occur at the end, in case the newly added item is actually older than all current ones - meaning it should be the one to get removed
@@ -87,7 +84,7 @@ double MovingAverage::Mean() const
 
 	double dSum = 0;
 
-	for (multiset<double>::const_iterator it1 = m_oValues.begin(); it1 != m_oValues.end(); ++it1) {
+	for (std::multiset<double>::const_iterator it1 = m_oValues.begin(); it1 != m_oValues.end(); ++it1) {
 		dSum += *it1;
 	}
 
@@ -103,12 +100,12 @@ double MovingAverage::LowerQuartile() const
 
 	if ((nLowerHalfSize & 1) == 1) {
 		// Odd number of elements in lower half, easy to find its median
-		multiset<double>::const_iterator it1 = m_oValues.begin();
+		std::multiset<double>::const_iterator it1 = m_oValues.begin();
 		while (nLowerHalfMedianIndex-- > 0) ++it1;
 		return *it1;
 	} else {
 		// Even number of elements in lower half
-		multiset<double>::const_iterator it1 = m_oValues.begin();
+		std::multiset<double>::const_iterator it1 = m_oValues.begin();
 		while (nLowerHalfMedianIndex-- > 1) ++it1;
 		return (*it1 + *(++it1)) * 0.5;
 	}
@@ -122,7 +119,7 @@ double MovingAverage::WeightedMovingAverage() const
 	int dWeightFactor = 0;
 
 	// Iterate values from oldest to latest
-	list<pair<double, multiset<double>::iterator> >::const_iterator it1;
+	std::list<std::pair<double, std::multiset<double>::iterator> >::const_iterator it1;
 	for (it1 = m_oPointersByTime.begin(); it1 != m_oPointersByTime.end(); ++it1) {
 		dWeightedSum += (++dWeightFactor) * *(it1->second);
 	}
@@ -132,7 +129,7 @@ double MovingAverage::WeightedMovingAverage() const
 
 void MovingAverage::Print()
 {
-	list<pair<double, multiset<double>::iterator> >::const_iterator it1;
+	std::list<std::pair<double, std::multiset<double>::iterator> >::const_iterator it1;
 	for (it1 = m_oPointersByTime.begin(); it1 != m_oPointersByTime.end(); ++it1) {
 		printf("%.3f@%.3f | ", *(it1->second) * 1000, it1->first);
 	}

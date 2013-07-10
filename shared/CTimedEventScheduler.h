@@ -21,7 +21,7 @@ private:
 
 	GLFWmutex		m_oSchedulerMutex;
 
-	multiset<CTimedEvent>	m_oEvents;
+	std::multiset<CTimedEvent>	m_oEvents;
 
 	static void GLFWCALL SchedulerThread(void * pArgument);
 };

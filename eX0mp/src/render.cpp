@@ -94,14 +94,14 @@ void RenderStaticScene()
 }
 
 // render the HUD
-void RenderHUD(void)
+void RenderHUD()
 {
 	OglUtilsSwitchMatrix(SCREEN_SPACE_MATRIX);
 	glLoadIdentity();
 	glColor3f(1, 1, 1);
 	OglUtilsPrint(320, 0, 0, true, (char *)sFpsString.c_str());
 
-	if (pLocalPlayer->GetTeam() != 2 && bSelectTeamReady)
+	if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2 && bSelectTeamReady)
 	{
 		if (pLocalPlayer->IsReloading() && !pLocalPlayer->IsDead())
 		{
@@ -170,18 +170,20 @@ void RenderHUD(void)
 		//OglUtilsSetMaskingMode(NO_MASKING_MODE);
 		glColor3f(1, 1, 1);
 
-		sTempString = "x: " + ftos(pLocalPlayer->GetIntX());
-		glLoadIdentity();
-		OglUtilsPrint(0, 35, 0, false, (char *)sTempString.c_str());
-		sTempString = "y: " + ftos(pLocalPlayer->GetIntY());
-		glLoadIdentity();
-		OglUtilsPrint(0, 45, 0, false, (char *)sTempString.c_str());
-		sTempString = "z: " + ftos(pLocalPlayer->GetZ());
-		glLoadIdentity();
-		OglUtilsPrint(0, 55, 0, false, (char *)sTempString.c_str());
-		sTempString = "velocity: " + ftos(pLocalPlayer->GetVelocity());
-		glLoadIdentity();
-		OglUtilsPrint(150, 35, 0, false, (char *)sTempString.c_str());
+		if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) {
+			sTempString = "x: " + ftos(pLocalPlayer->GetIntX());
+			glLoadIdentity();
+			OglUtilsPrint(0, 35, 0, false, (char *)sTempString.c_str());
+			sTempString = "y: " + ftos(pLocalPlayer->GetIntY());
+			glLoadIdentity();
+			OglUtilsPrint(0, 45, 0, false, (char *)sTempString.c_str());
+			sTempString = "z: " + ftos(pLocalPlayer->GetZ());
+			glLoadIdentity();
+			OglUtilsPrint(0, 55, 0, false, (char *)sTempString.c_str());
+			sTempString = "velocity: " + ftos(pLocalPlayer->GetVelocity());
+			glLoadIdentity();
+			OglUtilsPrint(150, 35, 0, false, (char *)sTempString.c_str());
+		}
 
 		for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
 		{
@@ -206,9 +208,11 @@ void RenderHUD(void)
 		sTempString = "g_cCurrentCommandSequenceNumber = " + itos(g_cCurrentCommandSequenceNumber);
 		glLoadIdentity();
 		OglUtilsPrint(0, 90 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
-		sTempString = "cLastUpdateSequenceNumber = " + itos(pServer->cLastUpdateSequenceNumber);
-		glLoadIdentity();
-		OglUtilsPrint(0, 105 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
+		if (pServer != NULL) {
+			sTempString = "cLastUpdateSequenceNumber = " + itos(pServer->cLastUpdateSequenceNumber);
+			glLoadIdentity();
+			OglUtilsPrint(0, 105 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
+		}
 		sTempString = "oUnconfirmedMoves.size() = " + itos(oUnconfirmedMoves.size());
 		glLoadIdentity();
 		OglUtilsPrint(0, 120 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
@@ -231,24 +235,35 @@ void RenderPlayers()
 			PlayerGet(iLoop1)->RenderInPast(0);
 		}
 	}*/
-	pLocalPlayer->fTicks = (float)(glfwGetTime() - (g_dNextTickTime - 1.0 / g_cCommandRate));
-	if (!pLocalPlayer->IsDead()) {
-		pLocalPlayer->UpdateInterpolatedPos();
-	}
-
-	for (vector<CPlayer *>::iterator it1 = CPlayer::m_oPlayers.begin(); it1 < CPlayer::m_oPlayers.end(); ++it1) {
-		if (*it1 != NULL && *it1 != pLocalPlayer && (*it1)->GetTeam() != 2) {
-			//(*it1)->UpdateInterpolatedPos();
-			(*it1)->RenderInPast(kfInterpolate);
-			(*it1)->RenderInPast(0);
+	if (pLocalPlayer != NULL) {
+		pLocalPlayer->fTicks = (float)(glfwGetTime() - (g_dNextTickTime - 1.0 / g_cCommandRate));
+		if (pLocalPlayer->GetTeam() != 2) {
+			if (!pLocalPlayer->IsDead()) {
+				pLocalPlayer->UpdateInterpolatedPos();
+			}
 		}
-	}
 
-	// Render the local player
-	if (pLocalPlayer->GetTeam() != 2) {
-		//pLocalPlayer->UpdateInterpolatedPos();
-		pLocalPlayer->RenderInPast(kfInterpolate);
-		pLocalPlayer->Render();
+		for (std::vector<CPlayer *>::iterator it1 = CPlayer::m_oPlayers.begin(); it1 < CPlayer::m_oPlayers.end(); ++it1) {
+			if (*it1 != NULL && *it1 != pLocalPlayer && (*it1)->GetTeam() != 2) {
+				//(*it1)->UpdateInterpolatedPos();
+				(*it1)->RenderInPast(kfInterpolate);
+				(*it1)->RenderInPast(0);
+			}
+		}
+
+		// Render the local player
+		if (pLocalPlayer->GetTeam() != 2) {
+			//pLocalPlayer->UpdateInterpolatedPos();
+			pLocalPlayer->RenderInPast(kfInterpolate);
+			pLocalPlayer->Render();
+		}
+	} else {
+		for (std::vector<CPlayer *>::iterator it1 = CPlayer::m_oPlayers.begin(); it1 < CPlayer::m_oPlayers.end(); ++it1) {
+			if (*it1 != NULL && *it1 != pLocalPlayer && (*it1)->GetTeam() != 2) {
+				(*it1)->RenderInPast(kfInterpolate);
+				(*it1)->RenderInPast(0);
+			}
+		}
 	}
 }
 
@@ -268,7 +283,7 @@ void RenderOffsetCamera(bool bLocalPlayerReferenceFrame)
 {
 	glLoadIdentity();
 
-	if (pLocalPlayer->GetTeam() == 2) {
+	if (pLocalPlayer == NULL || pLocalPlayer->GetTeam() == 2) {
 		glTranslatef(0, 0, -680);
 	} else
 	{
@@ -302,6 +317,9 @@ void RenderOffsetCamera(bool bLocalPlayerReferenceFrame)
 // renders the fov zone
 void RenderFOV()
 {
+	if (pLocalPlayer == NULL || pLocalPlayer->GetTeam() == 2)
+		return;
+
 	// Create the FOV mask
 	RenderCreateFOVMask();
 

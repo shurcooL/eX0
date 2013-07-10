@@ -40,7 +40,9 @@ void GameDataUnload()
 {
 	// load 1st font texture
 	oTextureIDs.iFonts[0] = TEXMANAGER.LoadTexture("data/fonts/font1.tga");
+	oTextureIDs.iFonts[1] = TEXMANAGER.LoadTexture("data/fonts/font2.tga");
 	oTextureIDs.iFloor = TEXMANAGER.LoadTexture("data/textures/floor.tga");
+	oTextureIDs.nM4A1MuzzleFlash = TEXMANAGER.LoadTexture("data/textures/m4a1_muzzle_flashes.tga");
 	// ...
 
 	// no error checking just yet

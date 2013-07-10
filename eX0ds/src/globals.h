@@ -47,7 +47,7 @@ p = pointer
 ////////////////////
 using namespace std;	// so that we can use string class
 //#pragma warning(once : 4018 4244 4305 4996)
-#pragma warning(disable : 4351)
+#pragma warning(disable : 4351)		// Array initializer
 
 // Classes
 class CPlayer;
@@ -70,6 +70,7 @@ using namespace POLYBOOLEAN;*/
 #include "Mgc/MgcIntr2DLinLin.h"
 #include "Mgc/MgcDist2DVecLin.h"
 using namespace Mgc;
+#include "../../shared/Thread.h"
 #include "../../shared/ThreadSafeQueue.h"
 #include "../../shared/math.h"
 /*#include "input.h"
@@ -88,10 +89,11 @@ using namespace Mgc;
 #include "../../shared/player.h"
 //#include "../../shared/LocalAuthPlayer.h"
 #include "../../shared/Network.h"
-#include "Server.h"
+//#include "Server_old.h"
+#include "../../shared/LocalServer.h"
 #include "../../shared/HashMatcher.h"
 #include "../../shared/NetworkConnection.h"
-#include "ClientConnection.h"
+#include "../../shared/ClientConnection.h"
 #include "../../shared/CPacket.h"
 #include "../../shared/CTimedEvent.h"
 #include "../../shared/CTimedEventScheduler.h"
@@ -120,7 +122,7 @@ extern bool			bFullscreen;
 extern float		fMouseSensitivity;
 extern bool			bAutoReload;
 
-extern int			iCursorX, iCursorY;
+extern int			nDesktopCursorX, nDesktopCursorY;
 extern int			iMouseX, iMouseY;
 extern int			iMouseMovedX[MOUSE_FILTERING_SAMPLES], iMouseMovedY[MOUSE_FILTERING_SAMPLES];
 //extern int			iMouseMovedX, iMouseMovedY;
@@ -131,9 +133,9 @@ extern int			nChatMode;
 extern string		sChatString;*/
 
 extern u_int		nPlayerCount;
-//extern float		fPlayerTickTime;
-//extern int			iLocalPlayerID;
+//extern u_int		iLocalPlayerID;
 //extern CPlayer		*oPlayers[32];
+//extern float		fPlayerTickTime;
 
 //extern int			iCameraType;
 
@@ -153,18 +155,11 @@ extern gpc_polygon	oPolyLevel;
 //extern TextureIDs_t	oTextureIDs;
 extern CParticle	oParticleEngine;
 
+//extern GLUquadricObj *	oQuadricObj;
+
 extern CTimedEventScheduler *	pTimedEventScheduler;
 extern GameLogicThread *		pGameLogicThread;
-
-//extern GLUquadricObj	*oQuadricObj;
-
-extern SOCKET		nUdpSocket;
-
-extern GLFWthread		oServerThread;
-extern volatile bool	bServerThreadRun;
-
-extern GLFWmutex		oTcpSendMutex;
-extern GLFWmutex		oUdpSendMutex;
+extern LocalServer *			pLocalServer;
 
 extern u_char			g_cCurrentCommandSequenceNumber;
 extern double			g_dNextTickTime;

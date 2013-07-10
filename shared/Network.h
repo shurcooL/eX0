@@ -4,6 +4,9 @@
 
 class CPacket;
 
+#define NETWORK_PROTOCOL_VERSION	1
+#define NETWORK_PROTOCOL_PASSPHRASE	"somerandompass01"
+
 #define DEFAULT_PORT			25035
 
 #define BROADCAST_PING_PERIOD	2.5		// How often to broadcast the Ping packet on the server
@@ -52,13 +55,14 @@ bool NetworkProcessTcpPacket(CPacket & oPacket);
 
 // Process a received UDP packet
 bool NetworkProcessUdpPacket(CPacket & oPacket);
-#else
+//#else
+#endif // EX0_CLIENT
 // Process a received TCP packet
 bool NetworkProcessTcpPacket(CPacket & oPacket, ClientConnection *& pConnection);
 
 // Process a received UDP packet
 bool NetworkProcessUdpPacket(CPacket & oPacket, ClientConnection * pConnection);
-#endif // EX0_CLIENT
+//#endif // EX0_CLIENT
 
 #ifdef EX0_CLIENT
 void NetworkSendUdpHandshakePacket(void *pArgument);
@@ -68,10 +72,11 @@ void NetworkJoinGame();
 void NetworkShutdownThread();
 
 void NetworkDestroyThread();
-#else
+//#else
+#endif // EX0_CLIENT
 // Process a potential UDP Handshake packet
 bool NetworkProcessUdpHandshakePacket(u_char * cPacket, u_short nPacketSize, sockaddr_in & oSenderAddress, SOCKET nUdpSocket);
-#endif // EX0_CLIENT
+//#endif // EX0_CLIENT
 
 // Shutdown the networking component
 void NetworkDeinit();

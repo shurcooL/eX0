@@ -47,7 +47,7 @@ private:
 
 	CPlayer * m_pPlayer;
 
-	static list<ClientConnection *>		m_oConnections;
+	static std::list<ClientConnection *>		m_oConnections;
 };
 
 #endif // __ClientConnection_H__

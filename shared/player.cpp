@@ -13,7 +13,7 @@ CPlayer *	pLocalPlayer = NULL;
 string		sLocalPlayerName = "New Player";
 #endif
 
-vector<CPlayer *> CPlayer::m_oPlayers;
+std::vector<CPlayer *> CPlayer::m_oPlayers;
 
 //float	fPlayerTickTime;// = 0.025f;
 //float	fPlayerTickTime = 0.050f;
@@ -45,7 +45,7 @@ CPlayer::CPlayer()
 	fAimingDistance = 200.0;
 	fHealth = 100;
 	sName = "Unnamed Player";
-	m_nTeam = 0;
+	m_nTeam = 2;
 	bEmptyClicked = true;
 	fTicks = 0;
 	fTickTime = 0;
@@ -53,9 +53,10 @@ CPlayer::CPlayer()
 	// Network related
 #ifdef EX0_CLIENT
 	m_nLastLatency = 0;
-#else
+//#else
+#endif // EX0_CLIENT
 	pConnection = NULL;
-#endif
+//#endif
 
 	Add(this);
 
@@ -86,7 +87,7 @@ CPlayer::CPlayer(u_int nPlayerId)
 	fAimingDistance = 200.0;
 	fHealth = 100;
 	sName = "Unnamed Player";
-	m_nTeam = 0;
+	m_nTeam = 2;
 	bEmptyClicked = true;
 	fTicks = 0;
 	fTickTime = 0;
@@ -94,9 +95,10 @@ CPlayer::CPlayer(u_int nPlayerId)
 	// Network related
 #ifdef EX0_CLIENT
 	m_nLastLatency = 0;
-#else
+//#else
+#endif // EX0_CLIENT
 	pConnection = NULL;
-#endif
+//#endif
 
 	Add(this, nPlayerId);
 
@@ -217,58 +219,79 @@ void CPlayer::Tick()
 #endif // 0
 
 #ifdef EX0_CLIENT
-	if (pLocalPlayer->GetTeam() == 2 || pLocalPlayer->IsDead())
+	if (pLocalPlayer == NULL || pLocalPlayer->GetTeam() == 2 || pLocalPlayer->IsDead())
 		return;
 
-	if (iID == iLocalPlayerID) {
-		// DEBUG: A work in progress
+	// CONTINUE: Decide how local player movement should be handled when hosting a server...
+	//			 Consider that while keyboard/mouse input may be instantly avaliable, AI/bot calculations may not be
+	//			 (i.e. perhaps, even local player on local server should be treated as with a remote controller)
+
+	//if (iID == iLocalPlayerID)
+	if (this == pLocalPlayer)
+	{
 		m_pController->RequestInput(0);
 
-		//if (oUnconfirmedMoves.size() < 100)
-		//{
-			// calculate player trajectory
-			CalcTrajs();
+		// DEBUG: A work in progress...
+		if (pLocalServer == NULL)
+		{
+			//if (oUnconfirmedMoves.size() < 100)
+			//{
+				// calculate player trajectory
+				CalcTrajs();
 
-			// do collision response for player
-			CalcColResp();
+				// do collision response for player
+				CalcColResp();
 
-			Input_t oInput;
-			oInput.cMoveDirection = (char)nMoveDirection;
-			oInput.cStealth = (u_char)iIsStealth;
-			oInput.fZ = GetZ();
-			//if (oUnconfirmedInputs.size() < 101)
-			//oUnconfirmedInputs.push_back(oInput);
-			Move_t oMove;
-			oMove.oInput = oInput;
-			oMove.oState.fX = GetX(); oMove.oState.fY = GetY(); oMove.oState.fZ = GetZ();
-			oUnconfirmedMoves.push(oMove, g_cCurrentCommandSequenceNumber);
-//printf("pushed a move on oUnconfirmedMoves, size() = %d, cur# => %d\n", oUnconfirmedMoves.size(), cCurrentCommandSequenceNumber);
+				Input_t oInput;
+				oInput.cMoveDirection = (char)nMoveDirection;
+				oInput.cStealth = (u_char)iIsStealth;
+				oInput.fZ = GetZ();
+				//if (oUnconfirmedInputs.size() < 101)
+				//oUnconfirmedInputs.push_back(oInput);
+				Move_t oMove;
+				oMove.oInput = oInput;
+				oMove.oState.fX = GetX(); oMove.oState.fY = GetY(); oMove.oState.fZ = GetZ();
+				oUnconfirmedMoves.push(oMove, g_cCurrentCommandSequenceNumber);
+	//printf("pushed a move on oUnconfirmedMoves, size() = %d, cur# => %d\n", oUnconfirmedMoves.size(), cCurrentCommandSequenceNumber);
 
-			iTempInt = std::max<int>(iTempInt, (int)oUnconfirmedMoves.size() - 1);
+				iTempInt = std::max<int>(iTempInt, (int)oUnconfirmedMoves.size() - 1);
 
-			// Send the Client Command packet
-			CPacket oClientCommandPacket;
-			oClientCommandPacket.pack("cccc", (u_char)1,		// packet type
-											  g_cCurrentCommandSequenceNumber,		// sequence number
-											  static_cast<NetworkStateAuther *>(m_pStateAuther)->cCurrentCommandSeriesNumber,		// series number
-											  (u_char)(oUnconfirmedMoves.size() - 1));
-			for (u_char it1 = oUnconfirmedMoves.begin(); it1 != oUnconfirmedMoves.end(); ++it1)
-			{
-				oClientCommandPacket.pack("ccf", oUnconfirmedMoves[it1].oInput.cMoveDirection,
-												 oUnconfirmedMoves[it1].oInput.cStealth,
-												 oUnconfirmedMoves[it1].oInput.fZ);
-			}
-			if ((rand() % 100) >= 0 || iLocalPlayerID != 0) // DEBUG: Simulate packet loss
-				pServer->SendUdp(oClientCommandPacket);
+				// Send the Client Command packet
+				CPacket oClientCommandPacket;
+				oClientCommandPacket.pack("cccc", (u_char)1,		// packet type
+												  g_cCurrentCommandSequenceNumber,		// sequence number
+												  static_cast<NetworkStateAuther *>(m_pStateAuther)->cCurrentCommandSeriesNumber,		// series number
+												  (u_char)(oUnconfirmedMoves.size() - 1));
+				for (u_char it1 = oUnconfirmedMoves.begin(); it1 != oUnconfirmedMoves.end(); ++it1)
+				{
+					oClientCommandPacket.pack("ccf", oUnconfirmedMoves[it1].oInput.cMoveDirection,
+													 oUnconfirmedMoves[it1].oInput.cStealth,
+													 oUnconfirmedMoves[it1].oInput.fZ);
+				}
+				if ((rand() % 100) >= 0 || iLocalPlayerID != 0) // DEBUG: Simulate packet loss
+					pServer->SendUdp(oClientCommandPacket);
 
-			// DEBUG: Keep state history for local player
-			/*if ((rand() % 100) >= 0) {
-				SequencedState_t oSequencedState;
-				oSequencedState.cSequenceNumber = cCurrentCommandSequenceNumber;
-				oSequencedState.oState = oMove.oState;
-				PushStateHistory(oSequencedState);
-			}*/
-		//}
+				// DEBUG: Keep state history for local player
+				/*if ((rand() % 100) >= 0) {
+					SequencedState_t oSequencedState;
+					oSequencedState.cSequenceNumber = cCurrentCommandSequenceNumber;
+					oSequencedState.oState = oMove.oState;
+					PushStateHistory(oSequencedState);
+				}*/
+			//}
+		} else
+		{
+			SequencedInput_t oSequencedInput;
+
+			// Set the inputs
+			oSequencedInput.oInput.cMoveDirection = (char)this->nMoveDirection;
+			oSequencedInput.oInput.cStealth = (u_char)this->iIsStealth;
+			oSequencedInput.oInput.fZ = this->GetZ();
+
+			oSequencedInput.cSequenceNumber = g_cCurrentCommandSequenceNumber;
+
+			eX0_assert(m_oInputCmdsTEST.push(oSequencedInput), "m_oInputCmdsTEST.push(oInput) failed, lost input!!\n");
+		}
 	} else {
 		// calculate player trajectory
 		//CalcTrajs();
@@ -347,7 +370,6 @@ void CPlayer::SetStealth(bool bOn)
 	iIsStealth = (int)bOn;
 }
 
-#ifdef EX0_CLIENT
 // A partial reset of the player state that happens when the player respawns (or changes team, etc.)
 void CPlayer::RespawnReset()
 {
@@ -365,11 +387,7 @@ void CPlayer::RespawnReset()
 	nMoveDirection = -1;
 	iSelWeapon = 2;
 	fHealth = 100.0f;
-
-	// Increment the Command packet series
-	static_cast<NetworkStateAuther *>(m_pStateAuther)->cCurrentCommandSeriesNumber += 1;
 }
-#endif
 
 bool CPlayer::IsDead()
 {
@@ -822,7 +840,6 @@ void CPlayer::Render()
 #endif
 }
 
-#ifdef EX0_CLIENT
 void CPlayer::PushStateHistory(SequencedState_t & oSequencedState)
 {
 	// Insert the only known state if history is empty
@@ -840,8 +857,11 @@ void CPlayer::PushStateHistory(SequencedState_t & oSequencedState)
 	}
 }
 
+#ifdef EX0_CLIENT
 State_t CPlayer::GetStateInPast(float fTimeAgo)
 {
+	float fTicks = (pLocalPlayer != NULL) ? (pLocalPlayer->fTicks) : (float)(glfwGetTime() - (g_dNextTickTime - 1.0 / g_cCommandRate));
+
 	float fHistoryX;
 	float fHistoryY;
 	float fHistoryZ;
@@ -900,14 +920,14 @@ State_t CPlayer::GetStateInPast(float fTimeAgo)
 		fHistoryY = oStateHistory.front().oState.fY;
 		fHistoryZ = oStateHistory.front().oState.fZ;
 	} else {
-		float	fCurrentTimepoint = (u_char)(g_cCurrentCommandSequenceNumber - 1) + pLocalPlayer->fTicks / fTickTime;
+		float	fCurrentTimepoint = (u_char)(g_cCurrentCommandSequenceNumber - 1) + fTicks / fTickTime;
 		float	fHistoryPoint = fCurrentTimepoint - fTimeAgo / fTickTime;
 		if (fHistoryPoint < 0) fHistoryPoint += 256;
-		int		nTicksAgo = (int)floorf(fTimeAgo / fTickTime - pLocalPlayer->fTicks / fTickTime) + 1;
-		//int		nTicksAgo = (int)(floorf(fTimeAgo / fTickTime - pLocalPlayer->fTicks / fTickTime) + 0.1) + 1;
+		int		nTicksAgo = (int)floorf(fTimeAgo / fTickTime - fTicks / fTickTime) + 1;
+		//int		nTicksAgo = (int)(floorf(fTimeAgo / fTickTime - fTicks / fTickTime) + 0.1) + 1;
 		char	cLastKnownTickAgo = (char)(g_cCurrentCommandSequenceNumber - oStateHistory.front().cSequenceNumber);
-		list<SequencedState_t>::iterator oHistoryTo = oStateHistory.begin();
-		list<SequencedState_t>::iterator oHistoryFrom = oStateHistory.begin(); ++oHistoryFrom;
+		std::list<SequencedState_t>::iterator oHistoryTo = oStateHistory.begin();
+		std::list<SequencedState_t>::iterator oHistoryFrom = oStateHistory.begin(); ++oHistoryFrom;
 		//if ((char)((u_char)floorf(fHistoryPoint) - oStateHistory.front().cSequenceNumber) >= 5)
 		if (cLastKnownTickAgo > nTicksAgo)
 		// Extrapolate into the future
@@ -922,9 +942,9 @@ State_t CPlayer::GetStateInPast(float fTimeAgo)
 
 			float fHistoryTicks = fHistoryPoint - oHistoryFrom->cSequenceNumber;
 			if (fHistoryTicks < 0) fHistoryTicks += 256;
-			if (fHistoryTicks > ((u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber) + pLocalPlayer->fTicks + kfMaxExtrapolate) / fTickTime) {
+			if (fHistoryTicks > ((u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber) + fTicks + kfMaxExtrapolate) / fTickTime) {
 				// Max forward extrapolation time
-				fHistoryTicks = ((u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber) + pLocalPlayer->fTicks + kfMaxExtrapolate) / fTickTime;
+				fHistoryTicks = ((u_char)(oHistoryTo->cSequenceNumber - oHistoryFrom->cSequenceNumber) + fTicks + kfMaxExtrapolate) / fTickTime;
 
 				printf("Exceeding max EXTERP time (player %d).\n", iID);
 				printf("cur state = %d; last known state = %d\n", g_cCurrentCommandSequenceNumber, oStateHistory.front().cSequenceNumber);
@@ -1040,12 +1060,12 @@ void CPlayer::RenderInPast(float fTimeAgo)
 	else
 		glColor3f(0, 1, 0);
 
-	if (iID == iLocalPlayerID)
+	if (this == pLocalPlayer)
 		glColor3f(0.5f, 0.5f, 0.5f);
 
 	if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glPushMatrix();
-	if (iID == iLocalPlayerID) OglUtilsSetMaskingMode(NO_MASKING_MODE);
+	if (this == pLocalPlayer) OglUtilsSetMaskingMode(NO_MASKING_MODE);
 	RenderOffsetCamera(false);
 	glTranslatef(oState.fX, oState.fY, 0);
 	glRotatef(oState.fZ * Math::RAD_TO_DEG, 0, 0, -1);
@@ -1056,7 +1076,7 @@ void CPlayer::RenderInPast(float fTimeAgo)
 		glVertex2i(1, 3);
 		glVertex2i(1, 11);
 	glEnd();
-	if (iID == iLocalPlayerID) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
+	if (this == pLocalPlayer) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
 	glPopMatrix();
 	if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
@@ -1089,25 +1109,25 @@ void CPlayer::SetName(string & sNewName) {
 
 void CPlayer::Add(CPlayer * pPlayer)
 {
-	printf("Before Add():"); for (vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+	printf("Before Add():"); for (std::vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
 		printf(" %p", *cit1);
 	} printf("\n");
 	m_oPlayers.at(pPlayer->iID = NextFreePlayerId()) = pPlayer;
-	printf("After Add():"); for (vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+	printf("After Add():"); for (std::vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
 		printf(" %p", *cit1);
 	} printf("\n");
 }
 
 void CPlayer::Add(CPlayer * pPlayer, u_int nPlayerId)
 {
-	printf("Before Add(int):"); for (vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+	printf("Before Add(int):"); for (std::vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
 		printf(" %p", *cit1);
 	} printf("\n");
 	if (nPlayerId >= m_oPlayers.size())
 		m_oPlayers.resize(nPlayerId + 1);
 	else if (m_oPlayers.at(nPlayerId) != NULL) throw 1;
 	m_oPlayers.at(pPlayer->iID = nPlayerId) = pPlayer;
-	printf("After Add(int):"); for (vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+	printf("After Add(int):"); for (std::vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
 		printf(" %p", *cit1);
 	} printf("\n");
 }
@@ -1115,7 +1135,7 @@ void CPlayer::Add(CPlayer * pPlayer, u_int nPlayerId)
 u_int CPlayer::NextFreePlayerId()
 {
 	// Look for a free slot
-	for (vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+	for (std::vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
 		if (*cit1 == NULL)
 			return cit1 - m_oPlayers.begin();
 	}
@@ -1127,7 +1147,7 @@ u_int CPlayer::NextFreePlayerId()
 
 void CPlayer::Remove(CPlayer * pPlayer)
 {
-	for (vector<CPlayer *>::iterator it1 = m_oPlayers.begin(); it1 < m_oPlayers.end(); ++it1) {
+	for (std::vector<CPlayer *>::iterator it1 = m_oPlayers.begin(); it1 < m_oPlayers.end(); ++it1) {
 		if (*it1 == pPlayer) {
 			*it1 = NULL;
 			return;
@@ -1137,7 +1157,7 @@ void CPlayer::Remove(CPlayer * pPlayer)
 
 void CPlayer::RemoveAll()
 {
-	for (vector<CPlayer *>::iterator it1 = m_oPlayers.begin(); it1 < m_oPlayers.end(); ++it1) {
+	for (std::vector<CPlayer *>::iterator it1 = m_oPlayers.begin(); it1 < m_oPlayers.end(); ++it1) {
 		if (*it1 != NULL) {
 			delete *it1;
 			*it1 = NULL;

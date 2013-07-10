@@ -51,7 +51,7 @@ void CHudMessageQueue::Render()
 		}
 
 		int nMessageNumber = 0;
-		for (list<string>::iterator it1 = m_oMessages.begin(); it1 != m_oMessages.end(); ++it1)
+		for (std::list<string>::iterator it1 = m_oMessages.begin(); it1 != m_oMessages.end(); ++it1)
 		{
 			glColor3f(0, 0, 0);
 			OglUtilsPrint(m_nTopLeftCornerX + 1, m_nTopLeftCornerY + 1 + nMessageNumber * m_knHorizontalDistance, 0, false, (*it1).c_str());

@@ -15,8 +15,8 @@ private:
 	HashMatcher(const HashMatcher &);
 	HashMatcher & operator =(const HashMatcher &);
 
-	list<pair<Th, T> >	m_oData;
-	const u_int			m_knMaxSize;
+	std::list<std::pair<Th, T> >	m_oData;
+	const u_int						m_knMaxSize;
 };
 
 #include "HashMatcher.cpp"

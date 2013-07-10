@@ -19,7 +19,7 @@ NetworkController::~NetworkController()
 	glfwDestroyMutex(m_oMutex);
 }
 
-bool NetworkController::RequestInput(u_char cSequenceNumber)
+bool NetworkController::RequestInput(u_char/* cSequenceNumber*/)
 {
 	return false;
 }

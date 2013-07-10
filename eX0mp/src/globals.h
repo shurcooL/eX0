@@ -46,7 +46,9 @@ p = pointer
 ////////////////////
 // standard other //
 ////////////////////
-using namespace std;	// so that we can use string class
+//using namespace std;	// so that we can use string class
+using std::string;
+
 //#pragma warning(once : 4018 4244 4305 4996)
 #pragma warning(disable : 4351)		// Array initializer
 
@@ -55,6 +57,7 @@ class CPlayer;
 class CPacket;
 class CTimedEvent;
 class CTimedEventScheduler;
+class ClientConnection;
 
 /////////////////////
 // custom includes //
@@ -71,6 +74,7 @@ using namespace POLYBOOLEAN;
 #include "Mgc/MgcDist2DVecLin.h"
 using namespace Mgc;
 #include "IndexedCircularBuffer.h"
+#include "../../shared/Thread.h"
 #include "../../shared/ThreadSafeQueue.h"
 #include "../../shared/math.h"
 #include "../../shared/col_hand.h"
@@ -90,9 +94,11 @@ using namespace Mgc;
 #include "../../shared/player.h"
 //#include "RemoteAuthPlayer.h"
 #include "../../shared/Network.h"
+#include "../../shared/LocalServer.h"
 #include "../../shared/HashMatcher.h"
 #include "../../shared/NetworkConnection.h"
 #include "ServerConnection.h"
+#include "../../shared/ClientConnection.h"
 #include "../../shared/CPacket.h"
 #include "../../shared/CTimedEvent.h"
 #include "../../shared/CTimedEventScheduler.h"
@@ -150,6 +156,7 @@ extern string		sTempString;
 extern float		fTempFloat;
 extern int			iTempInt;
 
+extern string		sLevelName;
 extern gpc_polygon	oPolyLevel;
 extern gpc_tristrip	oTristripLevel;
 extern PAREA		*pPolyBooleanLevel;
@@ -161,6 +168,7 @@ extern GLUquadricObj *	oQuadricObj;
 
 extern CTimedEventScheduler *	pTimedEventScheduler;
 extern GameLogicThread *		pGameLogicThread;
+extern LocalServer *			pLocalServer;
 
 extern ServerConnection *	pServer;
 

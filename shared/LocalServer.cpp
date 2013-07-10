@@ -1,106 +1,142 @@
-#include "globals.h"
+// TODO: Properly fix this, by making this file independent of globals.h
+#ifdef EX0_CLIENT
+#	include "../eX0mp/src/globals.h"
+#else
+#	include "../eX0ds/src/globals.h"
+#endif // EX0_CLIENT
 
-GLFWthread		oServerThread = -1;
-volatile bool	bServerThreadRun;
+LocalServer * pLocalServer = NULL;
 
-fd_set			master;   // master file descriptor list
-fd_set			read_fds; // temp file descriptor list for select()
-SOCKET			listener;		// listening socket descriptor
-SOCKET			nUdpSocket;
-list<SOCKET>	oActiveSockets;
-
-// Initialize the server
-bool ServerInit()
+LocalServer::LocalServer()
 {
-	return true;
+	m_pThread = new Thread(&LocalServer::ThreadFunction, this, "LocalServer");
+
+	// Reset the clock
+	g_cCurrentCommandSequenceNumber = 0;
+	g_dNextTickTime = 1.0 / g_cCommandRate;
+	glfwSetTime(0.0);
+
+	// The game is now started; i.e. let the Game Logic thread start being active
+	printf("The game is started on the server.\n");
+	iGameState = 0;
 }
 
-// Start the server
-bool ServerStart()
+LocalServer::~LocalServer()
 {
-	struct sockaddr_in myaddr;	 // server address
-	int nYes = 1;		// for setsockopt() SO_REUSEADDR, below
+	// Game is ended
+	printf("The game is ended on the server.\n");
+	iGameState = 1;
 
-	FD_ZERO(&master);	// clear the master and temp sets
-	FD_ZERO(&read_fds);
-	oActiveSockets.clear();
+	m_pThread->RequestStop();
 
-	// Create the listener socket
-	if ((listener = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET) {
-		NetworkPrintError("socket");
-		return false;
-	}
-	printf("Created TCP listener socket #%d.\n", (int)listener);
-	// Create the UDP socket
-	if ((nUdpSocket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
-		NetworkPrintError("socket");
-		return false;
-	}
-	printf("Created UDP socket #%d.\n", (int)nUdpSocket);
-
-	// lose the pesky "address already in use" error message
-	if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
-		NetworkPrintError("setsockopt");
-		return false;
-	}
-	// Disable the Nagle algorithm for send coalescing
-	if (setsockopt(listener, IPPROTO_TCP, TCP_NODELAY, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
-		NetworkPrintError("setsockopt(nodelay)");
-		return false;
-	}
-
-	// Bind the TCP listening socket
+	// DEBUG: A hack to send ourselves an empty UDP packet in order to get out of select()
+	struct sockaddr_in myaddr;
 	myaddr.sin_family = AF_INET;
-	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	myaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	myaddr.sin_port = htons(DEFAULT_PORT);
 	memset(myaddr.sin_zero, 0, sizeof(myaddr.sin_zero));
-	if (bind(listener, (struct sockaddr *)&myaddr, sizeof(myaddr)) == SOCKET_ERROR) {
-		NetworkPrintError("bind");
-		return false;
-	}
-	// Bind the UDP socket
-	if (bind(nUdpSocket, (struct sockaddr *)&myaddr, sizeof(myaddr)) == SOCKET_ERROR) {
-		NetworkPrintError("bind");
-		return false;
-	}
+	sendto(nUdpSocket, NULL, 0, 0, (struct sockaddr *)&myaddr, sizeof(myaddr));
 
-	// listen
-	if (listen(listener, 10) == SOCKET_ERROR) {
-		NetworkPrintError("listen");
-		return false;
-	}
+	shutdown(listener, SD_BOTH);
+	shutdown(nUdpSocket, SD_BOTH);
 
-	// add the listener to the master set
-	FD_SET(listener, &master);
-	oActiveSockets.push_back(listener);
-	FD_SET(nUdpSocket, &master);
-	oActiveSockets.push_back(nUdpSocket);
+	// Close the connection to all clients
+	ClientConnection::CloseAll();
 
-	// Create the server thread
-	if (!ServerCreateThread()) {
-		printf("Couldn't create the server thread.\n");
-		return false;
-	}
+	delete m_pThread;
 
-	// Schedule the broadcast Ping packet event
-	CTimedEvent oEvent = CTimedEvent(glfwGetTime(), BROADCAST_PING_PERIOD, &ServerBroadcastPingPacket, NULL);
-	pTimedEventScheduler->ScheduleEvent(oEvent);
-
-	return true;
+	// Close the server sockets
+	NetworkCloseSocket(listener);
+	NetworkCloseSocket(nUdpSocket);
 }
 
-bool ServerCreateThread()
+void GLFWCALL LocalServer::ThreadFunction(void * pArgument)
 {
-	bServerThreadRun = true;
-	oServerThread = glfwCreateThread(&ServerThread, NULL);
+	LocalServer * pLocalServer = static_cast<LocalServer *>(pArgument);
 
-	printf("Server thread (tid = %d) created.\n", oServerThread);
+	fd_set			master;   // master file descriptor list
+	fd_set			read_fds; // temp file descriptor list for select()
+	std::list<SOCKET>	oActiveSockets;
 
-	return (oServerThread >= 0);
-}
+	// Start the server
+	{
+		struct sockaddr_in myaddr;	 // server address
+		int nYes = 1;		// for setsockopt() SO_REUSEADDR, below
 
-void GLFWCALL ServerThread(void *)
-{
+		FD_ZERO(&master);	// clear the master and temp sets
+		FD_ZERO(&read_fds);
+		oActiveSockets.clear();
+
+		// Create the listener socket
+		if ((pLocalServer->listener = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET) {
+			NetworkPrintError("socket");
+			Terminate(1);
+			return;
+		}
+		printf("Created TCP listener socket #%d.\n", (int)pLocalServer->listener);
+		// Create the UDP socket
+		if ((pLocalServer->nUdpSocket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
+			NetworkPrintError("socket");
+			Terminate(1);
+			return;
+		}
+		printf("Created UDP socket #%d.\n", (int)pLocalServer->nUdpSocket);
+
+		// lose the pesky "address already in use" error message
+		/*if (setsockopt(pLocalServer->listener, SOL_SOCKET, SO_REUSEADDR, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
+			NetworkPrintError("setsockopt");
+			Terminate(1);
+			return;
+		}*/
+		// Disable the Nagle algorithm for send coalescing
+		if (setsockopt(pLocalServer->listener, IPPROTO_TCP, TCP_NODELAY, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
+			NetworkPrintError("setsockopt(nodelay)");
+			Terminate(1);
+			return;
+		}
+
+		// Bind the TCP listening socket
+		myaddr.sin_family = AF_INET;
+		myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+		myaddr.sin_port = htons(DEFAULT_PORT);
+		memset(myaddr.sin_zero, 0, sizeof(myaddr.sin_zero));
+		if (bind(pLocalServer->listener, (struct sockaddr *)&myaddr, sizeof(myaddr)) == SOCKET_ERROR) {
+			NetworkPrintError("bind (tcp)");
+			Terminate(1);
+			return;
+		}
+		// Bind the UDP socket
+		if (bind(pLocalServer->nUdpSocket, (struct sockaddr *)&myaddr, sizeof(myaddr)) == SOCKET_ERROR) {
+			NetworkPrintError("bind (udp)");
+			Terminate(1);
+			return;
+		}
+
+		// listen
+		if (listen(pLocalServer->listener, 10) == SOCKET_ERROR) {
+			NetworkPrintError("listen");
+			Terminate(1);
+			return;
+		}
+
+		// add the listener to the master set
+		FD_SET(pLocalServer->listener, &master);
+		oActiveSockets.push_back(pLocalServer->listener);
+		FD_SET(pLocalServer->nUdpSocket, &master);
+		oActiveSockets.push_back(pLocalServer->nUdpSocket);
+
+		// Create the server thread
+		/*if (!ServerCreateThread()) {
+			printf("Couldn't create the server thread.\n");
+			Terminate(1);
+			return;
+		}*/
+
+		// Schedule the broadcast Ping packet event
+		CTimedEvent oEvent = CTimedEvent(glfwGetTime(), BROADCAST_PING_PERIOD, &LocalServer::BroadcastPingPacket, NULL);
+		pTimedEventScheduler->ScheduleEvent(oEvent);
+	}
+
 	struct sockaddr_in remoteaddr; // incoming client address
 	int fdmax;		// maximum file descriptor number, for Linux select()
 	SOCKET newfd;		// newly accept()ed socket descriptor
@@ -112,40 +148,39 @@ void GLFWCALL ServerThread(void *)
 	socklen_t addrlen;
 
 	// keep track of the biggest file descriptor
-	fdmax = std::max<int>((int)listener, (int)nUdpSocket); // so far, it's one of these two
+	fdmax = std::max<int>((int)pLocalServer->listener, (int)pLocalServer->nUdpSocket); // so far, it's one of these two
 
 	// Main server loop
-	while (bServerThreadRun)
+	while (pLocalServer->m_pThread->ShouldBeRunning())
 	{
 		read_fds = master; // copy it
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == SOCKET_ERROR) {
 			NetworkPrintError("select");
 			Terminate(1);
+			return;
 		}
 
-		if (!bServerThreadRun) {
+		if (!pLocalServer->m_pThread->ShouldBeRunning()) {
 			break;
 		}
 
 		// run through the existing connections looking for data to read
 		//for (int nLoop1 = 0; nLoop1 < (int)read_fds.fd_count; ++nLoop1) {
 		//for (int nLoop1 = -1; nLoop1 < nPlayerCount; ++nLoop1) {
-		for (list<SOCKET>::iterator it1 = oActiveSockets.begin(); it1 != oActiveSockets.end(); )
+		for (std::list<SOCKET>::iterator it1 = oActiveSockets.begin(); it1 != oActiveSockets.end(); )
 		{
 			bool bGoToNextIt = true;
 
-			/*if (nLoop1 == -1) i = (int)listener;
-			else i = (int)PlayerGet(nLoop1)->nTcpSocket;*/
 			SOCKET i = *it1;
 
 			// Socket is ready for reading
 			if (FD_ISSET(i, &read_fds)) {
 				// handle new connections
-				if (i == listener)
+				if (i == pLocalServer->listener)
 				{
 double t1 = glfwGetTime();
 					addrlen = sizeof(remoteaddr);
-					if ((newfd = accept(listener, (struct sockaddr *)&remoteaddr,
+					if ((newfd = accept(pLocalServer->listener, (struct sockaddr *)&remoteaddr,
 														&addrlen)) == INVALID_SOCKET) {
 						NetworkPrintError("accept");
 					} else {
@@ -157,21 +192,21 @@ glfwLockMutex(oPlayerTick);
 						new ClientConnection(newfd);
 glfwUnlockMutex(oPlayerTick);
 
-						printf("eX0ds: new connection from %s:%d on socket %d\n",
-							inet_ntoa(remoteaddr.sin_addr), ntohs(remoteaddr.sin_port), (int)newfd);
+						printf("eX0ds: new connection from %s:%d on socket %d\n", inet_ntoa(remoteaddr.sin_addr), ntohs(remoteaddr.sin_port), (int)newfd);
 
 						// Disable the Nagle algorithm for send coalescing
 						if (setsockopt(newfd, IPPROTO_TCP, TCP_NODELAY, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
 							NetworkPrintError("setsockopt");
 							Terminate(1);
+							return;
 						}
 					}
 printf("processed accept()              in %.5lf ms\n", (glfwGetTime() - t1) * 1000);
 				}
 				// Handle UDP data from a client
-				else if (i == nUdpSocket)
+				else if (i == pLocalServer->nUdpSocket)
 				{
-					if ((nbytes = recvfrom(nUdpSocket, reinterpret_cast<char *>(cUdpBuffer), sizeof(cUdpBuffer), 0,
+					if ((nbytes = recvfrom(pLocalServer->nUdpSocket, reinterpret_cast<char *>(cUdpBuffer), sizeof(cUdpBuffer), 0,
 					  (struct sockaddr *)&oSenderAddr, &nSenderAddrLen)) == SOCKET_ERROR)
 					{
 						// Error
@@ -187,7 +222,7 @@ printf("processed accept()              in %.5lf ms\n", (glfwGetTime() - t1) * 1
 						else if ((pConnection = ClientConnection::GetFromUdpAddress(oSenderAddr)) == NULL)
 						{
 							// Check for the special case of UDP Handshake packet
-							bool bUdpHandshakePacket = NetworkProcessUdpHandshakePacket(cUdpBuffer, static_cast<u_short>(nbytes), oSenderAddr, nUdpSocket);
+							bool bUdpHandshakePacket = NetworkProcessUdpHandshakePacket(cUdpBuffer, static_cast<u_short>(nbytes), oSenderAddr, pLocalServer->nUdpSocket);
 
 							if (!bUdpHandshakePacket)
 								printf("Got a non-handshake UDP packet from unknown sender (%s:%d), discarding.\n",
@@ -313,7 +348,7 @@ glfwUnlockMutex(oPlayerTick);
 				} // it's SO UGLY!
 			}
 
-			if (!bServerThreadRun) {
+			if (!pLocalServer->m_pThread->ShouldBeRunning()) {
 				break;
 			}
 
@@ -323,11 +358,15 @@ glfwUnlockMutex(oPlayerTick);
 		// There's no need to Sleep here, since select() will essentially do that automatically whenever there's no data
 	}
 
-	printf("Server thread has ended.\n");
-	oServerThread = -1;
+	pLocalServer->m_pThread->ThreadEnded();
 }
 
-void ServerBroadcastPingPacket(void *)
+bool LocalServer::Start()
+{
+	return true;
+}
+
+void LocalServer::BroadcastPingPacket(void *)
 {
 	glfwLockMutex(oPlayerTick);
 
@@ -340,7 +379,7 @@ void ServerBroadcastPingPacket(void *)
 		oPingPacket.pack("c", oPingData.cPingData[nPingDataByte]);
 	for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 	{
-		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME)
+		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME)
 		{
 			oPingPacket.pack("h", PlayerGet(nPlayer)->pConnection->GetLastLatency());
 		} else
@@ -354,7 +393,7 @@ void ServerBroadcastPingPacket(void *)
 	for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 	{
 		// Broadcast the packet to all players that are IN_GAME
-		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME)
+		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME)
 		{
 			// TODO: Need a mutex to protect PingSentTimes
 			PlayerGet(nPlayer)->pConnection->GetPingSentTimes().push(oPingData, glfwGetTime());
@@ -362,51 +401,4 @@ void ServerBroadcastPingPacket(void *)
 			PlayerGet(nPlayer)->pConnection->SendUdp(oPingPacket);
 		}
 	}
-}
-
-void ServerShutdownThread()
-{
-	if (oServerThread >= 0)
-	{
-		bServerThreadRun = false;
-
-		// DEBUG: A hack to send ourselves an empty UDP packet in order to get out of select()
-		struct sockaddr_in myaddr;
-		myaddr.sin_family = AF_INET;
-		myaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-		myaddr.sin_port = htons(DEFAULT_PORT);
-		memset(myaddr.sin_zero, 0, sizeof(myaddr.sin_zero));
-		sendto(nUdpSocket, NULL, 0, 0, (struct sockaddr *)&myaddr, sizeof(myaddr));
-
-		shutdown(listener, SD_BOTH);
-		shutdown(nUdpSocket, SD_BOTH);
-	}
-}
-
-void ServerDestroyThread()
-{
-	if (oServerThread >= 0)
-	{
-		printf("Waiting for the server thread to complete.\n");
-		glfwWaitThread(oServerThread, GLFW_WAIT);
-		//glfwDestroyThread(oServerThread);
-		oServerThread = -1;
-
-		printf("Server thread has been destroyed.\n");
-	}
-}
-
-// Shutdown the server
-void ServerDeinit()
-{
-	ServerShutdownThread();
-
-	// Close the connection to all clients
-	ClientConnection::CloseAll();
-
-	ServerDestroyThread();
-
-	// Close the server sockets
-	NetworkCloseSocket(listener);
-	NetworkCloseSocket(nUdpSocket);
 }

@@ -1,7 +1,8 @@
 struct TextureIDs_t
 {
-	int iFonts[1];
+	int iFonts[2];
 	int	iFloor;
+	int nM4A1MuzzleFlash;
 };
 
 bool GameDataLoad(void);
@@ -14,4 +15,4 @@ bool GameDataLoadTextures(void);
 bool GameDataOpenLevel(const char *chFileName);
 
 // close currently opened level, free memory, reset vars
-void GameDataEndLevel();
+void GameDataEndLevel(void);

@@ -37,6 +37,18 @@ void LocalStateAuther::AfterTick()
 			m_oPlayer.cLatestAuthStateSequenceNumber = oSequencedInput.cSequenceNumber;
 		}//end section from Network.cpp
 //static u_int i = 0; if (i++ % 50 == 0) printf("processed Input Command         in %.5lf ms\n", (glfwGetTime() - t1) * 1000);
+
+		// DEBUG: Used for server rendering purposes only, may not be needed later
+		{
+			SequencedState_t oSequencedState;
+			oSequencedState.oState.fX = m_oPlayer.GetX();
+			oSequencedState.oState.fY = m_oPlayer.GetY();
+			oSequencedState.oState.fZ = m_oPlayer.GetZ();
+			oSequencedState.cSequenceNumber = m_oPlayer.cLatestAuthStateSequenceNumber;
+
+			// Add the new state to player's state history
+			m_oPlayer.PushStateHistory(oSequencedState);
+		}
 	}
 }
 
@@ -46,7 +58,7 @@ void LocalStateAuther::ProcessAuthUpdateTEST()
 
 void LocalStateAuther::SendUpdate()
 {
-	if (m_oPlayer.pConnection->GetJoinStatus() < IN_GAME)
+	if (m_oPlayer.pConnection == NULL || m_oPlayer.pConnection->GetJoinStatus() < IN_GAME)
 		return;
 
 	while (dCurTime >= m_oPlayer.m_dNextUpdateTime)
@@ -60,7 +72,7 @@ void LocalStateAuther::SendUpdate()
 		oServerUpdatePacket.pack("cc", (u_char)2, m_oPlayer.pConnection->cCurrentUpdateSequenceNumber);
 		for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 		{
-			if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME
+			if (PlayerGet(nPlayer) != NULL && (PlayerGet(nPlayer)->pConnection == NULL || PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME)
 				&& PlayerGet(nPlayer)->GetTeam() != 2)
 			{
 				oServerUpdatePacket.pack("c", (u_char)1);

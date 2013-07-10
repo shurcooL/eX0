@@ -11,14 +11,6 @@
 #include <algorithm>
 #include <strstream>
 
-using namespace std;
-
-/*#ifdef EX0_CLIENT
-#	include "../eX0mp/src/mmgr/mmgr.h"
-#else
-#	include "../eX0ds/src/mmgr/mmgr.h"
-#endif // EX0_CLIENT*/
-
 /*#if !defined(_WINSOCK2API_)
 // Winsock 2 header defines this, but Winsock 1.1 header doesn't.  In
 // the interest of not requiring the Winsock 2 SDK which we don't really
@@ -117,12 +109,11 @@ const int kNumMessages = sizeof(gaErrorList) / sizeof(struct ErrorEntry);
 // must copy the data from this function before you call it again.  It
 // follows that this function is also not thread-safe.
 
-const char* WSAGetLastErrorMessage(const char* pcMessagePrefix,
-    int nErrorID /* = 0 */)
+const char* WSAGetLastErrorMessage(const char* pcMessagePrefix, int nErrorID /* = 0 */)
 {
     // Build basic error string
     static char acErrorBuffer[256];
-    ostrstream outs(acErrorBuffer, sizeof(acErrorBuffer));
+	std::ostrstream outs(acErrorBuffer, sizeof(acErrorBuffer));
     outs << pcMessagePrefix << ": ";
 
     // Tack appropriate canned message onto end of supplied message
@@ -130,7 +121,7 @@ const char* WSAGetLastErrorMessage(const char* pcMessagePrefix,
 	// sorted by the error constant's value.
 	ErrorEntry* pEnd = gaErrorList + kNumMessages;
     ErrorEntry Target(nErrorID ? nErrorID : WSAGetLastError());
-    ErrorEntry* it = lower_bound(gaErrorList, pEnd, Target);
+	ErrorEntry* it = std::lower_bound(gaErrorList, pEnd, Target);
     if ((it != pEnd) && (it->nID == Target.nID)) {
         outs << it->pcMessage;
     }
@@ -141,7 +132,7 @@ const char* WSAGetLastErrorMessage(const char* pcMessagePrefix,
     outs << " (" << Target.nID << ")";
 
     // Finish error message off and return it.
-    outs << ends;
+	outs << std::ends;
     acErrorBuffer[sizeof(acErrorBuffer) - 1] = '\0';
     return acErrorBuffer;
 }

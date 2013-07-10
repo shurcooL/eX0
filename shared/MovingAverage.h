@@ -27,8 +27,8 @@ private:
 	const double	m_kdTimeSpan;		// Time in seconds
 	const u_int		m_knMinSize;
 
-	multiset<double>									m_oValues;				// Sorted by value, from lowest to highest
-	list<pair<double, multiset<double>::iterator> >		m_oPointersByTime;		// Sorted (manually) by time, from oldest to newest
+	std::multiset<double>											m_oValues;				// Sorted by value, from lowest to highest
+	std::list<std::pair<double, std::multiset<double>::iterator> >	m_oPointersByTime;		// Sorted (manually) by time, from oldest to newest
 
 	u_int			m_nLastPositiveValueIndex;
 	u_int			m_nLastNegativeValueIndex;

@@ -253,6 +253,9 @@ void CPacket::unpack(char *format, ...)
 	va_end(ap);
 
 	eX0_assert((u_int)(m_pBufferPosition - m_pBuffer) <= m_nSize, "Tried to unpack more data than exists in a CPacket");
+	if (!((u_int)(m_pBufferPosition - m_pBuffer) <= m_nSize)) {
+		Print();
+	}
 }
 
 /*

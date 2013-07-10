@@ -1,10 +1,16 @@
-#include "globals.h"
+// TODO: Properly fix this, by making this file independent of globals.h
+#ifdef EX0_CLIENT
+#	include "../eX0mp/src/globals.h"
+#else
+#	include "../eX0ds/src/globals.h"
+#endif // EX0_CLIENT
 
-list<ClientConnection *> ClientConnection::m_oConnections;
+std::list<ClientConnection *> ClientConnection::m_oConnections;
 
 ClientConnection::ClientConnection(SOCKET nTcpSocket)
 	: NetworkConnection(nTcpSocket),
-	  oTcpPacketBuffer(), m_oPingSentTimes(PING_SENT_TIMES_HISTORY)
+	  oTcpPacketBuffer(),
+	  m_oPingSentTimes(PING_SENT_TIMES_HISTORY)
 {
 	printf("ClientConnection(%d) Ctor.\n", GetTcpSocket());
 
@@ -43,14 +49,15 @@ bool ClientConnection::BroadcastTcp(CPacket & oPacket, JoinStatus nMinimumJoinSt
 		}
 	}
 	return true;*/
-	for (list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1)
+	for (std::list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1)
 	{
 		// Broadcast the packet to all players that are connected
 		if ((*it1)->GetJoinStatus() >= nMinimumJoinStatus) {
-			if (sendall((*it1)->GetTcpSocket(), (char *)oPacket.GetPacket(), oPacket.size(), 0) == SOCKET_ERROR) {
+			/*if (sendall((*it1)->GetTcpSocket(), (char *)oPacket.GetPacket(), oPacket.size(), 0) == SOCKET_ERROR) {
 				NetworkPrintError("sendall");
 				return false;
-			}
+			}*/
+			(*it1)->SendTcp(oPacket, nMinimumJoinStatus);
 		}
 	}
 	return true;
@@ -71,14 +78,15 @@ bool ClientConnection::BroadcastTcpExcept(CPacket & oPacket, ClientConnection * 
 		}
 	}
 	return false;*/
-	for (list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1)
+	for (std::list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1)
 	{
 		// Broadcast the packet to all players that are connected, except the specified one
 		if (*it1 != pConnection && (*it1)->GetJoinStatus() >= nMinimumJoinStatus) {
-			if (sendall((*it1)->GetTcpSocket(), (char *)oPacket.GetPacket(), oPacket.size(), 0) == SOCKET_ERROR) {
+			/*if (sendall((*it1)->GetTcpSocket(), (char *)oPacket.GetPacket(), oPacket.size(), 0) == SOCKET_ERROR) {
 				NetworkPrintError("sendall");
 				return false;
-			}
+			}*/
+			(*it1)->SendTcp(oPacket, nMinimumJoinStatus);
 		}
 	}
 	return true;
@@ -100,16 +108,17 @@ bool ClientConnection::BroadcastUdp(CPacket & oPacket, JoinStatus nMinimumJoinSt
 		}
 	}
 	return true;*/
-	for (list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1)
+	for (std::list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1)
 	{
 		// Broadcast the packet to all players that are connected
 		if ((*it1)->GetJoinStatus() >= nMinimumJoinStatus) {
-			if (sendudp((*it1)->GetUdpSocket(), (char *)oPacket.GetPacket(), oPacket.size(), 0,
+			/*if (sendudp((*it1)->GetUdpSocket(), (char *)oPacket.GetPacket(), oPacket.size(), 0,
 				(sockaddr *)&(*it1)->GetUdpAddress(), sizeof((*it1)->GetUdpAddress())) != static_cast<int>(oPacket.size()))
 			{
 				NetworkPrintError("sendudp (sendto)");
 				return false;
-			}
+			}*/
+			(*it1)->SendUdp(oPacket, nMinimumJoinStatus);
 		}
 	}
 	return true;
@@ -134,22 +143,19 @@ void ClientConnection::SetPlayer(CPlayer * pPlayer)
 	eX0_assert(GetPlayer() == NULL, "SetPlayerID() should only be called once per connection.");
 
 	m_pPlayer = pPlayer;
-	if (GetPlayer() != NULL)
-		PlayerGet(GetPlayerID())->pConnection = this;
+	if (m_pPlayer != NULL)
+		m_pPlayer->pConnection = this;
 
 	printf("Associated player id %d with socket %d.\n", GetPlayerID(), GetTcpSocket());
 }
 
 bool ClientConnection::HasPlayer() const { return m_pPlayer != NULL; }
-CPlayer * ClientConnection::GetPlayer()
-{
-	return m_pPlayer;
-}
+CPlayer * ClientConnection::GetPlayer() { return m_pPlayer; }
 
 // Returns a connection from its TCP socket number
 ClientConnection * ClientConnection::GetFromTcpSocket(SOCKET nTcpSocket)
 {
-	for (list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1) {
+	for (std::list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1) {
 		if ((*it1)->GetTcpSocket() == nTcpSocket)
 			return *it1;
 	}
@@ -160,9 +166,9 @@ ClientConnection * ClientConnection::GetFromTcpSocket(SOCKET nTcpSocket)
 // Returns a connection from its UDP address
 ClientConnection * ClientConnection::GetFromUdpAddress(sockaddr_in & oUdpAddress)
 {
-	for (list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1) {
+	for (std::list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1) {
 		if ((*it1)->GetJoinStatus() >= UDP_CONNECTED
-		  && memcmp(&(*it1)->GetUdpAddress().sin_addr, &oUdpAddress.sin_addr, sizeof(in_addr)) == 0
+		  && memcmp(&(*it1)->GetUdpAddress().sin_addr, &oUdpAddress.sin_addr, sizeof(oUdpAddress.sin_addr)) == 0
 		  && (*it1)->GetUdpAddress().sin_port == oUdpAddress.sin_port)
 			return *it1;
 	}
@@ -173,7 +179,7 @@ ClientConnection * ClientConnection::GetFromUdpAddress(sockaddr_in & oUdpAddress
 // Returns a connection from its signature
 ClientConnection * ClientConnection::GetFromSignature(u_char cSignature[m_knSignatureSize])
 {
-	for (list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1) {
+	for (std::list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1) {
 		if ((*it1)->GetJoinStatus() == ACCEPTED && memcmp((*it1)->GetSignature(), cSignature, m_knSignatureSize) == 0)
 			return *it1;
 	}
