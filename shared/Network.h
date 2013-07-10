@@ -45,8 +45,7 @@ bool NetworkInit();
 void NetworkPrintError(const char *szMessage);
 
 int sendall(SOCKET s, const char *buf, int len, int flags);
-int sendudp(SOCKET s, const char *buf, int len, int flags, const sockaddr *to, int tolen);
-int sendudp(SOCKET s, const char *buf, int len, int flags);
+int sendudp(SOCKET s, const char *buf, int len, int flags, const sockaddr *to = NULL, int tolen = 0);
 
 #ifdef EX0_CLIENT
 // Connect to a server

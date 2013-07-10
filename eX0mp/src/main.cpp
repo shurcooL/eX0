@@ -10,7 +10,7 @@ bool			bPaused = false;
 
 bool			bWireframe = false;
 bool			bUseDefaultTriangulation = true;
-bool			bStencilOperations = false;
+bool			bStencilOperations = true;
 
 GLFWvidmode		oDesktopMode;
 bool			bFullscreen = false;
@@ -26,9 +26,6 @@ string			sFpsString = (string)"eX0";
 string			sTempString = (string)"";
 float			fTempFloat = 0;
 int				iTempInt = 0;
-
-u_long counter1 = 0;
-u_long counter2 = 0;
 
 void eX0_assert(bool expression, string message)
 {
@@ -220,8 +217,6 @@ void SyncRandSeed(void)
 // quits
 void Terminate(int nExitCode)
 {
-	if (counter1 != counter2) printf("WARNING!!!!: counter1 = %d != counter2 = %d\n", counter1, counter2);
-
 	if (nExitCode != 0) {
 		// deinit
 		Deinit();
@@ -378,7 +373,6 @@ return 0;*/
 		if (!iGameState)
 		// in game
 		{
-++counter2;
 			// mouse moved?
 			InputMouseMovCalcs();
 

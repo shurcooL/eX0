@@ -1,3 +1,7 @@
+#pragma once
+#ifndef __Weapon_H__
+#define __Weapon_H__
+
 struct WeaponSpec_t
 {
 	string	sName;
@@ -63,3 +67,5 @@ private:
 
 // initialize all weapons specs
 void WeaponInitSpecs();
+
+#endif // __Weapon_H__

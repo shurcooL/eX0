@@ -1,9 +1,16 @@
-#include "globals.h"
+// TODO: Properly fix this, by making this file independent of globals.h
+#ifdef EX0_CLIENT
+#	include "../eX0mp/src/globals.h"
+#else
+#	include "../eX0ds/src/globals.h"
+#endif // EX0_CLIENT
 
 int		nPlayerCount = 0;
+CPlayer	*oPlayers[32] = { NULL };
+#ifdef EX0_CLIENT
 int		iLocalPlayerID = 0;
 string	sLocalPlayerName = "New Player";
-CPlayer	*oPlayers[32];
+#endif
 
 //float	fPlayerTickTime;// = 0.025f;
 //float	fPlayerTickTime = 0.050f;
@@ -33,14 +40,16 @@ CPlayer::CPlayer()
 	m_nTeam = 0;
 	bEmptyClicked = true;
 	fTicks = 0;
-	//fUpdateTicks = 0;
 	fTickTime = 0;
-	bFirstUpdate = true;
 
 	// Network related
+#ifdef EX0_CLIENT
 	bConnected = false;
 	m_nLastLatency = 0;
 	cCurrentCommandSeriesNumber = 0;
+#else
+	pClient = NULL;
+#endif
 }
 
 CPlayer::~CPlayer()
@@ -48,6 +57,7 @@ CPlayer::~CPlayer()
 	// nothing to do here yet
 }
 
+#ifdef EX0_CLIENT
 void CPlayer::FakeTick()
 {
 	// is the player not connected?
@@ -55,18 +65,20 @@ void CPlayer::FakeTick()
 		return;
 	}
 
-	fTicks = dCurTime - (dNextTickTime - 1.0 / cCommandRate);
+	fTicks = (float)(dCurTime - (dNextTickTime - 1.0 / cCommandRate));
 	while (dCurTime >= dNextTickTime)
 	{
 		dNextTickTime += 1.0 / cCommandRate;
-		fTicks = dCurTime - (dNextTickTime - 1.0 / cCommandRate);
+		fTicks = (float)(dCurTime - (dNextTickTime - 1.0 / cCommandRate));
 
 		++cCurrentCommandSequenceNumber;
 	}
 }
+#endif
 
 void CPlayer::Tick()
 {
+#ifdef EX0_CLIENT
 	// is the player dead?
 	if (IsDead() || !bConnected) {
 		return;
@@ -75,8 +87,7 @@ void CPlayer::Tick()
 	oWeapons[iSelWeapon].Tick();
 
 	//fTicks += (double)dTimePassed;
-	fTicks = dCurTime - (dNextTickTime - 1.0 / cCommandRate);
-	//fUpdateTicks += dTimePassed;
+	fTicks = (float)(dCurTime - (dNextTickTime - 1.0 / cCommandRate));
 	//while (fTicks >= fTickTime)
 	while (dCurTime >= dNextTickTime)
 	{
@@ -86,7 +97,7 @@ void CPlayer::Tick()
 			//double d = glfwGetTime() / (256.0 / cCommandRate);
 			printf("%.8lf sec: NxtTk=%.15lf, NxtTk/12.8=%.15lf\n", glfwGetTime(), dNextTickTime, dNextTickTime / (256.0 / cCommandRate));
 		}*/
-		fTicks = dCurTime - (dNextTickTime - 1.0 / cCommandRate);
+		fTicks = (float)(dCurTime - (dNextTickTime - 1.0 / cCommandRate));
 
 		if (iID == iLocalPlayerID) {
 			if (oUnconfirmedMoves.size() < 100)
@@ -127,14 +138,6 @@ void CPlayer::Tick()
 				if ((rand() % 100) >= 0 || iLocalPlayerID != 0) // DEBUG: Simulate packet loss
 					oClientCommandPacket.SendUdp();
 
-				// Ping time calculation
-				if (nPingPacketNumber < -1) {
-					++nPingPacketNumber;
-				} else if (nPingPacketNumber == -1) {
-					dPingPacketTime = glfwGetTime();
-					nPingPacketNumber = cCurrentCommandSequenceNumber;
-				}
-
 				// DEBUG: Keep state history for local player
 				/*if ((rand() % 100) >= 0) {
 					SequencedState_t oSequencedState;
@@ -158,6 +161,7 @@ void CPlayer::Tick()
 	}
 
 	UpdateInterpolatedPos();
+#endif
 }
 
 // returns number of clips left in the selected weapon
@@ -223,6 +227,7 @@ void CPlayer::SetStealth(bool bOn)
 	iIsStealth = (int)bOn;
 }
 
+#ifdef EX0_CLIENT
 // A partial reset of the player state that happens when the player respawns (or changes team, etc.)
 void CPlayer::RespawnReset()
 {
@@ -244,6 +249,7 @@ void CPlayer::RespawnReset()
 	// Increment the Command packet series
 	cCurrentCommandSeriesNumber += 1;
 }
+#endif
 
 bool CPlayer::IsDead()
 {
@@ -293,7 +299,7 @@ void CPlayer::CalcTrajs()
 		fVelX = oVel.x;
 		fVelY = oVel.y;
 	}
-	else
+	else if (nMoveDirection >= 0 && nMoveDirection < 8)
 	{
 		fVelX += 0.25f * Math::Sin((float)nMoveDirection * 0.785398f + fZ);
 		fVelY += 0.25f * Math::Cos((float)nMoveDirection * 0.785398f + fZ);
@@ -310,6 +316,7 @@ void CPlayer::CalcTrajs()
 			fVelY = oVel.y;
 		}
 	}
+	else printf("WARNING: Invalid nMoveDirection = %d!\n", nMoveDirection);
 #endif
 
 	// Update the player positions
@@ -497,13 +504,16 @@ void CPlayer::Position(float fNewX, float fNewY, float fNewZ)
 	fVelX = 0.0f;
 	fVelY = 0.0f;
 
+#ifdef EX0_CLIENT
 	// Reset state history
 	oStateHistory.clear();
 	oOnlyKnownState.fX = fNewX;
 	oOnlyKnownState.fY = fNewY;
 	oOnlyKnownState.fZ = fNewZ;
+#endif
 }
 
+#ifdef EX0_CLIENT
 void CPlayer::Position(float fNewX, float fNewY, float fNewZ, u_char cSequenceNumber)
 {
 	// is the player dead?
@@ -525,6 +535,7 @@ void CPlayer::Position(float fNewX, float fNewY, float fNewZ, u_char cSequenceNu
 	oSequencedState.oState.fZ = fNewZ;
 	oStateHistory.push_front(oSequencedState);
 }
+#endif
 
 float CPlayer::GetVelX()
 {
@@ -554,20 +565,9 @@ void CPlayer::SetVelY(float fValue)
 
 float CPlayer::GetZ()
 {
-	//if (iID == iLocalPlayerID)
-	//{
-		// DEBUG - yet another hack.. replace it with some proper network-syncronyzed view bobbing
-		//return fZ + Math::Sin(glfwGetTime() * 7.5) * GetVelocity() * 0.005;
-		return fZ;
-	/*} else {
-		if (fUpdateTicks / (1.0f / cUpdateRate) <= 1.0) {
-			float fDiffZ = fZ - fOldZ;
-			if (fDiffZ >= Math::PI) fDiffZ -= Math::TWO_PI;
-			if (fDiffZ < -Math::PI) fDiffZ += Math::TWO_PI;
-			return fOldZ + fDiffZ * fUpdateTicks / (1.0f / cUpdateRate);
-		} else
-			return fZ;
-	}*/
+	// DEBUG - yet another hack.. replace it with some proper network-syncronyzed view bobbing
+	//return fZ + Math::Sin(glfwGetTime() * 7.5) * GetVelocity() * 0.005;
+	return fZ;
 }
 
 float CPlayer::GetVelocity()
@@ -581,6 +581,8 @@ float CPlayer::GetVelocity()
 
 void CPlayer::MoveDirection(int nDirection)
 {
+	eX0_assert(nDirection >= -1 && nDirection < 8, "nDirection >= -1 && nDirection < 8");
+
 	nMoveDirection = nDirection;
 }
 
@@ -602,6 +604,7 @@ void CPlayer::SetZ(float fValue)
 	if (fZ < 0.0) fZ += Math::TWO_PI;
 }
 
+#ifdef EX0_CLIENT
 short unsigned int CPlayer::GetLastLatency()
 {
 	return m_nLastLatency;
@@ -611,9 +614,11 @@ void CPlayer::SetLastLatency(short unsigned int nLastLatency)
 {
 	m_nLastLatency = nLastLatency;
 }
+#endif
 
 void CPlayer::Render()
 {
+#ifdef EX0_CLIENT
 	// select player color
 	/*if (iID != iLocalPlayerID && !Trace(oPlayers[iLocalPlayerID]->GetIntX(), oPlayers[iLocalPlayerID]->GetIntY(), fIntX, fIntY))
 		glColor3f(0.2, 0.5, 0.2);
@@ -734,22 +739,21 @@ void CPlayer::Render()
 		glVertex2i(oVector.x, oVector.y);
 		glVertex2i(oRay.Origin().x, oRay.Origin().y);
 	glEnd();*/
-
-if (iID == iLocalPlayerID) ++counter1;
+#endif
 }
 
+#ifdef EX0_CLIENT
 void CPlayer::PushStateHistory(SequencedState_t &oSequencedState)
 {
 	// Insert the only known state if history is empty
-	if (oStateHistory.size() == 0) {
+	if (oStateHistory.empty()) {
 		SequencedState_t oFirstSequencedState;
 		oFirstSequencedState.cSequenceNumber = (u_char)(oSequencedState.cSequenceNumber - 1);
 		oFirstSequencedState.oState = oOnlyKnownState;
 		oStateHistory.push_front(oFirstSequencedState);
 	}
 
-	if (oStateHistory.empty() ||
-		oSequencedState.cSequenceNumber != oStateHistory.front().cSequenceNumber)
+	if (oSequencedState.cSequenceNumber != oStateHistory.front().cSequenceNumber)
 	{
 		if (oStateHistory.size() >= 1000) oStateHistory.pop_back();
 		oStateHistory.push_front(oSequencedState);
@@ -812,9 +816,9 @@ State_t CPlayer::GetStateInPast(float fTimeAgo)
 		fHistoryY = oOnlyKnownState.fY;
 		fHistoryZ = oOnlyKnownState.fZ;
 	} else if (oStateHistory.size() == 1) {
-		fHistoryX = oStateHistory.back().oState.fX;
-		fHistoryY = oStateHistory.back().oState.fY;
-		fHistoryZ = oStateHistory.back().oState.fZ;
+		fHistoryX = oStateHistory.front().oState.fX;
+		fHistoryY = oStateHistory.front().oState.fY;
+		fHistoryZ = oStateHistory.front().oState.fZ;
 	} else {
 		float	fCurrentTimepoint = (u_char)(cCurrentCommandSequenceNumber - 1) + PlayerGet(iLocalPlayerID)->fTicks / fTickTime;
 		float	fHistoryPoint = fCurrentTimepoint - fTimeAgo / fTickTime;
@@ -976,6 +980,7 @@ void CPlayer::RenderInPast(float fTimeAgo)
 	glPopMatrix();
 	if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
+#endif
 
 void CPlayer::InitWeapons()
 {
@@ -997,7 +1002,7 @@ void CPlayer::UpdateInterpolatedPos()
 }
 
 string & CPlayer::GetName(void) { return sName; }
-void CPlayer::SetName(string &sNewName) {
+void CPlayer::SetName(string & sNewName) {
 	if (sNewName.length() > 0) sName = sNewName.substr(0, 32);
 	else sName = "Unnamed Player";
 }
@@ -1030,6 +1035,7 @@ CPlayer * PlayerGet(int nPlayerID)
 
 void PlayerTick()
 {
+#ifdef EX0_CLIENT
 	for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
 	{
 		if (oPlayers[iLoop1]->bConnected)
@@ -1038,14 +1044,20 @@ void PlayerTick()
 
 	// update local player interpolated pos
 	//oPlayers[iLocalPlayerID]->UpdateInterpolatedPos();
+#endif // EX0_CLIENT
 }
 
 int PlayerGetFreePlayerID()
 {
 	for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
 	{
+#ifdef EX0_CLIENT
 		// Check if we've found a free player ID
 		if (!oPlayers[iLoop1]->bConnected)
+#else
+		// Check if we've found a free player ID
+		if (oPlayers[iLoop1]->pClient == NULL)
+#endif
 		{
 			return iLoop1;
 		}

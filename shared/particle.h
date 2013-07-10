@@ -1,3 +1,7 @@
+#pragma once
+#ifndef __Particle_H__
+#define __Particle_H__
+
 #define PARTICLE_INITIAL_SIZE	8
 #define PARTICLE_INCREMENT_SIZE	4
 #define PARTICLE_TICK_TIME		0.050f
@@ -41,3 +45,5 @@ private:
 	int			iNumParticles;
 	//float		fParticleTicks;
 };
+
+#endif // __Particle_H__

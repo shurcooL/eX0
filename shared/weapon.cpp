@@ -1,4 +1,9 @@
-#include "globals.h"
+// TODO: Properly fix this, by making this file independent of globals.h
+#ifdef EX0_CLIENT
+#	include "../eX0mp/src/globals.h"
+#else
+#	include "../eX0ds/src/globals.h"
+#endif // EX0_CLIENT
 
 WeaponSpec_t	oWeaponSpecs[3];
 
@@ -17,6 +22,7 @@ CWeapon::~CWeapon()
 
 void CWeapon::Tick()
 {
+#ifdef EX0_CLIENT
 //if (this->iOwnerID == 0) printf("dTimer: %f => ", dTimer);
 	// TODO - The whole weapon timing/event scheduling (rate of fire, reloading, etc.) system needs to be reworked
 	if (dTimer > 0.0) dTimer -= dTimePassed;
@@ -30,6 +36,7 @@ void CWeapon::Tick()
 
 	if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
 		PlayerGet(iOwnerID)->bEmptyClicked = false;
+#endif // EX0_CLIENT
 }
 
 void CWeapon::Fire()
@@ -115,20 +122,22 @@ void CWeapon::Reload()
 
 void CWeapon::Render()
 {
+#ifdef EX0_CLIENT
 	// Render the Muzzle Flash
-	if (m_oMuzzleFlashState == VISIBLE || glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT))
+	if (m_oMuzzleFlashState == VISIBLE)
 	{
 		m_oMuzzleFlashState = COOLDOWN;
 
 		glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 		glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, oTextureIDs.nM4A1MuzzleFlash);
 
-		glColor4d(1, 1, 0.75, 0.9);
+		int nVariation = rand() % 6;
+		glColor4d(0.9, 1, 0.75, 0.9);
 		glBegin(GL_QUADS);
-			glTexCoord2d(0.5, (1.0+2*85)/256); glVertex2i( 42.5 * 0.75, 118 * 0.75);
-			glTexCoord2d(0.5, (1.0+3*85)/256); glVertex2i(-42.5 * 0.75, 118 * 0.75);
-			glTexCoord2d(0, (1.0+3*85)/256); glVertex2f(-42.5 * 0.75, -10 * 0.5);
-			glTexCoord2d(0, (1.0+2*85)/256); glVertex2f( 42.5 * 0.75, -10 * 0.5);
+			glTexCoord2d(0.5 * (nVariation%2+1), (256.0-(nVariation/2+1)*85) / 256); glVertex2d( 42.5 * 0.75, 118 * 0.75);
+			glTexCoord2d(0.5 * (nVariation%2+1), (256.0-(nVariation/2)*85) / 256); glVertex2d(-42.5 * 0.75, 118 * 0.75);
+			glTexCoord2d(0.5 * (nVariation%2), (256.0-(nVariation/2)*85) / 256); glVertex2d(-42.5 * 0.75, -10 * 0.75);
+			glTexCoord2d(0.5 * (nVariation%2), (256.0-(nVariation/2+1)*85) / 256); glVertex2d( 42.5 * 0.75, -10 * 0.75);
 		glEnd();
 
 		glDisable(GL_TEXTURE_2D);
@@ -136,6 +145,7 @@ void CWeapon::Render()
 	}
 	else if (m_oMuzzleFlashState == COOLDOWN)
 		m_oMuzzleFlashState = READY;
+#endif // EX0_CLIENT
 }
 
 void CWeapon::StartReloading()
@@ -152,6 +162,7 @@ bool CWeapon::IsReloading()
 
 void CWeapon::GiveClip()
 {
+#ifdef EX0_CLIENT
 	if (iClips < oWeaponSpecs[iWhatWeapon].iMaxClips)
 	{
 		if (bAutoReload && iClips == 0 && iClipAmmo == 0 && glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
@@ -168,6 +179,7 @@ void CWeapon::GiveClip()
 			iClips++;
 		}
 	}
+#endif // EX0_CLIENT
 }
 
 void CWeapon::Init(int iWhoIsOwner, int iWeapon)
@@ -210,10 +222,10 @@ void WeaponInitSpecs()
 	oWeaponSpecs[1].iClips = 6;
 	oWeaponSpecs[1].iMaxClips = 6;
 	oWeaponSpecs[1].iClipAmmo = 30;
-	oWeaponSpecs[1].fROF = 0.100;
-	oWeaponSpecs[1].fReloadTime = 2.030;
+	oWeaponSpecs[1].fROF = 0.100f;
+	oWeaponSpecs[1].fReloadTime = 2.030f;
 	oWeaponSpecs[1].fProjSpeed = 125;//85;
-	oWeaponSpecs[1].fInaccuracy = 0.15;
+	oWeaponSpecs[1].fInaccuracy = 0.15f;
 	oWeaponSpecs[1].fMaxDamage = 40;
 	oWeaponSpecs[1].fMaxLife = 1000;
 

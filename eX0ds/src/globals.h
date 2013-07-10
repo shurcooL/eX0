@@ -74,9 +74,9 @@ using namespace Mgc;
 #include "ogl_utils.h"*/
 #include "../../shared/col_hand.h"
 #include "game_data.h"
-#include "particle.h"
-#include "weapon.h"
-#include "player.h"
+#include "../../shared/particle.h"
+#include "../../shared/weapon.h"
+#include "../../shared/player.h"
 #include "../../shared/Network.h"
 #include "../../shared/CPacket.h"
 #include "Server.h"
@@ -123,10 +123,10 @@ extern int			nPlayerCount;
 //extern int			iLocalPlayerID;
 //extern CPlayer		*oPlayers[32];
 
-/*extern int			iCameraType;
+//extern int			iCameraType;
 
-extern float		fTimePassed;
-extern float		fCurTime, fBaseTime;
+extern double		dTimePassed;
+/*extern float		fCurTime, fBaseTime;
 extern int			iFpsFrames;
 extern float		fFpsTimePassed, fFpsBaseTime;
 extern string		sFpsString;

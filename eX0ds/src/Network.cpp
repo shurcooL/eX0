@@ -65,17 +65,9 @@ int sendudp(SOCKET s, const char *buf, int len, int flags, const sockaddr *to, i
 {
 	glfwLockMutex(oUdpSendMutex);
 
-	int nResult = sendto(s, buf, len, flags, to, tolen);
-
-	glfwUnlockMutex(oUdpSendMutex);
-
-	return nResult;
-}
-int sendudp(SOCKET s, const char *buf, int len, int flags)
-{
-	glfwLockMutex(oUdpSendMutex);
-
-	int nResult = send(s, buf, len, flags);
+	int nResult;
+	if (to != NULL) nResult = sendto(s, buf, len, flags, to, tolen);
+	else nResult = send(s, buf, len, flags);
 
 	glfwUnlockMutex(oUdpSendMutex);
 
@@ -267,23 +259,21 @@ glfwLockMutex(oPlayerTick);
 				oPlayerJoinedTeam.pack("c", pClient->cLastCommandSequenceNumber);
 				oPlayerJoinedTeam.pack("fff", pClient->GetPlayer()->GetX(),
 					pClient->GetPlayer()->GetY(), pClient->GetPlayer()->GetZ());
-//glfwSleep(0.055);
 			}
 glfwUnlockMutex(oPlayerTick);
 
 			oPlayerJoinedTeam.CompleteTpcPacketSize();
 			oPlayerJoinedTeam.BroadcastTcp(PUBLIC_CLIENT);
-//glfwSleep(0.055);
-//glfwUnlockMutex(oPlayerTick);
 		}
 		break;
 	// Local Player Info
 	case 30:
 		// Check if this client has already established a UDP connection
 		if (pClient->GetJoinStatus() < UDP_CONNECTED) {
-			printf("Error: This client hasn't yet joined, ignoring TCP packet.\n");
+			printf("Error: This client hasn't yet established a UDP connection, not expecting this TCP packet.\n");
 			return false;
 		} else if (pClient->GetJoinStatus() >= PUBLIC_CLIENT) {
+			printf("Error: This client is already a PUBLIC_CLIENT, but got a Local Player Info (30) packet packet.\n");
 			return false;
 		}
 

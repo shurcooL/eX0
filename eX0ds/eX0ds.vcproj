@@ -281,19 +281,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\particle.cpp"
+				RelativePath="..\shared\particle.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\particle.h"
+				RelativePath="..\shared\particle.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\player.cpp"
+				RelativePath="..\shared\player.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\player.h"
+				RelativePath="..\shared\player.h"
 				>
 			</File>
 			<File
@@ -305,11 +305,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\weapon.cpp"
+				RelativePath="..\shared\weapon.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\weapon.h"
+				RelativePath="..\shared\weapon.h"
 				>
 			</File>
 			<File

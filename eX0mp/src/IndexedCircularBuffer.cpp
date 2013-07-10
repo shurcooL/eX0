@@ -12,7 +12,7 @@ template <typename T, typename Tp> IndexedCircularBuffer<T, Tp>::~IndexedCircula
 
 template <typename T, typename Tp> bool IndexedCircularBuffer<T, Tp>::push(T & oItem, Tp nPosition)
 {
-	eX0_assert(nPosition >= 0 && nPosition < m_knBufferSize, "nPosition >= 0 && nPosition < m_knBufferSize");
+	//eX0_assert(nPosition >= 0 && nPosition < m_knBufferSize, "nPosition >= 0 && nPosition < m_knBufferSize");
 
 	if (size() < capacity()) {
 		if (empty()) {

@@ -21,11 +21,8 @@ GLFWmutex		oPlayerTick;
 
 IndexedCircularBuffer<Move_t, u_char>	oUnconfirmedMoves;
 
-float			fLastLatency = 0;
 MovingAverage	oRecentLatency(60.0, 10);
 MovingAverage	oRecentTimeDifference(60.0, 10);
-double			dPingPacketTime;
-int				nPingPacketNumber = -1;
 HashMatcher<PingData_t, double>	oPongSentTimes(PING_SENT_TIMES_HISTORY);
 vector<double>	oSentTimeRequestPacketTimes(256);
 u_char			cNextTimeRequestSequenceNumber = 0;
@@ -107,17 +104,9 @@ int sendudp(SOCKET s, const char *buf, int len, int flags, const sockaddr *to, i
 {
 	glfwLockMutex(oUdpSendMutex);
 
-	int nResult = sendto(s, buf, len, flags, to, tolen);
-
-	glfwUnlockMutex(oUdpSendMutex);
-
-	return nResult;
-}
-int sendudp(SOCKET s, const char *buf, int len, int flags)
-{
-	glfwLockMutex(oUdpSendMutex);
-
-	int nResult = send(s, buf, len, flags);
+	int nResult;
+	if (to != NULL) nResult = sendto(s, buf, len, flags, to, tolen);
+	else nResult = send(s, buf, len, flags);
 
 	glfwUnlockMutex(oUdpSendMutex);
 
@@ -699,7 +688,7 @@ void NetworkJoinGame()
 	PlayerGet(iLocalPlayerID)->dNextTickTime = ceil(glfwGetTime() / (1.0 / cCommandRate)) * (1.0 / cCommandRate);
 	printf("abc: %f, %d\n", d, cCurrentCommandSequenceNumber);
 	d -= floor(d);
-	printf("tick % = %f, nextTickAt = %.10lf\n", d*100, PlayerGet(iLocalPlayerID)->dNextTickTime);
+	printf("tick %% = %f, nextTickAt = %.10lf\n", d*100, PlayerGet(iLocalPlayerID)->dNextTickTime);
 	printf("%.8lf sec: NxtTk=%.15lf, NxtTk/12.8=%.15lf\n", glfwGetTime(), PlayerGet(iLocalPlayerID)->dNextTickTime, PlayerGet(iLocalPlayerID)->dNextTickTime / (256.0 / cCommandRate));
 	PlayerGet(iLocalPlayerID)->fTicks = (float)(d * PlayerGet(iLocalPlayerID)->fTickTime);
 
@@ -826,9 +815,6 @@ glfwLockMutex(oPlayerTick);
 						oPacket.unpack("fff", &fX, &fY, &fZ);
 
 						bool bNewerCommand = (cLastCommandSequenceNumber != PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber);
-if (PlayerGet(nPlayer)->bFirstUpdate) printf("Got first update (new %d), oUnconfirmedMoves.size() = %d, cur# = %d, lastack = %d -> %d\n", bNewerCommand, oUnconfirmedMoves.size(),
-											 cCurrentCommandSequenceNumber, PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber, cLastCommandSequenceNumber);
-						PlayerGet(nPlayer)->bFirstUpdate = false;
 						if (bNewerCommand) {
 							PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
 
@@ -843,14 +829,6 @@ if (PlayerGet(nPlayer)->bFirstUpdate) printf("Got first update (new %d), oUnconf
 
 						if (nPlayer == iLocalPlayerID && bNewerCommand)
 						{
-							// Ping time calculation
-							if (nPingPacketNumber >= 0 &&
-								(char)(PlayerGet(iLocalPlayerID)->cLastAckedCommandSequenceNumber - nPingPacketNumber) >= 0)
-							{
-								fLastLatency = (float)(glfwGetTime() - dPingPacketTime);
-								nPingPacketNumber = -21;
-							}
-
 							if (cCurrentCommandSequenceNumber == PlayerGet(iLocalPlayerID)->cLastAckedCommandSequenceNumber)
 							{
 								Vector2 oServerPosition(fX, fY);

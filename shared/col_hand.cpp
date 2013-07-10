@@ -76,11 +76,11 @@ bool ColHandCheckPlayerPos(float *fX, float *fY, Real *oShortestDistance, Vector
 		// loop through all vertices in the contour
 		for (iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
 		{
-			oVector.x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
-			oVector.y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
+			oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
+			oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
 			oSegment.Origin() = oVector;
-			oVector.x = oPolyLevel.contour[iLoop1].vertex[iLoop2].x - oVector.x;
-			oVector.y = oPolyLevel.contour[iLoop1].vertex[iLoop2].y - oVector.y;
+			oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2].x - oVector.x;
+			oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2].y - oVector.y;
 			oSegment.Direction() = oVector;
 			oVector.x = *fX;
 			oVector.y = *fY;
@@ -102,11 +102,11 @@ bool ColHandCheckPlayerPos(float *fX, float *fY, Real *oShortestDistance, Vector
 		}
 
 		// do the last segment
-		oVector.x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
-		oVector.y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
+		oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
+		oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
 		oSegment.Origin() = oVector;
-		oVector.x = oPolyLevel.contour[iLoop1].vertex[0].x - oVector.x;
-		oVector.y = oPolyLevel.contour[iLoop1].vertex[0].y - oVector.y;
+		oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[0].x - oVector.x;
+		oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[0].y - oVector.y;
 		oSegment.Direction() = oVector;
 		oVector.x = *fX;
 		oVector.y = *fY;
@@ -145,11 +145,11 @@ bool ColHandCheckPlayerPos(float *fX, float *fY)
 		// loop through all vertices in the contour
 		for (iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
 		{
-			oVector.x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
-			oVector.y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
+			oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
+			oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
 			oSegment.Origin() = oVector;
-			oVector.x = oPolyLevel.contour[iLoop1].vertex[iLoop2].x - oVector.x;
-			oVector.y = oPolyLevel.contour[iLoop1].vertex[iLoop2].y - oVector.y;
+			oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2].x - oVector.x;
+			oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2].y - oVector.y;
 			oSegment.Direction() = oVector;
 			oVector.x = *fX;
 			oVector.y = *fY;
@@ -168,11 +168,11 @@ bool ColHandCheckPlayerPos(float *fX, float *fY)
 		}
 
 		// do the last segment
-		oVector.x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
-		oVector.y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
+		oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
+		oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
 		oSegment.Origin() = oVector;
-		oVector.x = oPolyLevel.contour[iLoop1].vertex[0].x - oVector.x;
-		oVector.y = oPolyLevel.contour[iLoop1].vertex[0].y - oVector.y;
+		oVector.x = (float)oPolyLevel.contour[iLoop1].vertex[0].x - oVector.x;
+		oVector.y = (float)oPolyLevel.contour[iLoop1].vertex[0].y - oVector.y;
 		oSegment.Direction() = oVector;
 		oVector.x = *fX;
 		oVector.y = *fY;
@@ -213,10 +213,10 @@ bool ColHandSegmentIntersects(float fStartX, float fStartY, float fEndX, float f
 		// loop through all vertices in the contour
 		for (iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
 		{
-			oSegment2.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
-			oSegment2.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
-			oSegment2.Direction().x = oPolyLevel.contour[iLoop1].vertex[iLoop2].x - oSegment2.Origin().x;
-			oSegment2.Direction().y = oPolyLevel.contour[iLoop1].vertex[iLoop2].y - oSegment2.Origin().y;
+			oSegment2.Origin().x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
+			oSegment2.Origin().y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
+			oSegment2.Direction().x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2].x - oSegment2.Origin().x;
+			oSegment2.Direction().y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2].y - oSegment2.Origin().y;
 
 			// make sure lines could interesect
 			if (!ColHandIsSegmentCloseToSegment(oSegment1, oSegment2))
@@ -228,10 +228,10 @@ bool ColHandSegmentIntersects(float fStartX, float fStartY, float fEndX, float f
 		}
 
 		// do the last segment
-		oSegment2.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
-		oSegment2.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
-		oSegment2.Direction().x = oPolyLevel.contour[iLoop1].vertex[0].x - oSegment2.Origin().x;
-		oSegment2.Direction().y = oPolyLevel.contour[iLoop1].vertex[0].y - oSegment2.Origin().y;
+		oSegment2.Origin().x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
+		oSegment2.Origin().y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
+		oSegment2.Direction().x = (float)oPolyLevel.contour[iLoop1].vertex[0].x - oSegment2.Origin().x;
+		oSegment2.Direction().y = (float)oPolyLevel.contour[iLoop1].vertex[0].y - oSegment2.Origin().y;
 
 		// make sure lines could interesect
 		if (!ColHandIsSegmentCloseToSegment(oSegment1, oSegment2))
@@ -264,10 +264,10 @@ Vector2 ColHandTrace(Ray2 oRay)
 		// loop through all vertices in the contour
 		for (iLoop2 = 1; iLoop2 < oPolyLevel.contour[iLoop1].num_vertices; iLoop2++)
 		{
-			oSegment.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
-			oSegment.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
-			oSegment.Direction().x = oPolyLevel.contour[iLoop1].vertex[iLoop2].x - oSegment.Origin().x;
-			oSegment.Direction().y = oPolyLevel.contour[iLoop1].vertex[iLoop2].y - oSegment.Origin().y;
+			oSegment.Origin().x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
+			oSegment.Origin().y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
+			oSegment.Direction().x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2].x - oSegment.Origin().x;
+			oSegment.Direction().y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2].y - oSegment.Origin().y;
 
 			// check for intersection
 			if (FindIntersection(oRay, oSegment, iQuantity, oParams))
@@ -278,10 +278,10 @@ Vector2 ColHandTrace(Ray2 oRay)
 		}
 
 		// do the last segment
-		oSegment.Origin().x = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
-		oSegment.Origin().y = oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
-		oSegment.Direction().x = oPolyLevel.contour[iLoop1].vertex[0].x - oSegment.Origin().x;
-		oSegment.Direction().y = oPolyLevel.contour[iLoop1].vertex[0].y - oSegment.Origin().y;
+		oSegment.Origin().x = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].x;
+		oSegment.Origin().y = (float)oPolyLevel.contour[iLoop1].vertex[iLoop2 - 1].y;
+		oSegment.Direction().x = (float)oPolyLevel.contour[iLoop1].vertex[0].x - oSegment.Origin().x;
+		oSegment.Direction().y = (float)oPolyLevel.contour[iLoop1].vertex[0].y - oSegment.Origin().y;
 
 		// check for intersection
 		if (FindIntersection(oRay, oSegment, iQuantity, oParams))

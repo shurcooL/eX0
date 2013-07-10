@@ -77,9 +77,9 @@ using namespace Mgc;
 #include "CHudMessageQueue.h"
 #include "ogl_utils.h"
 #include "game_data.h"
-#include "particle.h"
-#include "weapon.h"
-#include "player.h"
+#include "../../shared/particle.h"
+#include "../../shared/weapon.h"
+#include "../../shared/player.h"
 #include "../../shared/Network.h"
 #include "../../shared/CPacket.h"
 #include "../../shared/CTimedEvent.h"
@@ -139,9 +139,6 @@ extern string		sTempString;
 extern float		fTempFloat;
 extern int			iTempInt;
 
-extern u_long counter1;
-extern u_long counter2;
-
 extern gpc_polygon	oPolyLevel;
 extern gpc_tristrip	oTristripLevel;
 extern PAREA		*pPolyBooleanLevel;
@@ -165,10 +162,6 @@ extern u_char			cCurrentCommandSequenceNumber;
 extern u_char			cLastUpdateSequenceNumber;
 extern IndexedCircularBuffer<Move_t, u_char>	oUnconfirmedMoves;
 extern GLFWmutex		oPlayerTick;
-
-extern float			fLastLatency;
-extern double			dPingPacketTime;
-extern int				nPingPacketNumber;
 
 extern u_char			cCommandRate;
 extern u_char			cUpdateRate;

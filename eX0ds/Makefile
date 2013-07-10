@@ -10,15 +10,15 @@ LFLAGS = ../../../Libraries/glfw/lib/x11/libglfw.a -L/usr/X11R6/lib -lGL \
 # -lXxf86vm -lXext
 
 # Rule for eX0ds
-eX0ds: $(SRC_PATH)Main.cpp $(SRC_PATH)player.cpp $(SRC_PATH)Network.cpp \
+eX0ds: $(SRC_PATH)Main.cpp $(SHARED_PATH)player.cpp $(SRC_PATH)Network.cpp \
 $(SRC_PATH)Mgc/MgcDist2DVecLin.cpp $(SRC_PATH)Mgc/MgcIntr2DLinLin.cpp $(SRC_PATH)Mgc/MgcMath.cpp \
 $(SRC_PATH)Mgc/MgcVector2.cpp $(SRC_PATH)CClient.cpp $(SHARED_PATH)CPacket.cpp $(SHARED_PATH)col_hand.cpp \
-$(SRC_PATH)game_data.cpp $(SHARED_PATH)math.cpp $(SRC_PATH)particle.cpp $(SRC_PATH)weapon.cpp \
+$(SRC_PATH)game_data.cpp $(SHARED_PATH)math.cpp $(SHARED_PATH)particle.cpp $(SHARED_PATH)weapon.cpp \
 $(SRC_PATH)gpc/gpc.o $(SRC_PATH)Server.cpp $(SHARED_PATH)CTimedEvent.cpp $(SHARED_PATH)CTimedEventScheduler.cpp
-	$(CC) $(CFLAGS) $(SRC_PATH)Main.cpp $(SRC_PATH)player.cpp $(SRC_PATH)Network.cpp \
+	$(CC) $(CFLAGS) $(SRC_PATH)Main.cpp $(SHARED_PATH)player.cpp $(SRC_PATH)Network.cpp \
 $(SRC_PATH)Mgc/MgcDist2DVecLin.cpp $(SRC_PATH)Mgc/MgcIntr2DLinLin.cpp $(SRC_PATH)Mgc/MgcMath.cpp \
 $(SRC_PATH)Mgc/MgcVector2.cpp $(SRC_PATH)CClient.cpp $(SHARED_PATH)CPacket.cpp $(SHARED_PATH)col_hand.cpp \
-$(SRC_PATH)game_data.cpp $(SHARED_PATH)math.cpp $(SRC_PATH)particle.cpp $(SRC_PATH)weapon.cpp \
+$(SRC_PATH)game_data.cpp $(SHARED_PATH)math.cpp $(SHARED_PATH)particle.cpp $(SHARED_PATH)weapon.cpp \
 $(SRC_PATH)gpc/gpc.o $(SRC_PATH)Server.cpp $(SHARED_PATH)CTimedEvent.cpp $(SHARED_PATH)CTimedEventScheduler.cpp \
 $(LFLAGS) -o $@
 

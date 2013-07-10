@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 		Terminate(1);
 	} else printf("Started the server successfully.\n");
 
-	CTimedEvent oEvent(ceil(glfwGetTime() * 0.1) * 10, 10.0, PrintHi, NULL);
+	CTimedEvent oEvent(ceil(glfwGetTime() * 0.01) * 100, 100.0, PrintHi, NULL);
 	pTimedEventScheduler->ScheduleEvent(oEvent);
 
 	// make sure that the physics won't count all the time passed during init
