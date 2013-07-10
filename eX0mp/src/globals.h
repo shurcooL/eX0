@@ -58,6 +58,7 @@ class CPacket;
 class CTimedEvent;
 class CTimedEventScheduler;
 class ClientConnection;
+class FpsCounter;
 
 /////////////////////
 // custom includes //
@@ -82,7 +83,7 @@ using namespace Mgc;
 #include "render.h"
 #include "CHudMessageQueue.h"
 #include "ogl_utils.h"
-#include "game_data.h"
+#include "../../shared/game_data.h"
 #include "../../shared/particle.h"
 #include "../../shared/weapon.h"
 #include "../../shared/PlayerController.h"
@@ -101,6 +102,7 @@ using namespace Mgc;
 #include "../../shared/ClientConnection.h"
 #include "../../shared/CPacket.h"
 #include "../../shared/CTimedEvent.h"
+#include "../../shared/FpsCounter.h"
 #include "../../shared/CTimedEventScheduler.h"
 #include "../../shared/GameLogicThread.h"
 #include "OGLTextureManager/TextureManager.h"
@@ -171,9 +173,6 @@ extern GameLogicThread *		pGameLogicThread;
 extern LocalServer *			pLocalServer;
 
 extern ServerConnection *	pServer;
-
-extern GLFWthread		oNetworkThread;
-extern volatile bool	bNetworkThreadRun;
 
 extern u_char			g_cCurrentCommandSequenceNumber;
 extern double			g_dNextTickTime;

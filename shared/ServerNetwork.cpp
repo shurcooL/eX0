@@ -111,24 +111,43 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, ClientConnection *& pConnection)
 			for (int nSignatureByte = 0; nSignatureByte < NetworkConnection::m_knSignatureSize; ++nSignatureByte)
 				oPacket.unpack("c", &cSignature[nSignatureByte]);
 
-			if (snVersion == NETWORK_PROTOCOL_VERSION && memcmp(szPassphrase, NETWORK_PROTOCOL_PASSPHRASE, 16) == 0)
+			if (memcmp(szPassphrase, NETWORK_PROTOCOL_PASSPHRASE, 16) == 0)
 			{
-				// Valid Join Server Request packet
-				printf("Got a valid Join Server Request packet! yay.. yay... ;/\n");
+				if (snVersion == NETWORK_PROTOCOL_VERSION)
+				{
+					// Valid Join Server Request packet
+					printf("Got a valid Join Server Request packet! yay.. yay... ;/\n");
 
-				// Cancel the bad client timeout
-				pConnection->CancelBadClientTimeout();
-			} else {
-				// Drop the connection to this unsupported client
+					// Cancel the bad client timeout
+					pConnection->CancelBadClientTimeout();
+				} else {
+					// Drop the connection to this unsupported client
+					printf("Error: Got an INVALID Join Server Request packet, dropping connection.\n");
+
+					// Refuse join server request with reason 0 (version-mismatch)
+					u_char cReason = 0;
+					CPacket oJoinServerRefusePacket;
+					oJoinServerRefusePacket.pack("hcc", 0, (u_char)3, cReason);
+					oJoinServerRefusePacket.CompleteTpcPacketSize();
+					pConnection->SendTcp(oJoinServerRefusePacket, TCP_CONNECTED);
+
+					// Disconnect this client
+					delete pConnection; pConnection = NULL;
+					return true;
+				}
+			}
+			else
+			{
+				// Drop the connection, since it's not a proper client
 				printf("Error: Got an INVALID Join Server Request packet, dropping connection.\n");
 				delete pConnection; pConnection = NULL;
 				return true;
 			}
 
 			// Let the new client join only if there are free slots avaliable
-			if (ClientConnection::size() < nPlayerCount)
+			if (ClientConnection::size() <= nPlayerCount)
 			{
-				printf("Accepting this player.\n");
+				printf("Accepting this player (now %d/%d).\n", ClientConnection::size(), nPlayerCount);
 
 				// Assign this client the avaliable player id
 				pConnection->SetSignature(cSignature);
@@ -379,13 +398,12 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, ClientConnection * pConnection)
 	// UDP Handshake
 	case 100:
 		// Check if this client has already established a UDP connection
-		if (pConnection->GetJoinStatus() >= UDP_CONNECTED) {
-			printf("Warning: This client has already connected on UDP, but received another (duplicate or slow?) UDP Handshake packet.\n");
-			return true;
-		} else {
-			printf("Error: NetworkProcessUdpPacket() received a UDP Handshake packet, ignoring UDP packet.\n");
+		if (pConnection->GetJoinStatus() < UDP_CONNECTED) {
+			printf("Error: NetworkProcessUdpPacket() received a UDP Handshake packet (how did this happen!?), ignoring.\n");
 			return false;
 		}
+
+		printf("Warning: This client has already connected on UDP, but received another (duplicate or slow?) UDP Handshake packet.\n");
 		break;
 	// Time Request Packet
 	case 105:
@@ -428,7 +446,8 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, ClientConnection * pConnection)
 				double dLatency = glfwGetTime() - pConnection->GetPingSentTimes().MatchAndRemoveAfter(oPingData);
 				pConnection->SetLastLatency(static_cast<u_short>(ceil(dLatency * 10000)));
 				//printf("#%d RTT = %.4lf ms -> %d\n", pConnection->GetPlayerID(), dLatency * 1000, pConnection->GetLastLatency());
-			} catch (...) {
+			} catch (int) {
+				// TODO: Investigate why I get this error a few times in a 5-min LAN session (perhaps duplicate packet? - yep, most likely, there were many duplicate command packets)
 				printf("DEBUG: Couldn't find a ping sent time match.\n");
 			}
 			/*if (pConnection->GetPingSentTimes().MatchAndRemoveAfter(oPingData)) {
@@ -510,9 +529,9 @@ void NetworkDeinit()
 	// Nothing to be done on Linux
 #endif
 
-	glfwDestroyMutex(oTcpSendMutex);
-	glfwDestroyMutex(oUdpSendMutex);
-	glfwDestroyMutex(oPlayerTick);
+	glfwDestroyMutex(oTcpSendMutex); oTcpSendMutex = NULL;
+	glfwDestroyMutex(oUdpSendMutex); oUdpSendMutex = NULL;
+	glfwDestroyMutex(oPlayerTick); oPlayerTick = NULL;
 }
 
 // Closes a socket

@@ -121,7 +121,7 @@ public:
 	ClientConnection * pConnection;
 //#endif
 
-	static void RemoveAll();
+	static void DeleteAll();
 
 protected:
 

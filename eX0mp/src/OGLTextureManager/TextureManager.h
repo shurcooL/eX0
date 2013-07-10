@@ -17,7 +17,7 @@
 		this class you can ither specify your own texture ID's
 		or let OpenGL generate them for you (hence the return
 		value from LoadTexture)
-		
+
 		To 'clean up' just call DESTROY_TEXMANAGER, this will
 		delete the TexID array and call FreeAll.
 
@@ -39,7 +39,7 @@
 			Christopher.Smith@Trinity.edu
 			www.cs.trinity.edu/~csmith8
 ***/
-		
+
 #define TEXMANAGER	CTextureManager::GetSingleton()
 #define DESTROY_TEXMANAGER	CTextureManager::Destroy();
 

@@ -55,16 +55,6 @@ std::string ftos(const float &fFloat)
 	return oStringStream.str();
 }
 
-// DEBUG - Not sure if this is entirely memory-usage correct
-// Convert any type to a std::string
-template <typename T>
-std::string toString(const T &type)
-{
-	std::ostringstream os;
-	os << type;
-	return os.str();
-}
-
 // projects a ray and returns a point at least so much units away from origin
 Vector2 MathProjectRay(Ray2 oRay, int iDistance)
 {

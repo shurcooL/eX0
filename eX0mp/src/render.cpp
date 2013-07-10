@@ -99,7 +99,7 @@ void RenderHUD()
 	OglUtilsSwitchMatrix(SCREEN_SPACE_MATRIX);
 	glLoadIdentity();
 	glColor3f(1, 1, 1);
-	OglUtilsPrint(320, 0, 0, true, (char *)sFpsString.c_str());
+	//OglUtilsPrint(320, 0, 0, true, (char *)sFpsString.c_str());
 
 	if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2 && bSelectTeamReady)
 	{
@@ -164,11 +164,26 @@ void RenderHUD()
 	glEnd();*/
 
 	// DEBUG some debug info
-	if (1 && !glfwGetKey(GLFW_KEY_TAB))
+	if (1 &&
+#ifdef EX0_DEBUG
+		!glfwGetKey(GLFW_KEY_TAB))
+#else
+		glfwGetKey(GLFW_KEY_TAB))
+#endif
 	{
 		//OglUtilsSwitchMatrix(SCREEN_SPACE_MATRIX);
 		//OglUtilsSetMaskingMode(NO_MASKING_MODE);
 		glColor3f(1, 1, 1);
+
+		// Render FPS Counters
+		u_int nOffset = 0;
+		std::list<FpsCounter *> oFpsCounters = FpsCounter::GetCounters();
+		for (std::list<FpsCounter *>::iterator it1 = oFpsCounters.begin(); it1 != oFpsCounters.end(); ++it1)
+		{
+			string sFpsCounterString = (*it1)->GetFpsString();
+			glColor3f(0, 0, 0); OglUtilsPrint(1, nOffset * 8 + 1, 1, false, (char *)sFpsCounterString.c_str());
+			glColor3f(1, 1, 1); OglUtilsPrint(0, nOffset++ * 8, 1, false, (char *)sFpsCounterString.c_str());
+		}
 
 		if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) {
 			sTempString = "x: " + ftos(pLocalPlayer->GetIntX());
@@ -289,11 +304,16 @@ void RenderOffsetCamera(bool bLocalPlayerReferenceFrame)
 	{
 		// Camera view
 		if (iCameraType == 0) {
+			//glTranslatef(-200, -250, -680);
+			//glRotatef(-40, 0, 0, 1);
+			glTranslatef(345, -185, -680);
+			glRotatef(57, 0, 0, 1);
+		} else if (iCameraType == 1) {
 			glTranslatef(0, -250, -680);
 			//glTranslatef(0, glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? -250 - pLocalPlayer->fAimingDistance : -250,
 			//				glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? -680 : -680);
 			//glTranslatef(0, -500, -1360);
-		} else if (iCameraType == 1) {
+		} else if (iCameraType == 2) {
 			glTranslatef(0, 0, -450);
 			glRotatef(-40, 1, 0, 0);
 			glTranslatef(0, -160, 0);

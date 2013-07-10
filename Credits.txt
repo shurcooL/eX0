@@ -1,6 +1,7 @@
 People to give thanks to in the end (newest at the top):
 
--Alex Samartzev for some early movement play testing
--Piotr for first testing the UDP mp version
--Guybrush for first testing the TCP mp version with me
--Mike Pearson (Vent from L2) for support and ideas
+-GLIntercept for helping spot an OpenGL-related leak, due to closing window before cleaning up the GL context.
+-Alex Samartzev for some early movement play testing.
+-Piotr for first testing the UDP mp version.
+-Guybrush for first testing the TCP mp version with me.
+-Mike Pearson (Vent from L2) for support and ideas.

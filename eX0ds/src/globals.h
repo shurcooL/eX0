@@ -77,7 +77,7 @@ using namespace Mgc;
 #include "render.h"
 #include "ogl_utils.h"*/
 #include "../../shared/col_hand.h"
-#include "game_data.h"
+#include "../../shared/game_data.h"
 #include "../../shared/particle.h"
 #include "../../shared/weapon.h"
 #include "../../shared/PlayerController.h"
@@ -90,6 +90,7 @@ using namespace Mgc;
 //#include "../../shared/LocalAuthPlayer.h"
 #include "../../shared/Network.h"
 //#include "Server_old.h"
+#include "../../shared/FpsCounter.h"
 #include "../../shared/LocalServer.h"
 #include "../../shared/HashMatcher.h"
 #include "../../shared/NetworkConnection.h"

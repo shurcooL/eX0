@@ -9,12 +9,12 @@ LocalServer * pLocalServer = NULL;
 
 LocalServer::LocalServer()
 {
-	m_pThread = new Thread(&LocalServer::ThreadFunction, this, "LocalServer");
-
 	// Reset the clock
 	g_cCurrentCommandSequenceNumber = 0;
 	g_dNextTickTime = 1.0 / g_cCommandRate;
 	glfwSetTime(0.0);
+
+	m_pThread = new Thread(&LocalServer::ThreadFunction, this, "LocalServer");
 
 	// The game is now started; i.e. let the Game Logic thread start being active
 	printf("The game server has been started.\n");
@@ -52,6 +52,9 @@ LocalServer::~LocalServer()
 
 void GLFWCALL LocalServer::ThreadFunction(void * pArgument)
 {
+	Thread * pThread = Thread::GetThisThreadAndRevertArgument(pArgument);
+	FpsCounter * pFpsCounter = pThread->GetFpsCounter();
+
 	LocalServer * pLocalServer = static_cast<LocalServer *>(pArgument);
 
 	fd_set			master;   // master file descriptor list
@@ -132,9 +135,11 @@ void GLFWCALL LocalServer::ThreadFunction(void * pArgument)
 			return;
 		}*/
 
-		// Schedule the broadcast Ping packet event
-		CTimedEvent oEvent = CTimedEvent(glfwGetTime(), BROADCAST_PING_PERIOD, &LocalServer::BroadcastPingPacket, NULL);
-		pTimedEventScheduler->ScheduleEvent(oEvent);
+		if (pThread->ShouldBeRunning()) {
+			// Schedule the broadcast Ping packet event
+			CTimedEvent oEvent = CTimedEvent(glfwGetTime(), BROADCAST_PING_PERIOD, &LocalServer::BroadcastPingPacket, NULL);
+			pTimedEventScheduler->ScheduleEvent(oEvent);
+		}
 	}
 
 	struct sockaddr_in remoteaddr; // incoming client address
@@ -151,8 +156,10 @@ void GLFWCALL LocalServer::ThreadFunction(void * pArgument)
 	fdmax = std::max<int>((int)pLocalServer->listener, (int)pLocalServer->nUdpSocket); // so far, it's one of these two
 
 	// Main server loop
-	while (pLocalServer->m_pThread->ShouldBeRunning())
+	while (pThread->ShouldBeRunning())
 	{
+		pFpsCounter->IncrementCounter();
+
 		read_fds = master; // copy it
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == SOCKET_ERROR) {
 			NetworkPrintError("select");
@@ -160,7 +167,7 @@ void GLFWCALL LocalServer::ThreadFunction(void * pArgument)
 			return;
 		}
 
-		if (!pLocalServer->m_pThread->ShouldBeRunning()) {
+		if (!pThread->ShouldBeRunning()) {
 			break;
 		}
 
@@ -343,7 +350,7 @@ glfwUnlockMutex(oPlayerTick);
 				} // it's SO UGLY!
 			}
 
-			if (!pLocalServer->m_pThread->ShouldBeRunning()) {
+			if (!pThread->ShouldBeRunning()) {
 				break;
 			}
 
@@ -353,7 +360,7 @@ glfwUnlockMutex(oPlayerTick);
 		// There's no need to Sleep here, since select() will essentially do that automatically whenever there's no data
 	}
 
-	pLocalServer->m_pThread->ThreadEnded();
+	pThread->ThreadEnded();
 }
 
 bool LocalServer::Start()

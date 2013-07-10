@@ -1,6 +1,7 @@
 #include "NetworkIncludes.h"
 #include <GL/glfw.h>
 #include <set>
+#include <list>
 #include <string>
 
 /*#ifdef EX0_CLIENT
@@ -8,6 +9,8 @@
 #else
 #	include "../eX0ds/src/mmgr/mmgr.h"
 #endif // EX0_CLIENT*/
+#include "../shared/FpsCounter.h"
+#include "../shared/Thread.h"
 
 #include "CTimedEventScheduler.h"
 
@@ -17,52 +20,38 @@ void eX0_assert(bool expression, std::string message = ""); // TODO: Create a ce
 CTimedEventScheduler * pTimedEventScheduler = NULL;
 
 CTimedEventScheduler::CTimedEventScheduler()
+	: m_oEvents(),
+	  m_oSchedulerMutex(glfwCreateMutex())
 {
-	printf("CTimedEventScheduler() Constructor started.\n");
-
-	m_oSchedulerMutex = glfwCreateMutex();
-
-	m_bSchedulerThreadRun = true;
-	m_oSchedulerThread = glfwCreateThread(&CTimedEventScheduler::SchedulerThread, this);
-
-	if (m_oSchedulerThread >= 0)
-		printf("Scheduler thread (tid = %d) created.\n", m_oSchedulerThread);
-	else
-		printf("Couldn't create the scheduler thread.\n");
+	m_pThread = new Thread(&CTimedEventScheduler::ThreadFunction, this, "Scheduler");
 }
 
 CTimedEventScheduler::~CTimedEventScheduler()
 {
-	if (m_oSchedulerThread >= 0)
-	{
-		m_bSchedulerThreadRun = false;
-
-		glfwWaitThread(m_oSchedulerThread, GLFW_WAIT);
-		//glfwDestroyThread(oSchedulerThread);
-		m_oSchedulerThread = -1;
-
-		printf("Scheduler thread has been destroyed.\n");
-	}
+	delete m_pThread;
 
 	glfwDestroyMutex(m_oSchedulerMutex);
-
-	printf("CTimedEventScheduler() ~Destructor done.\n");
 }
 
-void GLFWCALL CTimedEventScheduler::SchedulerThread(void * pArgument)
+void GLFWCALL CTimedEventScheduler::ThreadFunction(void * pArgument)
 {
-	CTimedEventScheduler *pScheduler = (CTimedEventScheduler *)pArgument;
+	Thread * pThread = Thread::GetThisThreadAndRevertArgument(pArgument);
+	FpsCounter * pFpsCounter = pThread->GetFpsCounter();
+
+	CTimedEventScheduler * pScheduler = static_cast<CTimedEventScheduler *>(pArgument);
 
 	CTimedEvent oEvent;
 
 	// Main scheduler loop
-	while (pScheduler->m_bSchedulerThreadRun)
+	while (pThread->ShouldBeRunning())
 	{
 		glfwLockMutex(pScheduler->m_oSchedulerMutex);
 
 		while (!pScheduler->m_oEvents.empty()
 			&& glfwGetTime() >= (oEvent = *pScheduler->m_oEvents.begin()).GetTime())
 		{
+			pFpsCounter->IncrementCounter();
+
 			pScheduler->m_oEvents.erase(pScheduler->m_oEvents.begin());
 			oEvent.Execute();
 			if (oEvent.m_dInterval > 0) {
@@ -81,7 +70,8 @@ void GLFWCALL CTimedEventScheduler::SchedulerThread(void * pArgument)
 		glfwSleep(0.0001);
 	}
 
-	printf("Scheduler thread has ended.\n");
+	//printf("Scheduler thread has ended.\n");
+	pThread->ThreadEnded();
 }
 
 void CTimedEventScheduler::ScheduleEvent(CTimedEvent oEvent)

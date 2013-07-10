@@ -10,8 +10,9 @@ socklen_t			nLocalUdpAddressLength = sizeof(oLocalUdpAddress);
 //u_char			cSignature[SIGNATURE_SIZE];
 u_int			nSendUdpHandshakePacketEventId = 0;
 
-GLFWthread		oNetworkThread = -1;
-volatile bool	bNetworkThreadRun;
+Thread *		pNetworkThread;
+//GLFWthread		oNetworkThread = -1;
+//volatile bool	bNetworkThreadRun;
 GLFWmutex		oTcpSendMutex;
 GLFWmutex		oUdpSendMutex;
 
@@ -153,16 +154,16 @@ bool NetworkConnect(const char * szHostname, u_short nPort)
 
 bool NetworkCreateThread()
 {
-	bNetworkThreadRun = true;
-	oNetworkThread = glfwCreateThread(&NetworkThread, NULL);
+	pNetworkThread = new Thread(&NetworkThread, NULL, "Network");
 
-	printf("Network thread (tid = %d) created.\n", oNetworkThread);
-
-	return (oNetworkThread >= 0);
+	return true;
 }
 
-void GLFWCALL NetworkThread(void *)
+void GLFWCALL NetworkThread(void * pArgument)
 {
+	Thread * pThread = Thread::GetThisThreadAndRevertArgument(pArgument);
+	FpsCounter * pFpsCounter = pThread->GetFpsCounter();
+
 	int fdmax;
 	fd_set master;   // master file descriptor list
 	fd_set read_fds;
@@ -182,15 +183,17 @@ void GLFWCALL NetworkThread(void *)
 
 	fdmax = std::max<int>((int)pServer->GetTcpSocket(), (int)pServer->GetUdpSocket());
 
-	while (bNetworkThreadRun)
+	while (pThread->ShouldBeRunning())
 	{
+		pFpsCounter->IncrementCounter();
+
 		read_fds = master; // copy it
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == SOCKET_ERROR) {
 			NetworkPrintError("select");
 			Terminate(1);
 		}
 
-		if (!bNetworkThreadRun) {
+		if (!pThread->ShouldBeRunning()) {
 			break;
 		}
 		// have TCP data
@@ -205,7 +208,7 @@ void GLFWCALL NetworkThread(void *)
 					NetworkPrintError("recv");
 					printf("Lost connection to the server.\n");
 				}
-				bNetworkThreadRun = false;
+				pThread->RequestStop();
 				pServer->SetJoinStatus(DISCONNECTED);
 				iGameState = 1;
 			// we got some data from a client, process it
@@ -249,7 +252,7 @@ void GLFWCALL NetworkThread(void *)
 			}
 		}
 
-		if (!bNetworkThreadRun) {
+		if (!pThread->ShouldBeRunning()) {
 			break;
 		}
 		// have UDP data
@@ -280,8 +283,9 @@ void GLFWCALL NetworkThread(void *)
 	if (pTimedEventScheduler != NULL)
 		pTimedEventScheduler->RemoveAllEvents();
 
-	printf("Network thread has ended.\n");
-	oNetworkThread = -1;
+	//printf("Network thread has ended.\n");
+	//oNetworkThread = -1;
+	pThread->ThreadEnded();
 }
 
 // Process a received TCP packet
@@ -337,7 +341,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 
 			// Send UDP packet with the same signature to initiate the UDP handshake
 			// Add timed event (Retransmit UdpHandshake packet every 100 milliseconds)
-			CTimedEvent oEvent(glfwGetTime(), 0.1, &NetworkSendUdpHandshakePacket, NULL);
+			CTimedEvent oEvent(glfwGetTime(), UDP_HANDSHAKE_RETRY_TIME, &NetworkSendUdpHandshakePacket, NULL);
 			nSendUdpHandshakePacketEventId = oEvent.GetId();
 			pTimedEventScheduler->ScheduleEvent(oEvent);
 		}
@@ -357,7 +361,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 
 			printf("Got refused with reason %d.\n", (int)cRefuseReason);
 
-			bNetworkThreadRun = false;
+			pNetworkThread->RequestStop();
 			pServer->SetJoinStatus(DISCONNECTED);		// Server connection status is fully unconnected
 			iGameState = 1;
 		}
@@ -380,7 +384,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			pTimedEventScheduler->RemoveEventById(nSendUdpHandshakePacketEventId);
 
 			// Start syncing the clock, send a Time Request packet every 50 ms
-			CTimedEvent oEvent(glfwGetTime(), 0.05, &SendTimeRequestPacket, NULL);
+			CTimedEvent oEvent(glfwGetTime(), TIME_REQUEST_SEND_RATE, &SendTimeRequestPacket, NULL);
 			nSendTimeRequestPacketEventId = oEvent.GetId();
 			pTimedEventScheduler->ScheduleEvent(oEvent);
 
@@ -880,9 +884,9 @@ void NetworkSendUdpHandshakePacket(void *)
 
 void NetworkShutdownThread()
 {
-	if (oNetworkThread >= 0)
+	if (pNetworkThread != NULL && pNetworkThread->IsAlive())
 	{
-		bNetworkThreadRun = false;
+		pNetworkThread->RequestStop();
 
 		// DEBUG: A hack to send ourselves an empty UDP packet in order to get out of select()
 		sendto(pServer->GetUdpSocket(), NULL, 0, 0, (sockaddr *)&oLocalUdpAddress, nLocalUdpAddressLength);
@@ -894,14 +898,7 @@ void NetworkShutdownThread()
 
 void NetworkDestroyThread()
 {
-	if (oNetworkThread >= 0)
-	{
-		glfwWaitThread(oNetworkThread, GLFW_WAIT);
-		//glfwDestroyThread(oNetworkThread);
-		oNetworkThread = -1;
-
-		printf("Network thread has been destroyed.\n");
-	}
+	delete pNetworkThread; pNetworkThread = NULL;
 }
 
 // Shutdown the networking component
@@ -923,10 +920,10 @@ void NetworkDeinit()
 	// Nothing to be done on Linux
 #endif
 
-	glfwDestroyMutex(oTcpSendMutex);
-	glfwDestroyMutex(oUdpSendMutex);
-	glfwDestroyMutex(oPlayerTick);
-	glfwDestroyMutex(oJoinGameMutex);
+	glfwDestroyMutex(oTcpSendMutex); oTcpSendMutex = NULL;
+	glfwDestroyMutex(oUdpSendMutex); oUdpSendMutex = NULL;
+	glfwDestroyMutex(oPlayerTick); oPlayerTick = NULL;
+	glfwDestroyMutex(oJoinGameMutex); oJoinGameMutex = NULL;
 }
 
 // Closes a socket

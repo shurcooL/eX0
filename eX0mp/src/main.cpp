@@ -5,6 +5,7 @@
 #pragma comment(linker, "/NODEFAULTLIB:\"LIBCMT\"")
 //#pragma comment(linker, "/NODEFAULTLIB:\"LIBC\"")
 
+volatile bool	bProgramRunning = true;
 volatile int	iGameState = 1;
 bool			bPaused = false;
 
@@ -28,6 +29,7 @@ int				nGlobalExitCode = 0;
 
 // DEBUG: A hack to decide whether or not to run local server
 int nRunModeDEBUG;
+bool bWindowModeDEBUG = true;
 
 void eX0_assert(bool expression, string message)
 {
@@ -57,85 +59,90 @@ bool Init(int, char *[])
 	}
 	printf("Main thread tid = %d.\n", glfwGetThreadID());
 
-	// let the use choose whether to run in fullscreen mode
-	bFullscreen = false;
-	//if (argc >= 2 && strcmp(argv[1], "--fullscreen") == 0) bFullscreen = true;
+	if (bWindowModeDEBUG)
+	{
+		// let the use choose whether to run in fullscreen mode
+		bFullscreen = false;
+		//if (argc >= 2 && strcmp(argv[1], "--fullscreen") == 0) bFullscreen = true;
 #ifdef WIN32
-	//bFullscreen = MessageBox(NULL, "would you like to run in fullscreen mode?", EX0_BUILD_STRING, MB_YESNO | MB_ICONQUESTION) == IDYES;
+		//bFullscreen = MessageBox(NULL, "would you like to run in fullscreen mode?", EX0_BUILD_STRING, MB_YESNO | MB_ICONQUESTION) == IDYES;
 #endif
 
-	// create the window
-	glfwGetDesktopMode(&oDesktopMode);
-	glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 0);
-	glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
-	if (glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
-	{
-		printf("Opened a window (try 1)...\n");
-	}
-	else if (glfwOpenWindow(640, 480, 8, 8, 8, 8, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
-	{
-		printf("Opened a window (try 2)...\n");
-	}
-	else if (glfwOpenWindow(640, 480, 5, 6, 5, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
-	{
-		printf("Opened a window (try 3)...\n");
-	}
-	else if (glfwOpenWindow(640, 480, 5, 6, 5, 0, 8, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
-	{
-		printf("Opened a window (try 4)...\n");
-	}
-	else if (glfwOpenWindow(640, 480, 5, 6, 5, 0, 16, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
-	{
-		printf("Opened a window (try 5)...\n");
-	}
-	else {
-		printf("ERROR: Couldn't open an accelerated window...\n");
-		/*if (glfwGetWindowParam(GLFW_OPENED)) glfwCloseWindow();
-		return false;*/
-		if (!glfwGetWindowParam(GLFW_OPENED)) return false;
-	}
-	glfwSwapInterval(1);		// Turn V-Sync on
-	//glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
-	glfwSetWindowPos(oDesktopMode.Width - 650, oDesktopMode.Height / 2 - 240);
-	glfwSetWindowTitle(EX0_BUILD_STRING);	// set the window title
+		// create the window
+		glfwGetDesktopMode(&oDesktopMode);
+		glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 0);
+		glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
+		if (glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
+		{
+			printf("Opened a window (try 1)...\n");
+		}
+		else if (glfwOpenWindow(640, 480, 8, 8, 8, 8, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
+		{
+			printf("Opened a window (try 2)...\n");
+		}
+		else if (glfwOpenWindow(640, 480, 5, 6, 5, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
+		{
+			printf("Opened a window (try 3)...\n");
+		}
+		else if (glfwOpenWindow(640, 480, 5, 6, 5, 0, 8, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
+		{
+			printf("Opened a window (try 4)...\n");
+		}
+		else if (glfwOpenWindow(640, 480, 5, 6, 5, 0, 16, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
+		{
+			printf("Opened a window (try 5)...\n");
+		}
+		else {
+			printf("ERROR: Couldn't open an accelerated window...\n");
+			/*if (glfwGetWindowParam(GLFW_OPENED)) glfwCloseWindow();
+			return false;*/
+			if (!glfwGetWindowParam(GLFW_OPENED)) return false;
+		}
+		glfwSwapInterval(1);		// Turn V-Sync on
+		//glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
+		glfwSetWindowPos(oDesktopMode.Width - 650, oDesktopMode.Height / 2 - 240);
+		glfwSetWindowTitle(EX0_BUILD_STRING);	// set the window title
 
-	// init OpenGL
-	if (!OglUtilsInitGL()) {
-		printf("OpenGL initilization failed.\n");
-		return false;
-	}
+		// init OpenGL
+		if (!OglUtilsInitGL()) {
+			printf("OpenGL initilization failed.\n");
+			return false;
+		}
 
-	std::stringstream x;
-	x << "CPU Count: " << glfwGetNumberOfProcessors()
-	  << "\nGL Renderer: " << glGetString(GL_VENDOR) << " " << glGetString(GL_RENDERER) << " v" << glGetString(GL_VERSION)
-	  << "\nGLFW_ACCELERATED: " << glfwGetWindowParam(GLFW_ACCELERATED)
-	  << "\nGLFW_RED_BITS: " << glfwGetWindowParam(GLFW_RED_BITS)
-	  << "\nGLFW_GREEN_BITS: " << glfwGetWindowParam(GLFW_GREEN_BITS)
-	  << "\nGLFW_BLUE_BITS: " << glfwGetWindowParam(GLFW_BLUE_BITS)
-	  << "\nGLFW_ALPHA_BITS: " << glfwGetWindowParam(GLFW_ALPHA_BITS)
-	  << "\nGLFW_DEPTH_BITS: " << glfwGetWindowParam(GLFW_DEPTH_BITS)
-	  << "\nGLFW_STENCIL_BITS: " << glfwGetWindowParam(GLFW_STENCIL_BITS)
-	  << "\nGLFW_REFRESH_RATE: " << glfwGetWindowParam(GLFW_REFRESH_RATE)
-	  << "\nGLFW_FSAA_SAMPLES: " << glfwGetWindowParam(GLFW_FSAA_SAMPLES);
-	//MessageBox(NULL, x.str().c_str(), "MessageBox1", NULL);
-	printf("%s\n", x.str().c_str());
+		SetGlfwCallbacks();
+
+		std::stringstream x;
+		x << "CPU Count: " << glfwGetNumberOfProcessors()
+		  << "\nGL Renderer: " << glGetString(GL_VENDOR) << " " << glGetString(GL_RENDERER) << " v" << glGetString(GL_VERSION)
+		  << "\nGLFW_ACCELERATED: " << glfwGetWindowParam(GLFW_ACCELERATED)
+		  << "\nGLFW_RED_BITS: " << glfwGetWindowParam(GLFW_RED_BITS)
+		  << "\nGLFW_GREEN_BITS: " << glfwGetWindowParam(GLFW_GREEN_BITS)
+		  << "\nGLFW_BLUE_BITS: " << glfwGetWindowParam(GLFW_BLUE_BITS)
+		  << "\nGLFW_ALPHA_BITS: " << glfwGetWindowParam(GLFW_ALPHA_BITS)
+		  << "\nGLFW_DEPTH_BITS: " << glfwGetWindowParam(GLFW_DEPTH_BITS)
+		  << "\nGLFW_STENCIL_BITS: " << glfwGetWindowParam(GLFW_STENCIL_BITS)
+		  << "\nGLFW_REFRESH_RATE: " << glfwGetWindowParam(GLFW_REFRESH_RATE)
+		  << "\nGLFW_FSAA_SAMPLES: " << glfwGetWindowParam(GLFW_FSAA_SAMPLES);
+		//MessageBox(NULL, x.str().c_str(), "MessageBox1", NULL);
+		printf("%s\n", x.str().c_str());
+	}
 
 	// Initialize components
-	SetGlfwCallbacks();
 	if (!GameDataLoad()) {				// load game data
 		printf("Couldn't load game data.\n");
 		return false;
 	}
 	WeaponInitSpecs();
 	nPlayerCount = 8;					// Set the max player limit for this server
-	pChatMessages = new CHudMessageQueue(0, 480 - 150, 5, 7.5f);
+	if (bWindowModeDEBUG) pChatMessages = new CHudMessageQueue(0, 480 - 150, 5, 7.5f);
+	//FpsCounter::Initialize();
 	if (!NetworkInit()) {				// Initialize the networking
 		printf("Couldn't initialize the networking.\n");
 		return false;
 	}
 	pTimedEventScheduler = new CTimedEventScheduler();
 	pGameLogicThread = new GameLogicThread();
-	if (nRunModeDEBUG != 0)
+	if (nRunModeDEBUG != 0 && nRunModeDEBUG != 3)
 		pLocalServer = new LocalServer();
 
 	SyncRandSeed();
@@ -151,20 +158,23 @@ void Deinit()
 	// show the mouse cursor
 	glfwEnable(GLFW_MOUSE_CURSOR);
 
-	// sub-deinit
+	// Sub-deinit
 	delete pGameLogicThread; pGameLogicThread = NULL;
 	delete pTimedEventScheduler; pTimedEventScheduler = NULL;
 	delete pLocalServer; pLocalServer = NULL;
 	NetworkDeinit();					// Shutdown the networking component
-	CPlayer::RemoveAll();				// Delete all players
+	FpsCounter::DeleteAll();//FpsCounter::Deinitialize();
+	CPlayer::DeleteAll();				// Delete all players
 	delete pChatMessages; pChatMessages = NULL;
 	GameDataUnload();					// unload game data
-	OglUtilsDeinitGL();					// Deinit OpenGL stuff
+	if (bWindowModeDEBUG) OglUtilsDeinitGL();					// Deinit OpenGL stuff
 	// ...
 
-	// close the window
-	if (glfwGetWindowParam(GLFW_OPENED))
-		glfwCloseWindow();
+	if (bWindowModeDEBUG) {
+		// close the window
+		if (glfwGetWindowParam(GLFW_OPENED))
+			glfwCloseWindow();
+	}
 
 	// terminate glfw
 	glfwTerminate();
@@ -184,13 +194,21 @@ void GLFWCALL ResizeWindow(int iWidth, int iHeight)
 	}
 }
 
+int GLFWCALL CloseWindowCallback()
+{
+	bProgramRunning = false;
+
+	return GL_FALSE;
+}
+
 // set glfw callback functions
 void SetGlfwCallbacks()
 {
-	glfwSetWindowSizeCallback(ResizeWindow);
-	glfwSetKeyCallback(InputProcessKey);
-	glfwSetCharCallback(InputProcessChar);
-	glfwSetMouseButtonCallback(InputProcessMouse);
+	glfwSetWindowSizeCallback(&ResizeWindow);
+	glfwSetWindowCloseCallback(&CloseWindowCallback);
+	glfwSetKeyCallback(&InputProcessKey);
+	glfwSetCharCallback(&InputProcessChar);
+	glfwSetMouseButtonCallback(&InputProcessMouse);
 }
 
 // Restarts the game
@@ -242,7 +260,7 @@ void Terminate(int nExitCode)
 
 		exit(nGlobalExitCode);
 	} else {
-		if (glfwGetWindowParam(GLFW_OPENED)) glfwCloseWindow();
+		if (bProgramRunning) bProgramRunning = false;
 		else Terminate(10);
 	}
 }
@@ -358,17 +376,27 @@ int main(int argc, char *argv[])
 	// Print the version and date/time built
 	printf("%s\n\n", EX0_BUILD_STRING);
 
+#ifdef EX0_DEBUG
 	char ch = static_cast<char>(getchar());
-	if (ch == 's') nRunModeDEBUG = 1;
-	else if (ch == 'b') nRunModeDEBUG = 2;
-	else nRunModeDEBUG = 0;
+	if (ch == 's') nRunModeDEBUG = 1;			// Server only
+	else if (ch == 'b') nRunModeDEBUG = 2;		// Both server and client
+	else if (ch == 'n') nRunModeDEBUG = 3;		// Off-line client/server (no network)
+	else if (ch == 'd') { nRunModeDEBUG = 1; bWindowModeDEBUG = false; }	// Dedicated server (no window)
+	else nRunModeDEBUG = 0;						// Client only
+#else
+	nRunModeDEBUG = 0;		// Force client-only functionality
+#endif
 
-	// initialize
+	// DEBUG: Set the level name through the 3rd command line param
+	if (argc >= 4)
+		sLevelName = argv[3];
+
+	// Initialize
 	if (!Init(argc, argv))
 		Terminate(1);
 
 	// DEBUG: Set the local player name through the 2nd command line param
-	if (argc >= 3)
+	if (nRunModeDEBUG != 1 && argc >= 3)
 		sLocalPlayerName = argv[2];
 
 	// Connect to the server
@@ -380,6 +408,7 @@ int main(int argc, char *argv[])
 		//NetworkConnect(argv[1], DEFAULT_PORT);
 glfwLockMutex(oPlayerTick);
 		pLocalPlayer = new CPlayer(iLocalPlayerID);
+		pLocalPlayer->SetName(sLocalPlayerName);
 		pLocalPlayer->m_pController = new LocalController(*pLocalPlayer);
 		pLocalPlayer->m_pStateAuther = new LocalStateAuther(*pLocalPlayer);
 
@@ -392,7 +421,30 @@ glfwLockMutex(oPlayerTick);
 		bSelectTeamDisplay = true;
 		bSelectTeamReady = true;
 glfwUnlockMutex(oPlayerTick);
+	} else if (nRunModeDEBUG == 3)
+	{
+glfwLockMutex(oPlayerTick);
+		pLocalPlayer = new CPlayer(iLocalPlayerID);
+		pLocalPlayer->m_pController = new LocalController(*pLocalPlayer);
+		pLocalPlayer->m_pStateAuther = new LocalStateAuther(*pLocalPlayer);
+
+		pLocalPlayer->fTickTime = 1.0f / g_cCommandRate;
+
+		// Reset the clock
+		g_cCurrentCommandSequenceNumber = 0;
+		g_dNextTickTime = 1.0 / g_cCommandRate;
+		glfwSetTime(0.0);
+
+		// Start the game
+		printf("Entered the game.\n");
+		iGameState = 0;
+
+		bSelectTeamDisplay = true;
+		bSelectTeamReady = true;
+glfwUnlockMutex(oPlayerTick);
 	}
+
+	FpsCounter * pFpsCounter = FpsCounter::CreateCounter("Main");
 
 	//GetReady();
 	{
@@ -405,72 +457,84 @@ glfwUnlockMutex(oPlayerTick);
 		dBaseTime = glfwGetTime();
 	}
 
-	// start the main loop
-	while (glfwGetWindowParam(GLFW_OPENED) /*&& glfwGetWindowParam(GLFW_ACTIVE)*/)
+	// Main loop
+	while (bProgramRunning && (glfwGetWindowParam(GLFW_OPENED) || !bWindowModeDEBUG))
 	{
-		// clear the buffer
-		OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
-		glLoadIdentity();
-		glClear(GL_COLOR_BUFFER_BIT);
+		pFpsCounter->IncrementCounter();
+		FpsCounter::UpdateCounters(glfwGetTime());
+		if (!bWindowModeDEBUG) FpsCounter::PrintCounters();
+//if (glfwGetKey('O')) {CTimedEventScheduler * p = pTimedEventScheduler; pTimedEventScheduler = NULL; delete p;}
 
-		if (!iGameState)
-		// in game
+		if (bWindowModeDEBUG)
 		{
-			// render the static scene
-			// TODO: Don't do any rendering when the window is GLFW_ICONIFIED (minimized)
-			RenderStaticScene();
+			// clear the buffer
+			OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
+			glLoadIdentity();
+			glClear(GL_COLOR_BUFFER_BIT);
 
-			// render the interactive scene
-			//RenderInteractiveScene();
+			if (iGameState == 0)
+			// in game
+			{
+				// render the static scene
+				// TODO: Don't do any rendering when the window is GLFW_ICONIFIED (minimized)
+				RenderStaticScene();
 
-			// render the fov zone
-			if (bStencilOperations) RenderFOV();
+				// render the interactive scene
+				//RenderInteractiveScene();
 
-			// Enable the FOV masking
-			if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
+				// render the fov zone
+				if (bStencilOperations) RenderFOV();
 
-			// render all players
+				// Enable the FOV masking
+				if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(WITH_MASKING_MODE);
+
+				// render all players
 glfwLockMutex(oPlayerTick);
-			//pLocalPlayer->RenderInPast(2 * pLocalPlayer->GetZ());
-			//pLocalPlayer->RenderInPast(Math::TWO_PI - 2 * pLocalPlayer->GetZ());
-			//for (int i = 1; i <= 100; i += 1) PlayerGet(0/*iLocalPlayerID*/)->RenderInPast(i * 0.1f);
-			//pLocalPlayer->RenderInPast(kfInterpolate);
-			RenderPlayers();
+				//pLocalPlayer->RenderInPast(2 * pLocalPlayer->GetZ());
+				//pLocalPlayer->RenderInPast(Math::TWO_PI - 2 * pLocalPlayer->GetZ());
+				//for (int i = 1; i <= 100; i += 1) PlayerGet(0/*iLocalPlayerID*/)->RenderInPast(i * 0.1f);
+				//pLocalPlayer->RenderInPast(kfInterpolate);
+				RenderPlayers();
 glfwUnlockMutex(oPlayerTick);
 
-			// render all particles
-			RenderParticles();
+				// render all particles
+				RenderParticles();
 
-			// Disable the masking
-			if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(NO_MASKING_MODE);
+				// Disable the masking
+				if (pLocalPlayer != NULL && pLocalPlayer->GetTeam() != 2) OglUtilsSetMaskingMode(NO_MASKING_MODE);
 
-			// render HUD
+				// render HUD
 glfwLockMutex(oPlayerTick);
-			RenderHUD();
+				RenderHUD();
 glfwUnlockMutex(oPlayerTick);
+			}
+			else
+			// in menus
+			{
+				//InputMouseMovCalcs();
+
+				//MainMenuRender();
+			}
+
+			// finish it up
+			glfwSwapBuffers();
+
+			if (glfwGetWindowParam(GLFW_ACTIVE))
+				glfwSleep(0.0);
+			else
+				glfwSleep(0.015);
 		}
 		else
-		// in menus
 		{
-			//InputMouseMovCalcs();
-
-			//MainMenuRender();
+			glfwSleep(0.0001);
 		}
-
-		// finish it up
-		glFlush();
-		//glfwPollEvents();
-		glfwSwapBuffers();
-
-		if (glfwGetWindowParam(GLFW_ACTIVE))
-			glfwSleep(0.0);
-		else
-			glfwSleep(0.015);
 	}
+
+	FpsCounter::RemoveCounter(pFpsCounter);
 
 	// Clean up and exit nicely
 	Deinit();
 
-	printf("Returning %d from main(). %s\n", nGlobalExitCode, nGlobalExitCode == 0 ? ":) :) :) :) :) :)))" : ">___________________<");
+	printf("Returning %d from main().                       %s\n", nGlobalExitCode, nGlobalExitCode == 0 ? ":) :) :) :) :) :)))" : ">___________________<");
 	return 0;
 }

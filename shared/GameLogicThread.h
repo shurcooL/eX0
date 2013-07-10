@@ -9,10 +9,9 @@ public:
 	~GameLogicThread();
 
 private:
-	GLFWthread		m_oThread;
-	volatile bool	m_bThreadRun;
+	Thread *		m_pThread;
 
-	static void GLFWCALL Thread(void * pArgument);
+	static void GLFWCALL ThreadFunction(void * pArgument);
 };
 
 #endif // __GameLogicThread_H__

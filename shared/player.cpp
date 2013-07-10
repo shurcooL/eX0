@@ -232,7 +232,7 @@ void CPlayer::Tick()
 		m_pController->RequestInput(0);
 
 		// DEBUG: A work in progress...
-		if (pLocalServer == NULL)
+		if (pLocalServer == NULL && pServer != NULL)
 		{
 			//if (oUnconfirmedMoves.size() < 100)
 			//{
@@ -743,8 +743,8 @@ void CPlayer::SetZ(float fValue)
 }
 
 #ifdef EX0_CLIENT
-void CPlayer::SetLastLatency(u_short nLastLatency) { m_nLastLatency = nLastLatency; }
-u_short CPlayer::GetLastLatency() const { return m_nLastLatency; }
+void CPlayer::SetLastLatency(u_short nLastLatency) { eX0_assert(pConnection == NULL, "called CPlayer::SetLastLatency(u_short) when pConnection != NULL"); m_nLastLatency = nLastLatency; }
+u_short CPlayer::GetLastLatency() const { return (pConnection == NULL ? m_nLastLatency : pConnection->GetLastLatency()); }
 #endif
 
 void CPlayer::Render()
@@ -783,7 +783,7 @@ void CPlayer::Render()
 			glColor4f(0.9f, 0.2f, 0.1f, 0.5f);
 			glVertex2i(0, 11);
 			glColor4f(0.9f, 0.2f, 0.1f, 0.0f);
-			glVertex2i(0, 600);
+			glVertex2i(0, 900);
 		glEnd();
 		glShadeModel(GL_FLAT);
 		glDisable(GL_BLEND);
@@ -1109,27 +1109,27 @@ void CPlayer::SetName(string & sNewName) {
 
 void CPlayer::Add(CPlayer * pPlayer)
 {
-	printf("Before Add():"); for (std::vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+	/*printf("Before Add():"); for (std::vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
 		printf(" %p", *cit1);
-	} printf("\n");
+	} printf("\n");*/
 	m_oPlayers.at(pPlayer->iID = NextFreePlayerId()) = pPlayer;
-	printf("After Add():"); for (std::vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+	/*printf("After Add():"); for (std::vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
 		printf(" %p", *cit1);
-	} printf("\n");
+	} printf("\n");*/
 }
 
 void CPlayer::Add(CPlayer * pPlayer, u_int nPlayerId)
 {
-	printf("Before Add(int):"); for (std::vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+	/*printf("Before Add(int):"); for (std::vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
 		printf(" %p", *cit1);
-	} printf("\n");
+	} printf("\n");*/
 	if (nPlayerId >= m_oPlayers.size())
 		m_oPlayers.resize(nPlayerId + 1);
 	else if (m_oPlayers.at(nPlayerId) != NULL) throw 1;
 	m_oPlayers.at(pPlayer->iID = nPlayerId) = pPlayer;
-	printf("After Add(int):"); for (std::vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
+	/*printf("After Add(int):"); for (std::vector<CPlayer *>::const_iterator cit1 = m_oPlayers.begin(); cit1 < m_oPlayers.end(); ++cit1) {
 		printf(" %p", *cit1);
-	} printf("\n");
+	} printf("\n");*/
 }
 
 u_int CPlayer::NextFreePlayerId()
@@ -1155,7 +1155,7 @@ void CPlayer::Remove(CPlayer * pPlayer)
 	}
 }
 
-void CPlayer::RemoveAll()
+void CPlayer::DeleteAll()
 {
 	for (std::vector<CPlayer *>::iterator it1 = m_oPlayers.begin(); it1 < m_oPlayers.end(); ++it1) {
 		if (*it1 != NULL) {

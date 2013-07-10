@@ -20,7 +20,7 @@ ClientConnection::ClientConnection(SOCKET nTcpSocket)
 	m_pPlayer = NULL;
 
 	// Schedule the bad client timeout event
-	CTimedEvent oEvent = CTimedEvent(glfwGetTime() + 5.0, 0, &ClientConnection::BadClientTimeout, this);
+	CTimedEvent oEvent = CTimedEvent(glfwGetTime() + BAD_CLIENT_TIMEOUT, 0, &ClientConnection::BadClientTimeout, this);
 	m_nBadClientTimeoutEventId = oEvent.GetId();
 	pTimedEventScheduler->ScheduleEvent(oEvent);
 
@@ -148,7 +148,7 @@ u_int ClientConnection::GetPlayerID() const { return (m_pPlayer == NULL) ? 123 :
 void ClientConnection::SetPlayer(CPlayer * pPlayer)
 {
 	eX0_assert(pPlayer != NULL, "null parameter");
-	eX0_assert(GetPlayer() == NULL, "SetPlayerID() should only be called once per connection.");
+	eX0_assert(GetPlayer() == NULL, "SetPlayer() should only be called once per connection.");
 
 	m_pPlayer = pPlayer;
 	if (m_pPlayer != NULL)

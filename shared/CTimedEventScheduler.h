@@ -16,14 +16,13 @@ public:
 	void RemoveAllEvents();
 
 private:
-	GLFWthread		m_oSchedulerThread;
-	volatile bool	m_bSchedulerThreadRun;
+	std::multiset<CTimedEvent>	m_oEvents;
 
 	GLFWmutex		m_oSchedulerMutex;
 
-	std::multiset<CTimedEvent>	m_oEvents;
+	Thread *		m_pThread;
 
-	static void GLFWCALL SchedulerThread(void * pArgument);
+	static void GLFWCALL ThreadFunction(void * pArgument);
 };
 
 #endif // __CTimedEventScheduler_H__

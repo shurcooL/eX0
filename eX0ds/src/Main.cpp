@@ -3,8 +3,8 @@
 
 #pragma comment(linker, "/NODEFAULTLIB:\"LIBCMT\"")
 
+volatile bool	bProgramRunning = true;
 volatile int	iGameState = 1;
-bool		bKeepRunning = true;
 double		dTimePassed = 0;
 double		dCurTime = 0;
 double		dBaseTime = 0;
@@ -89,7 +89,7 @@ void Terminate(int nExitCode)
 
 		exit(nGlobalExitCode);
 	} else {
-		if (bKeepRunning) bKeepRunning = false;
+		if (bProgramRunning) bProgramRunning = false;
 		else Terminate(10);
 	}
 }
@@ -152,6 +152,8 @@ return 0;*/
 	// Print the version and date/time built
 	printf("%s\n\n", EX0_BUILD_STRING);
 
+	FpsCounter * pMainCounter = FpsCounter::CreateCounter("MainThread");
+
 	// DEBUG: Set the level name through the 1st command line param
 	if (argc >= 2)
 		sLevelName = argv[1];
@@ -167,10 +169,12 @@ return 0;*/
 	dBaseTime = glfwGetTime();
 
 	// Main loop
-	while (bKeepRunning)
+	while (bProgramRunning)
 	{
-/*
-		// time passed calcs
+		pMainCounter->IncrementCounter();
+		FpsCounter::UpdateCounters(glfwGetTime());
+
+/*		// time passed calcs
 		dCurTime = glfwGetTime();
 		dTimePassed = dCurTime - dBaseTime;
 		dBaseTime = dCurTime;
@@ -197,9 +201,11 @@ glfwUnlockMutex(oPlayerTick);
 		glfwSleep(0.0001);
 	}
 
+	FpsCounter::DeleteCounter(pMainCounter);
+
 	// Clean up and exit nicely
 	Deinit();
 
-	printf("Returning %d from main(). %s\n", nGlobalExitCode, nGlobalExitCode == 0 ? ":) :) :) :) :) :)))" : ">___________________<");
+	printf("Returning %d from main().                       %s\n", nGlobalExitCode, nGlobalExitCode == 0 ? ":) :) :) :) :) :)))" : ">___________________<");
 	return 0;
 }

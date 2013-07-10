@@ -67,6 +67,8 @@ void CTextureManager::Initialize (void) {
 
 void CTextureManager::Destroy (void) {
 	if (m_Singleton) {
+		m_Singleton->FreeAll();
+
 		delete [] m_Singleton->nTexIDs;
 		m_Singleton->nTexIDs = 0;
 	

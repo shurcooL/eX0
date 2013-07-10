@@ -135,7 +135,7 @@ void GLFWCALL InputProcessKey(int iKey, int iAction)
 			if (bSelectTeamDisplay && iGameState == 0) {
 				bSelectTeamDisplay = false;
 			} else {
-				glfwCloseWindow();		// A window must be open since we got this event
+				Terminate(0);		// Normal shutdown
 			}
 			break;
 		// 'r' - reload
@@ -148,7 +148,7 @@ void GLFWCALL InputProcessKey(int iKey, int iAction)
 			break;
 		// 'v' - change camera view
 		case 'V':
-			iCameraType = (iCameraType + 1) % 2;
+			iCameraType = (iCameraType + 1) % 3;
 			break;
 		// restart the game
 		/*case GLFW_KEY_F1:
@@ -212,7 +212,7 @@ glfwUnlockMutex(oPlayerTick);
 				bSelectTeamDisplay = bSelectTeamReady = false;
 				pLocalPlayer->GiveHealth(-150);
 
-				if (pLocalServer == NULL) {
+				if (pLocalServer == NULL && pServer != NULL) {
 					// Send a Join Team Request packet
 					CPacket oJoinTeamRequest;
 					oJoinTeamRequest.pack("hcc", 0, (u_char)27, (u_char)0);
@@ -267,8 +267,8 @@ glfwUnlockMutex(oPlayerTick);
 			}
 			break;
 		case '2':
+if (pLocalServer != NULL || pServer == NULL) break;
 			if (bSelectTeamDisplay && bSelectTeamReady && pLocalPlayer->GetTeam() != 1 && iGameState == 0) {
-if (pLocalServer != NULL) break;
 				bSelectTeamDisplay = bSelectTeamReady = false;
 				pLocalPlayer->GiveHealth(-150);
 
@@ -280,7 +280,7 @@ if (pLocalServer != NULL) break;
 			}
 			break;
 		case '3':
-if (pLocalServer != NULL) break;
+if (pLocalServer != NULL || pServer == NULL) break;
 			if (bSelectTeamDisplay && bSelectTeamReady && pLocalPlayer->GetTeam() != 2 && iGameState == 0) {
 				bSelectTeamDisplay = bSelectTeamReady = false;
 				pLocalPlayer->GiveHealth(-150);

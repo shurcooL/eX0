@@ -8,45 +8,25 @@
 GameLogicThread * pGameLogicThread = NULL;
 
 GameLogicThread::GameLogicThread()
+	: m_pThread(new Thread(&GameLogicThread::ThreadFunction, NULL, "GameLogic"))
 {
-	printf("GameLogicThread() Constructor started.\n");
-
-	m_bThreadRun = true;
-	m_oThread = glfwCreateThread(&GameLogicThread::Thread, this);
-
-	if (m_oThread >= 0)
-		printf("GameLogicThread (tid = %d) created.\n", m_oThread);
-	else {
-		printf("Couldn't create GameLogicThread.\n");
-		throw 1;
-	}
 }
 
 GameLogicThread::~GameLogicThread()
 {
-	if (m_oThread >= 0)
-	{
-		m_bThreadRun = false;
-
-		glfwWaitThread(m_oThread, GLFW_WAIT);
-		//glfwDestroyThread(m_oThread);
-		m_oThread = -1;
-
-		printf("GameLogicThread thread has been destroyed.\n");
-	}
-
-	printf("GameLogicThread() ~Destructor done.\n");
+	delete m_pThread;
 }
 
-void GLFWCALL GameLogicThread::Thread(void * pArgument)
+void GLFWCALL GameLogicThread::ThreadFunction(void * pArgument)
 {
-	GameLogicThread * pThread = static_cast<GameLogicThread *>(pArgument);
+	Thread * pThread = Thread::GetThisThreadAndRevertArgument(pArgument);
+	FpsCounter * pFpsCounter = pThread->GetFpsCounter();
 
 	int			nFpsFrames = 0;
 	double		dFpsTimePassed = 0, dFpsBaseTime = glfwGetTime();
 
 	// Main loop
-	while (pThread->m_bThreadRun)
+	while (pThread->ShouldBeRunning())
 	{
 		// time passed calcs
 		dCurTime = glfwGetTime();
@@ -54,6 +34,7 @@ void GLFWCALL GameLogicThread::Thread(void * pArgument)
 		dBaseTime = dCurTime;
 
 		// fps calcs
+		pFpsCounter->IncrementCounter();
 		nFpsFrames++;
 		dFpsTimePassed = dCurTime - dFpsBaseTime;
 		if (dFpsTimePassed >= 0.75)
@@ -76,7 +57,7 @@ void GLFWCALL GameLogicThread::Thread(void * pArgument)
 				InputKeyHold();
 				InputMouseHold();
 			}
-#endif
+#endif // EX0_CLIENT
 
 glfwLockMutex(oPlayerTick);
 			while (dCurTime >= g_dNextTickTime)
@@ -128,5 +109,6 @@ glfwUnlockMutex(oPlayerTick);
 		glfwSleep(0.0001);
 	}
 
-	printf("GameLogicThread has ended.\n");
+	//printf("GameLogicThread has ended.\n");
+	pThread->ThreadEnded();
 }

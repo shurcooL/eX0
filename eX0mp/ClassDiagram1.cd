@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="ClientConnection">
+    <Position X="5.5" Y="2.75" Width="1.5" />
+    <NestedTypes>
+      <Struct Name="ClientConnection::TcpPacketBuffer_t" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>c:\Work\Generation 10\eX0\eX0\shared\ClientConnection.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Struct>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AIECBARAAAABABAQAIEAQAABQAgAACVAAgEAIAQAAJI=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\ClientConnection.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="LocalController" Collapsed="true">
+    <Position X="3" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CAAAAAAAAAAAAAQAAAAAAAAAACAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\LocalController.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="LocalStateAuther" Collapsed="true">
+    <Position X="3" Y="6" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAQAAgAAAAAACAAAAAAEAAAAAACAAAAAAAAAA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\LocalStateAuther.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="NetworkConnection" Collapsed="true">
+    <Position X="6.5" Y="1.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>gAAAIAAAAIERAQABhACACAAAAAAAEAgAQAggEAEAAQA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\NetworkConnection.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="NetworkController" Collapsed="true">
+    <Position X="0.75" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAACAAAACAAAAAAACAAAAIABAAAIAAIAIA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\NetworkController.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="NetworkStateAuther" Collapsed="true">
+    <Position X="0.75" Y="6" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAACAAAgAAAAAACAAAAAQEAAAAAACAAAAAQAAIA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\NetworkStateAuther.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="PlayerController" Collapsed="true">
+    <Position X="2" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAABAAAAAAAAASAEACAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\PlayerController.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="PlayerStateAuther" Collapsed="true">
+    <Position X="2" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAIAAAAAFAAAAAACAAQAAAEAAAAAACAAAAAAAAAA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\PlayerStateAuther.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ServerConnection">
+    <Position X="7.75" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABgAAAAAAAAAAAAAAAAAAIBAAAAAAAAAAAAAAAAAQAA=</HashCode>
+      <FileName>src\ServerConnection.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Font Name="Tahoma" Size="8.25" />
+</ClassDiagram>
