@@ -225,6 +225,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\GameLogicThread.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\GameLogicThread.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\globals.h"
 				>
 			</File>
@@ -257,6 +265,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\HumanController.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\HumanController.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\IndexedCircularBuffer.cpp"
 				>
 				<FileConfiguration
@@ -286,14 +302,6 @@
 			</File>
 			<File
 				RelativePath=".\src\input.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\LCtrlRAuthPlayer.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\src\LCtrlRAuthPlayer.h"
 				>
 			</File>
 			<File
@@ -365,11 +373,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\RCtrlRAuthPlayer.cpp"
+				RelativePath="..\shared\PlayerController.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\RCtrlRAuthPlayer.h"
+				RelativePath="..\shared\PlayerController.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\RemoteAuthPlayer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\RemoteAuthPlayer.h"
 				>
 			</File>
 			<File

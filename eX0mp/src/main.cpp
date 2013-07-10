@@ -18,10 +18,7 @@ bool			bFullscreen = false;
 double			dTimePassed = 0;
 double			dCurTime = 0;
 double			dBaseTime = 0;
-int				iFpsFrames = 0;
-double			dFpsBaseTime = 0;
-double			dFpsTimePassed = 0;
-string			sFpsString = string(EX0_BUILD_STRING);
+string			sFpsString = string();
 
 string			sTempString = string();
 float			fTempFloat = 0;
@@ -126,8 +123,8 @@ bool Init(int, char *[])
 	GameDataLoad();						// load game data
 	WeaponInitSpecs();
 	pChatMessages = new CHudMessageQueue(0, 480 - 150, 5, 7.5f);
-	//nPlayerCount = 0; PlayerInit();		// Initialize the players
 	pTimedEventScheduler = new CTimedEventScheduler();
+	pGameLogicThread = new GameLogicThread();
 	if (!NetworkInit())					// Initialize the networking
 		return false;
 
@@ -145,9 +142,9 @@ void Deinit()
 	glfwEnable(GLFW_MOUSE_CURSOR);
 
 	// sub-deinit
+	delete pGameLogicThread; pGameLogicThread = NULL;
 	delete pTimedEventScheduler; pTimedEventScheduler = NULL;
 	NetworkDeinit();					// Shutdown the networking component
-	//nPlayerCount = 0; PlayerInit();		// delete all players
 	CPlayer::RemoveAll();				// Delete all players
 	delete pChatMessages; pChatMessages = NULL;
 	GameDataUnload();					// unload game data
@@ -353,7 +350,7 @@ int main(int argc, char *argv[])
 	// initialize
 	if (!Init(argc, argv))
 		Terminate(1);
-glfwDisable(GLFW_SYSTEM_KEYS);
+
 	// DEBUG - This is a hack - we only need to position the players here... But I called RestartGame() to do that
 	//RestartGame();
 
@@ -376,29 +373,11 @@ glfwDisable(GLFW_SYSTEM_KEYS);
 
 		// make sure that the physics won't count all the time passed during init
 		dBaseTime = glfwGetTime();
-		dFpsBaseTime = dBaseTime;
 	}
 
 	// start the main loop
 	while (glfwGetWindowParam(GLFW_OPENED) /*&& glfwGetWindowParam(GLFW_ACTIVE)*/)
 	{
-		// time passed calcs
-		dCurTime = glfwGetTime();
-		//if (!bPaused) dTimePassed = dCurTime - dBaseTime; else dTimePassed = 0;
-		dTimePassed = dCurTime - dBaseTime;
-		dBaseTime = dCurTime;
-
-		// fps calcs
-		iFpsFrames++;
-		dFpsTimePassed = dCurTime - dFpsBaseTime;
-		if (dFpsTimePassed >= 0.75)
-		{
-			sFpsString = string(EX0_BUILD_STRING) + " - " + ftos(iFpsFrames / (float)dFpsTimePassed) + " fps";
-			//glfwSetWindowTitle(sTempString.c_str());
-			dFpsBaseTime = dCurTime;
-			iFpsFrames = 0;
-		}
-
 		// clear the buffer
 		OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
 		glLoadIdentity();
@@ -407,28 +386,6 @@ glfwDisable(GLFW_SYSTEM_KEYS);
 		if (!iGameState)
 		// in game
 		{
-			// mouse moved?
-			InputMouseMovCalcs();
-
-			// key or mouse button held down?
-			InputKeyHold();
-			InputMouseHold();
-
-			// player tick
-glfwLockMutex(oPlayerTick);
-			if (bPaused) { fTempFloat = (float)dTimePassed; dTimePassed = 0.00001; }
-			if (pLocalPlayer->GetTeam() != 2 && !pLocalPlayer->IsDead()) {
-				pLocalPlayer->Tick();
-			} else {
-				pLocalPlayer->FakeTick();
-			}
-			PlayerTick();
-glfwUnlockMutex(oPlayerTick);
-
-			// particle engine tick
-			oParticleEngine.Tick();
-			if (bPaused) dTimePassed = fTempFloat;
-
 			// render the static scene
 			// TODO: Don't do any rendering when the window is GLFW_ICONIFIED (minimized)
 			RenderStaticScene();

@@ -88,78 +88,10 @@ void InputKeyHold()
 {
 	// Don't use the keyboard input when typing a message
 	if (nChatMode) return;
-
-	// set stealth
-	if (glfwGetKey(GLFW_KEY_LSHIFT) || glfwGetKey(GLFW_KEY_RSHIFT))
-	{
-		pLocalPlayer->SetStealth(true);
-	}
-	else
-	{
-		pLocalPlayer->SetStealth(false);
-	}
-
-	// Rotate left/right using arrow keys
-	if (glfwGetKey(GLFW_KEY_LEFT) && !glfwGetKey(GLFW_KEY_RIGHT))
-		pLocalPlayer->Rotate((float)dTimePassed * -1.5f);
-	else if (glfwGetKey(GLFW_KEY_RIGHT) && !glfwGetKey(GLFW_KEY_LEFT))
-		pLocalPlayer->Rotate((float)dTimePassed * 1.5f);
-
-	if (glfwGetKey('A') && !glfwGetKey('D'))
-	{
-		if ((glfwGetKey('W') && !glfwGetKey('S'))
-			|| (glfwGetKey(GLFW_KEY_UP) && !glfwGetKey(GLFW_KEY_DOWN)))
-		{
-			pLocalPlayer->MoveDirection(7);
-		}
-		else if ((glfwGetKey('S') && !glfwGetKey('W'))
-				|| (glfwGetKey(GLFW_KEY_DOWN) && !glfwGetKey(GLFW_KEY_UP)))
-		{
-			pLocalPlayer->MoveDirection(5);
-		}
-		else
-		{
-			pLocalPlayer->MoveDirection(6);
-		}
-	}
-	else if (glfwGetKey('D') && !glfwGetKey('A'))
-	{
-		if ((glfwGetKey('W') && !glfwGetKey('S'))
-			|| (glfwGetKey(GLFW_KEY_UP) && !glfwGetKey(GLFW_KEY_DOWN)))
-		{
-			pLocalPlayer->MoveDirection(1);
-		}
-		else if ((glfwGetKey('S') && !glfwGetKey('W'))
-				|| (glfwGetKey(GLFW_KEY_DOWN) && !glfwGetKey(GLFW_KEY_UP)))
-		{
-			pLocalPlayer->MoveDirection(3);
-		}
-		else
-		{
-			pLocalPlayer->MoveDirection(2);
-		}
-	}
-	else
-	{
-		if ((glfwGetKey('W') && !glfwGetKey('S'))
-			|| (glfwGetKey(GLFW_KEY_UP) && !glfwGetKey(GLFW_KEY_DOWN)))
-		{
-			pLocalPlayer->MoveDirection(0);
-		}
-		else if ((glfwGetKey('S') && !glfwGetKey('W'))
-				|| (glfwGetKey(GLFW_KEY_DOWN) && !glfwGetKey(GLFW_KEY_UP)))
-		{
-			pLocalPlayer->MoveDirection(4);
-		}
-		else
-		{
-			pLocalPlayer->MoveDirection(-1);
-		}
-	}
 }
 
 // key processing
-void InputProcessKey(int iKey, int iAction)
+void GLFWCALL InputProcessKey(int iKey, int iAction)
 {
 	if (iAction == GLFW_PRESS)
 	{
@@ -217,11 +149,6 @@ void InputProcessKey(int iKey, int iAction)
 		// 'v' - change camera view
 		case 'V':
 			iCameraType = (iCameraType + 1) % 2;
-
-			// Reset the mask
-			OglUtilsSetMaskingMode(RENDER_TO_MASK_MODE);
-			glClear(GL_STENCIL_BUFFER_BIT);
-			OglUtilsSetMaskingMode(NO_MASKING_MODE);
 			break;
 		// restart the game
 		/*case GLFW_KEY_F1:
@@ -392,7 +319,7 @@ void InputMouseHold()
 	if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	// left mouse button is held down
 	{
-		pLocalPlayer->Fire();
+		//pLocalPlayer->Fire();
 	}
 	else
 	// left mouse button is NOT held down

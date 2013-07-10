@@ -22,6 +22,8 @@ vector<CPlayer *> CPlayer::m_oPlayers;
 
 // implementation of the player class
 CPlayer::CPlayer()
+	: m_pPlayerController(NULL),
+	  m_dNextUpdateTime(GLFW_INFINITY)
 {
 	printf("CPlayer(%p) Ctor.\n", this);
 
@@ -61,6 +63,8 @@ CPlayer::CPlayer()
 }
 
 CPlayer::CPlayer(u_int nPlayerId)
+	: m_pPlayerController(NULL),
+	  m_dNextUpdateTime(GLFW_INFINITY)
 {
 	printf("CPlayer(%p) Ctor.\n", this);
 
@@ -103,6 +107,8 @@ CPlayer::~CPlayer()
 {
 	Remove(this);
 
+	delete m_pPlayerController;
+
 	printf("CPlayer(%p) ~Dtor.\n", this);
 }
 
@@ -128,7 +134,7 @@ void CPlayer::Tick()
 		return;
 	}
 
-	oWeapons[iSelWeapon].Tick();
+	//oWeapons[iSelWeapon].Tick();
 
 	//fTicks += (double)dTimePassed;
 	fTicks = (float)(dCurTime - (dNextTickTime - 1.0 / cCommandRate));
@@ -142,6 +148,9 @@ void CPlayer::Tick()
 			printf("%.8lf sec: NxtTk=%.15lf, NxtTk/12.8=%.15lf\n", glfwGetTime(), dNextTickTime, dNextTickTime / (256.0 / cCommandRate));
 		}*/
 		fTicks = (float)(dCurTime - (dNextTickTime - 1.0 / cCommandRate));
+
+		// DEBUG: A work in progress
+		m_pPlayerController->RequestInput(0);
 
 		if (iID == iLocalPlayerID) {
 			if (oUnconfirmedMoves.size() < 100)
@@ -165,7 +174,7 @@ void CPlayer::Tick()
 				oUnconfirmedMoves.push(oMove, cCurrentCommandSequenceNumber);
 //printf("pushed a move on oUnconfirmedMoves, size() = %d, cur# => %d\n", oUnconfirmedMoves.size(), cCurrentCommandSequenceNumber);
 
-				iTempInt = max<int>(iTempInt, (int)oUnconfirmedMoves.size() - 1);
+				iTempInt = std::max<int>(iTempInt, (int)oUnconfirmedMoves.size() - 1);
 
 				// Send the Client Command packet
 				CPacket oClientCommandPacket;

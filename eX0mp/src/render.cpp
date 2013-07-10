@@ -346,7 +346,7 @@ void RenderCreateFOVMask()
 	// Start rendering to the mask the fully unobstructed Field of View
 	OglUtilsSetMaskingMode(RENDER_TO_MASK_MODE);
 	OglUtilsSetMaskValue(1);
-	//glClear(GL_STENCIL_BUFFER_BIT);		// DEBUG: Only needed when the camera suddenly shifts POV
+	glClear(GL_STENCIL_BUFFER_BIT);		// Always needed to be sure player can't see through walls, even due to glitches (i.e. drag the window outside the desktop viewable area)
 
 	//OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
 	RenderOffsetCamera(true);		// Reset the matrix, local reference frame

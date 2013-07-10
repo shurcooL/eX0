@@ -7,8 +7,8 @@ class CTimedEvent;
 class CTimedEventScheduler
 {
 public:
-	CTimedEventScheduler(void);
-	~CTimedEventScheduler(void);
+	CTimedEventScheduler();
+	~CTimedEventScheduler();
 
 	void ScheduleEvent(CTimedEvent oEvent);
 	bool CheckEventById(u_int nId);

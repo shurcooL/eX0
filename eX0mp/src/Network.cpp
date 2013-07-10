@@ -312,7 +312,8 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			nPlayerCount = (int)cPlayerCount;
 
 			//PlayerInit();
-			pLocalPlayer = new LCtrlRAuthPlayer(static_cast<u_int>(cLocalPlayerId));
+			pLocalPlayer = new RemoteAuthPlayer(static_cast<u_int>(cLocalPlayerId));
+			pLocalPlayer->m_pPlayerController = new HumanController(*pLocalPlayer);
 
 			// TODO: Player name (and other local settings?) needs to be assigned, validated (and corrected if needed) in a better way
 			pLocalPlayer->SetName(sLocalPlayerName);
@@ -482,7 +483,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 					oPacket.unpack("etc", (int)cNameLength, &sName, &cTeam);
 
 					if (nPlayer != iLocalPlayerID) {
-						new RCtrlRAuthPlayer(nPlayer);
+						new RemoteAuthPlayer(nPlayer);
 					}
 
 					PlayerGet(nPlayer)->SetName(sName);
@@ -544,7 +545,7 @@ glfwLockMutex(oPlayerTick);
 				return false;
 			}
 
-			new RCtrlRAuthPlayer(cPlayerId);
+			new RemoteAuthPlayer(cPlayerId);
 
 			PlayerGet(cPlayerId)->SetName(sName);
 			PlayerGet(cPlayerId)->SetTeam(2);

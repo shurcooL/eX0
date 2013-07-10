@@ -15,7 +15,7 @@ using std::multiset;
 #include "CTimedEvent.h"
 void eX0_assert(bool expression, std::string message = ""); // TODO: Create a centralized 'common stuff' file, and include it there instead
 
-CTimedEventScheduler	*pTimedEventScheduler = NULL;
+CTimedEventScheduler * pTimedEventScheduler = NULL;
 
 CTimedEventScheduler::CTimedEventScheduler()
 {

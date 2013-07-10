@@ -1,14 +1,14 @@
 #include "globals.h"
 
-const float CHudMessageQueue::m_kfMessageTimeoutThreshold = 0.5f;
+const double CHudMessageQueue::m_kdMessageTimeoutThreshold = 0.5;
 const int CHudMessageQueue::m_knHorizontalDistance = 15;
 
-CHudMessageQueue::CHudMessageQueue(int nTopLeftCornerX, int nTopLeftCornerY, u_int nMessageLimit, float fMessageTimeout)
+CHudMessageQueue::CHudMessageQueue(int nTopLeftCornerX, int nTopLeftCornerY, u_int nMessageLimit, double dMessageTimeout)
 {
 	m_nTopLeftCornerX = nTopLeftCornerX;
 	m_nTopLeftCornerY = nTopLeftCornerY;
 	m_nMessageLimit = nMessageLimit;
-	m_fMessageTimeout = fMessageTimeout;
+	m_dMessageTimeout = dMessageTimeout;
 
 	m_oMessageMutex = glfwCreateMutex();
 }
@@ -25,14 +25,14 @@ void CHudMessageQueue::AddMessage(string sMessage)
 	if (m_oMessages.size() >= m_nMessageLimit) {
 		// Full message queue
 		m_oMessages.pop_front();
-		m_fMessageTimer = m_fMessageTimeout;
+		m_dMessageTimer = glfwGetTime() + m_dMessageTimeout;
 	} else if (m_oMessages.empty()) {
 		// Empty message queue
-		m_fMessageTimer = 1.5f * m_fMessageTimeout;
-	} else if (m_fMessageTimer <= m_kfMessageTimeoutThreshold) {
+		m_dMessageTimer = glfwGetTime() + 1.5 * m_dMessageTimeout;
+	} else if (m_dMessageTimer <= glfwGetTime() + m_kdMessageTimeoutThreshold) {
 		// Neither full or empty, but the last message is about to disappear
 		m_oMessages.pop_front();
-		m_fMessageTimer = m_fMessageTimeout;
+		m_dMessageTimer += m_dMessageTimeout;
 	}
 	m_oMessages.push_back(sMessage);
 
@@ -45,10 +45,9 @@ void CHudMessageQueue::Render()
 
 	if (!m_oMessages.empty())
 	{
-		m_fMessageTimer -= (float)dTimePassed;
-		if (m_fMessageTimer <= 0.0f) {
+		if (m_dMessageTimer <= glfwGetTime()) {
 			m_oMessages.pop_front();
-			m_fMessageTimer = m_fMessageTimeout;
+			m_dMessageTimer += m_dMessageTimeout;
 		}
 
 		int nMessageNumber = 0;

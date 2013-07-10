@@ -225,6 +225,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\GameLogicThread.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\GameLogicThread.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\globals.h"
 				>
 			</File>
@@ -254,6 +262,14 @@
 			</File>
 			<File
 				RelativePath="..\shared\HashMatcher.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\LocalAuthPlayer.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\LocalAuthPlayer.h"
 				>
 			</File>
 			<File
@@ -289,6 +305,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\NetworkController.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\NetworkController.h"
+				>
+			</File>
+			<File
 				RelativePath="..\shared\NetworkIncludes.h"
 				>
 			</File>
@@ -309,11 +333,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\shared\RCtrlLAuthPlayer.cpp"
+				RelativePath="..\shared\PlayerController.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\shared\RCtrlLAuthPlayer.h"
+				RelativePath="..\shared\PlayerController.h"
 				>
 			</File>
 			<File

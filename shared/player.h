@@ -118,6 +118,9 @@ public:
 	u_short GetLastLatency() const;
 #endif
 	void ProcessAuthUpdateTEST();
+	PlayerController * m_pPlayerController;
+	virtual void SendUpdate() = 0;
+	double		m_dNextUpdateTime;
 
 	u_int		iID;
 	bool		bEmptyClicked;
@@ -139,7 +142,12 @@ public:
 
 	static void RemoveAll();
 
+protected:
+
 private:
+	CPlayer(const CPlayer &);
+	CPlayer & operator =(const CPlayer &);
+
 	float		fX, fY;
 	float		fOldX, fOldY;
 	float		fVelX, fVelY;

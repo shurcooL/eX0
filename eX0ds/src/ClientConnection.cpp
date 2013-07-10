@@ -11,7 +11,7 @@ ClientConnection::ClientConnection(SOCKET nTcpSocket)
 	cLastCommandSequenceNumber = 0;
 	cCurrentCommandSeriesNumber = 0;
 	cCurrentUpdateSequenceNumber = 0;
-	nUpdateEventId = 0;
+	//nUpdateEventId = 0;
 	bFirstCommand = true;
 	m_nLastLatency = 0;
 
@@ -22,8 +22,8 @@ ClientConnection::ClientConnection(SOCKET nTcpSocket)
 
 ClientConnection::~ClientConnection()
 {
-	if (nUpdateEventId != 0 && pTimedEventScheduler != NULL)
-		pTimedEventScheduler->RemoveEventById(nUpdateEventId);
+	//if (nUpdateEventId != 0 && pTimedEventScheduler != NULL)
+	//	pTimedEventScheduler->RemoveEventById(nUpdateEventId);
 
 	if (GetPlayer() != NULL)
 		delete GetPlayer();

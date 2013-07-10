@@ -4,7 +4,7 @@
 class CHudMessageQueue
 {
 public:
-	CHudMessageQueue(int nTopLeftCornerX, int nTopLeftCornerY, u_int nMessageLimit, float fMessageTimeout);
+	CHudMessageQueue(int nTopLeftCornerX, int nTopLeftCornerY, u_int nMessageLimit, double dMessageTimeout);
 	~CHudMessageQueue(void);
 
 	void AddMessage(string sMessage);
@@ -12,16 +12,16 @@ public:
 
 private:
 	list<string>	m_oMessages;
-	float			m_fMessageTimer;
+	double			m_dMessageTimer;
 
 	int				m_nTopLeftCornerX;
 	int				m_nTopLeftCornerY;
 	u_int			m_nMessageLimit;
-	float			m_fMessageTimeout;
+	double			m_dMessageTimeout;
 
 	GLFWmutex		m_oMessageMutex;
 
-	static const float	m_kfMessageTimeoutThreshold;
+	static const double	m_kdMessageTimeoutThreshold;
 	static const int	m_knHorizontalDistance;
 };
 

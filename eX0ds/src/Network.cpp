@@ -74,39 +74,6 @@ int sendudp(SOCKET s, const char *buf, int len, int flags, const sockaddr *to, i
 	return nResult;
 }
 
-void NetworkSendServerUpdate(void *p)
-{
-glfwLockMutex(oPlayerTick);
-
-	ClientConnection * pConnection = reinterpret_cast<ClientConnection *>(p);
-
-	++pConnection->cCurrentUpdateSequenceNumber;		// First update is sent with cCurrentUpdateSequenceNumber == 1
-
-	// Send the Update Others Position packet
-	CPacket oServerUpdatePacket;
-	oServerUpdatePacket.pack("cc", (u_char)2, pConnection->cCurrentUpdateSequenceNumber);
-	for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
-	{
-		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME
-			&& PlayerGet(nPlayer)->GetTeam() != 2)
-		{
-			oServerUpdatePacket.pack("c", (u_char)1);
-
-			oServerUpdatePacket.pack("c", dynamic_cast<RCtrlLAuthPlayer *>(PlayerGet(nPlayer))->cCurrentCommandSequenceNumber);
-			// DEBUG: A very very horrible hack for short period TESTING only
-			//oServerUpdatePacket.pack("c", PlayerGet(nPlayer)->pConnection->cLastCommandSequenceNumber - dynamic_cast<RCtrlLAuthPlayer *>(PlayerGet(nPlayer))->m_oInputCmdsTEST.size());
-			oServerUpdatePacket.pack("fff", PlayerGet(nPlayer)->GetX(),
-				PlayerGet(nPlayer)->GetY(), PlayerGet(nPlayer)->GetZ());
-		} else {
-			oServerUpdatePacket.pack("c", (u_char)0);
-		}
-	}
-	if ((rand() % 100) >= 0 || pConnection->GetPlayerID() != 0) // DEBUG: Simulate packet loss
-		pConnection->SendUdp(oServerUpdatePacket);
-
-glfwUnlockMutex(oPlayerTick);
-}
-
 // Process a received TCP packet
 bool NetworkProcessTcpPacket(CPacket & oPacket, ClientConnection *& pConnection)
 {
@@ -150,7 +117,7 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, ClientConnection *& pConnection)
 				// Assign this client the avaliable player id
 				pConnection->SetSignature(cSignature);
 glfwLockMutex(oPlayerTick);
-				pConnection->SetPlayer(new RCtrlLAuthPlayer());
+				pConnection->SetPlayer(new LocalAuthPlayer());
 glfwUnlockMutex(oPlayerTick);
 				pConnection->SetJoinStatus(ACCEPTED);
 
@@ -191,9 +158,7 @@ glfwUnlockMutex(oPlayerTick);
 			printf("Player #%d (name '%s') has entered the game.\n", pConnection->GetPlayerID(), pConnection->GetPlayer()->GetName().c_str());
 
 			// Schedule the sending of Server Update packets for this client
-			CTimedEvent oEvent(glfwGetTime(), 1.0 / pConnection->cUpdateRate, &NetworkSendServerUpdate, (void *)pConnection);
-			pTimedEventScheduler->ScheduleEvent(oEvent);
-			pConnection->nUpdateEventId = oEvent.GetId();
+			pConnection->GetPlayer()->m_dNextUpdateTime = glfwGetTime();
 		}
 		break;
 	// Send Text Message
@@ -259,7 +224,7 @@ glfwLockMutex(oPlayerTick);
 				d -= floor(d);
 				d *= 256.0;
 				pConnection->cLastCommandSequenceNumber = (u_char)d;
-				dynamic_cast<RCtrlLAuthPlayer *>(pConnection->GetPlayer())->cCurrentCommandSequenceNumber = (u_char)d;
+				dynamic_cast<LocalAuthPlayer *>(pConnection->GetPlayer())->cLatestAuthStateSequenceNumber = (u_char)d;
 
 				// Start expecting the first command packet from this player
 				pConnection->cCurrentCommandSeriesNumber += 1;
@@ -487,7 +452,7 @@ glfwLockMutex(oPlayerTick);
 				printf("Got an out of order UDP command packet from player %d, discarding.\n", pConnection->GetPlayerID());
 			} else
 			{
-				RCtrlLAuthPlayer * pRCtrlLAuthPlayer = dynamic_cast<RCtrlLAuthPlayer *>(pConnection->GetPlayer());
+				LocalAuthPlayer * pLocalAuthPlayer = dynamic_cast<LocalAuthPlayer *>(pConnection->GetPlayer());
 
 				int nMove = (int)cMovesCount - (char)(cCommandSequenceNumber - pConnection->cLastCommandSequenceNumber);
 				if (nMove < 0) printf("!!MISSING!! %d command move(s) from player #%d, due to lost packets:\n", -nMove, pConnection->GetPlayerID());
@@ -515,7 +480,7 @@ glfwLockMutex(oPlayerTick);
 
 					oSequencedInput.cSequenceNumber = static_cast<u_char>(cCommandSequenceNumber - (cMovesCount - 1) + nMove);
 
-					eX0_assert(pRCtrlLAuthPlayer->m_oInputCmdsTEST.push(oSequencedInput), "m_oInputCmdsTEST.push(oInput) failed, lost input!!\n");
+					eX0_assert(pLocalAuthPlayer->m_oInputCmdsTEST.push(oSequencedInput), "m_oInputCmdsTEST.push(oInput) failed, lost input!!\n");
 					//printf("pushed %d\n", cCommandSequenceNumber - (cMovesCount - 1) + nMove);
 				}
 

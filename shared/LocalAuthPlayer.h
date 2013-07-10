@@ -1,23 +1,24 @@
 #pragma once
-#ifndef __RCtrlLAuthPlayer_H__
-#define __RCtrlLAuthPlayer_H__
+#ifndef __LocalAuthPlayer_H__
+#define __LocalAuthPlayer_H__
 
 typedef struct {
 	Input_t	oInput;
 	u_char	cSequenceNumber;
 } SequencedInput_t;
 
-class RCtrlLAuthPlayer
+class LocalAuthPlayer
 	: public CPlayer
 {
 public:
-	RCtrlLAuthPlayer();
-	~RCtrlLAuthPlayer();
+	LocalAuthPlayer();
+	~LocalAuthPlayer();
 
 	void ProcessInputCmdTEST();
+	void SendUpdate();
 
-	u_char		cCurrentCommandSequenceNumber;
+	u_char		cLatestAuthStateSequenceNumber;
 	ThreadSafeQueue<SequencedInput_t, 100>		m_oInputCmdsTEST;
 };
 
-#endif // __RCtrlLAuthPlayer_H__
+#endif // __LocalAuthPlayer_H__

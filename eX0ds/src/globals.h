@@ -79,8 +79,11 @@ using namespace Mgc;
 #include "game_data.h"
 #include "../../shared/particle.h"
 #include "../../shared/weapon.h"
+#include "../../shared/PlayerController.h"
+#include "../../shared/HumanController.h"
+#include "../../shared/NetworkController.h"
 #include "../../shared/player.h"
-#include "../../shared/RCtrlLAuthPlayer.h"
+#include "../../shared/LocalAuthPlayer.h"
 #include "../../shared/Network.h"
 #include "Server.h"
 #include "../../shared/HashMatcher.h"
@@ -89,6 +92,7 @@ using namespace Mgc;
 #include "../../shared/CPacket.h"
 #include "../../shared/CTimedEvent.h"
 #include "../../shared/CTimedEventScheduler.h"
+#include "../../shared/GameLogicThread.h"
 //#include "OGLTextureManager/TextureManager.h"
 
 
@@ -100,8 +104,8 @@ using namespace Mgc;
 //////////////////////
 // global variables //
 //////////////////////
-/*extern int			iGameState;
-extern bool			bPaused;
+extern volatile int	iGameState;
+/*extern bool			bPaused;
 
 // DEBUG: Debug state variables
 extern bool			bWireframe;
@@ -131,12 +135,10 @@ extern u_int		nPlayerCount;
 //extern int			iCameraType;
 
 extern double		dTimePassed;
-/*extern float		fCurTime, fBaseTime;
-extern int			iFpsFrames;
-extern float		fFpsTimePassed, fFpsBaseTime;
+extern double		dCurTime, dBaseTime;
 extern string		sFpsString;
 
-extern string		sTempString;
+/*extern string		sTempString;
 extern float		fTempFloat;
 extern int			iTempInt;*/
 
@@ -148,7 +150,8 @@ extern gpc_polygon	oPolyLevel;
 //extern TextureIDs_t	oTextureIDs;
 extern CParticle	oParticleEngine;
 
-extern CTimedEventScheduler	*pTimedEventScheduler;
+extern CTimedEventScheduler *	pTimedEventScheduler;
+extern GameLogicThread *		pGameLogicThread;
 
 //extern GLUquadricObj	*oQuadricObj;
 

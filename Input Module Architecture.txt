@@ -1,0 +1,30 @@
+class InputManager;
+
+void GLFWCALL InputManager::ProcessKey(int nKey, int nAction);
+void GLFWCALL InputManager::ProcessChar(int nChar, int nAction);
+void GLFWCALL InputManager::ProcessMouseButton(int nMouseButton, int nAction);
+void GLFWCALL InputManager::ProcessMousePos(int nX, int nY);
+void GLFWCALL InputManager::ProcessMouseWheel(int nPosition);
+void InputManager::RegisterListener(InputListener *);
+
+InputListener stack:
+Console
+Chatmode
+LocalPlayer
+Menu
+
+class InputListener;
+
+virtual void GLFWCALL InputListener::ProcessKey(int nKey, int nAction);
+virtual void GLFWCALL InputListener::ProcessChar(int nChar, int nAction);
+virtual void GLFWCALL InputListener::ProcessMouseButton(int nMouseButton, int nAction);
+virtual void GLFWCALL InputListener::ProcessMousePos(int nX, int nY);
+virtual void GLFWCALL InputListener::ProcessMouseWheel(int nPosition);
+
+void InputListener::BindKey(int nKey, KeyState?);
+void InputListener::BindMouseButton(int nMouseButton, MouseButtonState?);
+void InputListener::BindKey(int nKey, Event?);
+void InputListener::BindMouseButton(int nMouseButton, Event?);
+
+class PlayerInputListener : public InputListener;
+class MainMenuInputListener : public InputListener;

@@ -81,9 +81,11 @@ using namespace Mgc;
 #include "game_data.h"
 #include "../../shared/particle.h"
 #include "../../shared/weapon.h"
+#include "../../shared/PlayerController.h"
+#include "../../shared/HumanController.h"
+#include "../../shared/NetworkController.h"
 #include "../../shared/player.h"
-#include "LCtrlRAuthPlayer.h"
-#include "RCtrlRAuthPlayer.h"
+#include "RemoteAuthPlayer.h"
 #include "../../shared/Network.h"
 #include "../../shared/HashMatcher.h"
 #include "../../shared/NetworkConnection.h"
@@ -91,6 +93,7 @@ using namespace Mgc;
 #include "../../shared/CPacket.h"
 #include "../../shared/CTimedEvent.h"
 #include "../../shared/CTimedEventScheduler.h"
+#include "../../shared/GameLogicThread.h"
 #include "OGLTextureManager/TextureManager.h"
 #include "../../shared/MovingAverage.h"
 
@@ -138,8 +141,6 @@ extern int			iCameraType;
 
 extern double		dTimePassed;
 extern double		dCurTime, dBaseTime;
-extern int			iFpsFrames;
-extern double		dFpsTimePassed, dFpsBaseTime;
 extern string		sFpsString;
 
 extern string		sTempString;
@@ -153,11 +154,12 @@ extern PAREA		*pPolyBooleanLevel;
 extern TextureIDs_t	oTextureIDs;
 extern CParticle	oParticleEngine;
 
-extern CTimedEventScheduler	*pTimedEventScheduler;
+extern GLUquadricObj *	oQuadricObj;
 
-extern GLUquadricObj	*oQuadricObj;
+extern CTimedEventScheduler *	pTimedEventScheduler;
+extern GameLogicThread *		pGameLogicThread;
 
-extern ServerConnection * pServer;
+extern ServerConnection *	pServer;
 
 extern GLFWthread		oNetworkThread;
 extern volatile bool	bNetworkThreadRun;

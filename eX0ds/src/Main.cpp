@@ -3,13 +3,11 @@
 
 #pragma comment(linker, "/NODEFAULTLIB:\"LIBCMT\"")
 
+volatile int	iGameState = 0;
 bool		bKeepRunning = true;
 double		dTimePassed = 0;
 double		dCurTime = 0;
 double		dBaseTime = 0;
-u_int		nFpsFrames = 0;
-double		dFpsBaseTime = 0;
-double		dFpsTimePassed = 0;
 string		sFpsString = (string)"eX0";
 
 int			nGlobalExitCode = 0;
@@ -23,7 +21,7 @@ void eX0_assert(bool expression, string message)
 }
 
 // initialization
-bool Init(int, char **)
+bool Init(int, char *[])
 {
 	// init glfw
 	if (!glfwInit())
@@ -36,7 +34,6 @@ bool Init(int, char **)
 		return false;
 	}
 	WeaponInitSpecs();
-	//nPlayerCount = 8; PlayerInit();		// Initialize the players
 	nPlayerCount = 8;					// Set the max player limit for this server
 	if (!NetworkInit()) {				// Initialize the networking
 		printf("Couldn't initialize the networking.\n");
@@ -61,7 +58,6 @@ void Deinit()
 	delete pTimedEventScheduler; pTimedEventScheduler = NULL;
 	ServerDeinit();
 	NetworkDeinit();					// Shutdown the networking component
-	//nPlayerCount = 0; PlayerInit();		// Delete all players
 	CPlayer::RemoveAll();				// Delete all players
 	GameDataUnload();					// unload game data
 
@@ -136,7 +132,7 @@ int main(int argc, char *argv[])
 
 	/*new CPlayer();
 	new CPlayer();
-	CPlayer * p1 = new RCtrlLAuthPlayer();
+	CPlayer * p1 = new LocalAuthPlayer();
 	new CPlayer();
 	delete p1;
 	new CPlayer();
@@ -161,22 +157,24 @@ return 0;*/
 	if (!Init(argc, argv))
 		Terminate(1);
 
+pGameLogicThread = new GameLogicThread();
+
 	if (!ServerStart())
 	{
 		printf("Couldn't start the server, exiting.\n");
 		Terminate(1);
 	} else printf("Started the server successfully.\n");
 
-	CTimedEvent oEvent(ceil(glfwGetTime() * 0.01) * 100, 100.0, PrintHi, NULL);
+	CTimedEvent oEvent(ceil(glfwGetTime() * 0.01) * 100, 100.0, &PrintHi, NULL);
 	pTimedEventScheduler->ScheduleEvent(oEvent);
 
 	// make sure that the physics won't count all the time passed during init
 	dBaseTime = glfwGetTime();
-	dFpsBaseTime = dBaseTime;
 
 	// Main loop
 	while (bKeepRunning)
 	{
+/*
 		// time passed calcs
 		dCurTime = glfwGetTime();
 		dTimePassed = dCurTime - dBaseTime;
@@ -196,12 +194,15 @@ return 0;*/
 glfwLockMutex(oPlayerTick);
 		for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
 			if (PlayerGet(nPlayer) != NULL)
-				dynamic_cast<RCtrlLAuthPlayer *>(PlayerGet(nPlayer))->ProcessInputCmdTEST();
+				dynamic_cast<LocalAuthPlayer *>(PlayerGet(nPlayer))->ProcessInputCmdTEST();
 		}
 glfwUnlockMutex(oPlayerTick);
+*/
 
-		glfwSleep(0.051);
+		glfwSleep(0.0001);
 	}
+
+delete pGameLogicThread;
 
 	// Clean up and exit nicely
 	Deinit();
