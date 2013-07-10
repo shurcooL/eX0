@@ -366,7 +366,7 @@ void CParticle::Tick()
 			while (oParticles[iLoop1].fTicks >= PARTICLE_TICK_TIME)
 			{
 				oParticles[iLoop1].fTicks -= PARTICLE_TICK_TIME;
-				if (oParticles[iLoop1].fLife > 1.25)
+				if (oParticles[iLoop1].fLife > 1.25f)
 					oParticles[iLoop1].oVelocity *= 0.990;
 				else {
 					float len = oParticles[iLoop1].oVelocity.Unitize();

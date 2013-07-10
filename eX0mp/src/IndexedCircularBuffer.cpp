@@ -33,31 +33,31 @@ template <typename T, typename Tp> bool IndexedCircularBuffer<T, Tp>::push(T & o
 
 template <typename T, typename Tp> void IndexedCircularBuffer<T, Tp>::pop()
 {
-	eX0_assert(!empty(), "!empty()");
+	eX0_assert(!empty(), "tried to pop() an empty buffer");
 
 	m_nBufferHead = (m_nBufferHead + 1) % m_knBufferSize;
 }
 
 template <typename T, typename Tp> T & IndexedCircularBuffer<T, Tp>::operator [](Tp nPosition)
 {
-	eX0_assert(!empty(), "!empty()");
+	eX0_assert(!empty(), "tried to access operator[] on an empty buffer");
 
 	return m_pBuffer[nPosition];
 }
 
-template <typename T, typename Tp> int IndexedCircularBuffer<T, Tp>::begin() { return m_nBufferHead; }
-template <typename T, typename Tp> int IndexedCircularBuffer<T, Tp>::end() { return m_nBufferTail; }
+template <typename T, typename Tp> Tp IndexedCircularBuffer<T, Tp>::begin() { return m_nBufferHead; }
+template <typename T, typename Tp> Tp IndexedCircularBuffer<T, Tp>::end() { return m_nBufferTail; }
 
 template <typename T, typename Tp> T & IndexedCircularBuffer<T, Tp>::front()
 {
-	eX0_assert(!empty(), "!empty()");
+	eX0_assert(!empty(), "tried to get front() of an empty buffer");
 
 	return m_pBuffer[m_nBufferHead];
 }
 
 template <typename T, typename Tp> T & IndexedCircularBuffer<T, Tp>::back()
 {
-	eX0_assert(!empty(), "!empty()");
+	eX0_assert(!empty(), "tried to get back() of an empty buffer");
 
 	return m_pBuffer[(m_nBufferTail - 1 + m_knBufferSize) % m_knBufferSize];
 }

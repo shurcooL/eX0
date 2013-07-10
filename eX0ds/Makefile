@@ -3,19 +3,19 @@ SHARED_PATH := ../shared/
 
 CC     = g++
 CFLAGS = -I../../../Libraries/glfw/include -I/usr/X11R6/include \
-	-O3 -ffast-math -pthread
+	-O0 -g -ffast-math -pthread
 # -w -Wall
 LFLAGS = ../../../Libraries/glfw/lib/x11/libglfw.a -L/usr/X11R6/lib -lGL \
 	-lX11 -lXrandr -lpthread -lm
 # -lXxf86vm -lXext
 
 # Rule for eX0ds
-eX0ds: $(SRC_PATH)Main.cpp $(SRC_PATH)player.cpp $(SRC_PATH)Network.cpp $(SRC_PATH)mmgr/mmgr.cpp \
+eX0ds: $(SRC_PATH)Main.cpp $(SRC_PATH)player.cpp $(SRC_PATH)Network.cpp \
 $(SRC_PATH)Mgc/MgcDist2DVecLin.cpp $(SRC_PATH)Mgc/MgcIntr2DLinLin.cpp $(SRC_PATH)Mgc/MgcMath.cpp \
 $(SRC_PATH)Mgc/MgcVector2.cpp $(SRC_PATH)CClient.cpp $(SHARED_PATH)CPacket.cpp $(SHARED_PATH)col_hand.cpp \
 $(SRC_PATH)game_data.cpp $(SHARED_PATH)math.cpp $(SRC_PATH)particle.cpp $(SRC_PATH)weapon.cpp \
 $(SRC_PATH)gpc/gpc.o $(SRC_PATH)Server.cpp $(SHARED_PATH)CTimedEvent.cpp $(SHARED_PATH)CTimedEventScheduler.cpp
-	$(CC) $(CFLAGS) $(SRC_PATH)Main.cpp $(SRC_PATH)player.cpp $(SRC_PATH)Network.cpp $(SRC_PATH)mmgr/mmgr.cpp \
+	$(CC) $(CFLAGS) $(SRC_PATH)Main.cpp $(SRC_PATH)player.cpp $(SRC_PATH)Network.cpp \
 $(SRC_PATH)Mgc/MgcDist2DVecLin.cpp $(SRC_PATH)Mgc/MgcIntr2DLinLin.cpp $(SRC_PATH)Mgc/MgcMath.cpp \
 $(SRC_PATH)Mgc/MgcVector2.cpp $(SRC_PATH)CClient.cpp $(SHARED_PATH)CPacket.cpp $(SHARED_PATH)col_hand.cpp \
 $(SRC_PATH)game_data.cpp $(SHARED_PATH)math.cpp $(SRC_PATH)particle.cpp $(SRC_PATH)weapon.cpp \

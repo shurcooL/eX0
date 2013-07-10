@@ -191,8 +191,8 @@ void GLFWCALL ServerThread(void *pArg)
 						} else {
 							// Process the received UDP packet
 							CPacket oPacket(cUdpBuffer, nbytes);
-							if (!NetworkProcessUdpPacket(oPacket, nbytes, pClient)) {
-								printf("Couldn't process a UDP packet (type %d):\n  ", *cUdpBuffer);
+							if (!NetworkProcessUdpPacket(oPacket, pClient)) {
+								printf("Couldn't process a UDP packet (type %d):\n  ", cUdpBuffer[0]);
 								oPacket.Print();
 							}
 						}
@@ -202,8 +202,12 @@ void GLFWCALL ServerThread(void *pArg)
 				else {
 					CClient * pClient = ClientGetFromSocket(i);
 
+					nbytes = recv(i, reinterpret_cast<char *>(pClient->oTcpPacketBuffer.cTcpPacketBuffer) + pClient->oTcpPacketBuffer.nCurrentPacketSize,
+															  sizeof(pClient->oTcpPacketBuffer.cTcpPacketBuffer) - pClient->oTcpPacketBuffer.nCurrentPacketSize,
+															  0);
+
 					// Recv returned 0 or less than 0
-					if ((nbytes = recv(i, reinterpret_cast<char *>(pClient->oTcpPacketBuffer.cTcpPacketBuffer) + pClient->oTcpPacketBuffer.nCurrentPacketSize, sizeof(pClient->oTcpPacketBuffer.cTcpPacketBuffer) - pClient->oTcpPacketBuffer.nCurrentPacketSize, 0)) <= 0)
+					if (nbytes <= 0)
 					{
 						if (pClient == NULL) {
 							printf("Error: Got an error/disconnect on a non-existing client socket (%d).\n", i);
@@ -233,7 +237,7 @@ void GLFWCALL ServerThread(void *pArg)
 							if (pClient->GetJoinStatus() >= PUBLIC_CLIENT) {
 								// Send a Player Left Server to all the other clients
 								CPacket oPlayerLeftServerPacket;
-								oPlayerLeftServerPacket.pack("hh", 0, (u_short)26);
+								oPlayerLeftServerPacket.pack("hc", 0, (u_char)26);
 								oPlayerLeftServerPacket.pack("c", (u_char)pClient->GetPlayerID());
 								oPlayerLeftServerPacket.CompleteTpcPacketSize();
 								oPlayerLeftServerPacket.BroadcastTcpExcept(pClient, PUBLIC_CLIENT);
@@ -260,7 +264,7 @@ void GLFWCALL ServerThread(void *pArg)
 							// Check if received enough to check the packet size
 							u_short snRealPacketSize = MAX_TCP_PACKET_SIZE;
 							if (pClient->oTcpPacketBuffer.nCurrentPacketSize >= 2)
-								snRealPacketSize = ntohs(*reinterpret_cast<short *>(pClient->oTcpPacketBuffer.cTcpPacketBuffer));
+								snRealPacketSize = 3 + ntohs(*reinterpret_cast<u_short *>(pClient->oTcpPacketBuffer.cTcpPacketBuffer));
 							if (snRealPacketSize > MAX_TCP_PACKET_SIZE) {		// Make sure the packet is not larger than allowed
 								printf("Got a TCP packet that's larger than allowed.\n");
 								snRealPacketSize = MAX_TCP_PACKET_SIZE;
@@ -271,7 +275,7 @@ void GLFWCALL ServerThread(void *pArg)
 								// Process it
 								CPacket oPacket(pClient->oTcpPacketBuffer.cTcpPacketBuffer, snRealPacketSize);
 								if (!NetworkProcessTcpPacket(oPacket, pClient)) {
-									printf("Couldn't process a TCP packet (type %d):\n  ", ntohs(*reinterpret_cast<u_short *>(pClient->oTcpPacketBuffer.cTcpPacketBuffer + 2)));
+									printf("Couldn't process a TCP packet (type %d):\n  ", *reinterpret_cast<u_char *>(pClient->oTcpPacketBuffer.cTcpPacketBuffer + 2));
 									oPacket.Print();
 								}
 
@@ -282,7 +286,7 @@ void GLFWCALL ServerThread(void *pArg)
 								memmove(pClient->oTcpPacketBuffer.cTcpPacketBuffer, pClient->oTcpPacketBuffer.cTcpPacketBuffer + snRealPacketSize, pClient->oTcpPacketBuffer.nCurrentPacketSize);
 
 								if (pClient->oTcpPacketBuffer.nCurrentPacketSize >= 2)
-									snRealPacketSize = ntohs(*reinterpret_cast<short *>(pClient->oTcpPacketBuffer.cTcpPacketBuffer));
+									snRealPacketSize = 3 + ntohs(*reinterpret_cast<u_short *>(pClient->oTcpPacketBuffer.cTcpPacketBuffer));
 								else snRealPacketSize = MAX_TCP_PACKET_SIZE;
 								if (snRealPacketSize > MAX_TCP_PACKET_SIZE) {		// Make sure the packet is not larger than allowed
 									printf("Got a TCP packet that's larger than allowed.\n");

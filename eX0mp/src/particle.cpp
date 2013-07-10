@@ -37,15 +37,18 @@ void CParticle::Render()
 				glEnable(GL_LINE_SMOOTH);
 				glEnable(GL_BLEND);
 				glBegin(GL_LINES);
-					glColor4f(0.95, 0.75, 0.1, 0.0);
-					glVertex2i(fIntPos.x - oParticles[iLoop1].oVelocity.x * 0.15, fIntPos.y - oParticles[iLoop1].oVelocity.y * 0.15);
+					glColor4f(1.0, 0.35, 0.05, 0.0);
+					glVertex2f(fIntPos.x - oParticles[iLoop1].oVelocity.x * 0.2, fIntPos.y - oParticles[iLoop1].oVelocity.y * 0.2);
 					glColor4f(0.95, 0.95, 0.1, 0.9);
-					glVertex2i(fIntPos.x + oParticles[iLoop1].oVelocity.x * 0.15, fIntPos.y + oParticles[iLoop1].oVelocity.y * 0.15);
+					glVertex2f(fIntPos.x + oParticles[iLoop1].oVelocity.x * 0.1, fIntPos.y + oParticles[iLoop1].oVelocity.y * 0.1);
 				glEnd();
 				glDisable(GL_BLEND);
 				glDisable(GL_LINE_SMOOTH);
 				glShadeModel(GL_FLAT);
 				glLineWidth(2);
+				glBegin(GL_POINTS);
+					glVertex2f(fIntPos.x, fIntPos.y);
+				glEnd();
 				break;
 			// bouncy bullet
 			case BOUNCY_BULLET:

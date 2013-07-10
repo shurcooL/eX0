@@ -36,13 +36,13 @@ Set nJoinStatus = PUBLIC_CLIENT.
 						Send Player Joined Server (25) to all others,
 						Send Enter Game Permission (6).
 Receive Load Level,
-Receive Curr Players Info.
+Receive Curr Players Info,
+Receive Permission to Join.
 
 ----------------------------------- Join Game (as spectator for now) ---------------------------
-Receive Permission to Join,
 Finish syncing the clock,
-Set nJoinStatus = IN_GAME,
 Start running states in sync with server,
+Set nJoinStatus = IN_GAME,
 Send Entered Game Notification (7).
 						Receive Entered Game Notification,
 						Set nJoinStatus = IN_GAME.

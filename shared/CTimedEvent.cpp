@@ -1,5 +1,11 @@
-#include <string>
 #include "NetworkIncludes.h"
+#include <string>
+
+/*#ifdef EX0_CLIENT
+#	include "../eX0mp/src/mmgr/mmgr.h"
+#else
+#	include "../eX0ds/src/mmgr/mmgr.h"
+#endif // EX0_CLIENT*/
 
 #include "CTimedEvent.h"
 

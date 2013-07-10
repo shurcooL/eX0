@@ -88,7 +88,7 @@ glfwLockMutex(oPlayerTick);
 
 	CClient *pClient = reinterpret_cast<CClient *>(p);
 
-	++pClient->cCurrentUpdateSequenceNumber;
+	++pClient->cCurrentUpdateSequenceNumber;		// First update is sent with cCurrentUpdateSequenceNumber == 1
 
 	// Send the Update Others Position packet
 	CPacket oServerUpdatePacket;
@@ -114,13 +114,12 @@ glfwUnlockMutex(oPlayerTick);
 }
 
 // Process a received TCP packet
-bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient)
+bool NetworkProcessTcpPacket(CPacket & oPacket, CClient *& pClient)
 {
-	u_short snPacketSize; oPacket.unpack("h", &snPacketSize);
-	if (snPacketSize < 4) return false;
-	u_short snPacketType; oPacket.unpack("h", &snPacketType);
+	u_short nDataSize; oPacket.unpack("h", &nDataSize);
+	u_char cPacketType; oPacket.unpack("c", &cPacketType);
 
-	switch (snPacketType) {
+	switch (cPacketType) {
 	// Join Server Request
 	case 1:
 		// Check if this client has already joined
@@ -129,7 +128,7 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient)
 			return false;
 		}
 
-		if (snPacketSize != (22 + SIGNATURE_SIZE)) return false;		// Check packet size
+		if (nDataSize != (18 + SIGNATURE_SIZE)) return false;		// Check packet size
 		else {
 			short snVersion;
 			char szPassphrase[17];
@@ -160,13 +159,13 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient)
 
 				// Accept the connection, send a Join Server Accept packet
 				CPacket oJoinServerAcceptPacket;
-				oJoinServerAcceptPacket.pack("hhcc", 0, (u_short)2, (unsigned char)nPlayerID, (unsigned char)nPlayerCount);
+				oJoinServerAcceptPacket.pack("hccc", 0, (u_char)2, (unsigned char)nPlayerID, (unsigned char)nPlayerCount);
 				oJoinServerAcceptPacket.CompleteTpcPacketSize();
 				oJoinServerAcceptPacket.SendTcp(pClient, TCP_CONNECTED);
 			} else {
 				// Refuse join server request with reason 1
 				CPacket oJoinServerRefusePacket;
-				oJoinServerRefusePacket.pack("hhc", 0, (u_short)3, 1);
+				oJoinServerRefusePacket.pack("hcc", 0, (u_char)3, 1);
 				oJoinServerRefusePacket.CompleteTpcPacketSize();
 				oJoinServerRefusePacket.SendTcp(pClient, TCP_CONNECTED);
 
@@ -186,7 +185,7 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient)
 			return false;
 		}
 
-		if (snPacketSize != 4) return false;		// Check packet size
+		if (nDataSize != 0) return false;		// Check packet size
 		else {
 			pClient->SetJoinStatus(IN_GAME);
 			printf("Player #%d (name '%s') has entered the game.\n", pClient->GetPlayerID(), pClient->GetPlayer()->GetName().c_str());
@@ -205,17 +204,17 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient)
 			return false;
 		}
 
-		if (snPacketSize < 5) return false;		// Check packet size
+		if (nDataSize < 1) return false;		// Check packet size
 		else {
 			string sTextMessage;
-			oPacket.unpack("et", snPacketSize - 4, &sTextMessage);
+			oPacket.unpack("et", nDataSize, &sTextMessage);
 
 			// Valid Send Text Message packet
 			printf("Player %d sends msg '%s'.\n", pClient->GetPlayerID(), sTextMessage.c_str());
 
 			// Create a Broadcast Text Message packet
 			CPacket oBroadcastMessagePacket;
-			oBroadcastMessagePacket.pack("hhct", 0, (u_short)11, (u_char)pClient->GetPlayerID(), &sTextMessage);
+			oBroadcastMessagePacket.pack("hcct", 0, (u_char)11, (u_char)pClient->GetPlayerID(), &sTextMessage);
 			oBroadcastMessagePacket.CompleteTpcPacketSize();
 
 			// Broadcast the text message to all players that are IN_GAME
@@ -230,17 +229,18 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient)
 			return false;
 		}
 
-		if (snPacketSize != 5) return false;		// Check packet size
+		if (nDataSize != 1) return false;		// Check packet size
 		else {
 			u_char cTeam;
 			oPacket.unpack("c", &cTeam);
-			pClient->GetPlayer()->SetTeam((int)cTeam);
 
+glfwLockMutex(oPlayerTick);
+			pClient->GetPlayer()->SetTeam((int)cTeam);
 			printf("Player #%d (name '%s') joined team %d.\n", pClient->GetPlayerID(), pClient->GetPlayer()->GetName().c_str(), cTeam);
 
 			// Create a Player Joined Team packet
 			CPacket oPlayerJoinedTeam;
-			oPlayerJoinedTeam.pack("hhc", 0, (u_short)28, pClient->GetPlayerID());
+			oPlayerJoinedTeam.pack("hcc", 0, (u_char)28, pClient->GetPlayerID());
 			oPlayerJoinedTeam.pack("c", (u_char)pClient->GetPlayer()->GetTeam());
 
 			if (pClient->GetPlayer()->GetTeam() != 2)
@@ -260,13 +260,21 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient)
 				d *= 256.0;
 				pClient->cLastCommandSequenceNumber = (u_char)d;
 
+				// Start expecting the first command packet from this player
+				pClient->cCurrentCommandSeriesNumber += 1;
+				pClient->bFirstCommand = true;
+
 				oPlayerJoinedTeam.pack("c", pClient->cLastCommandSequenceNumber);
 				oPlayerJoinedTeam.pack("fff", pClient->GetPlayer()->GetX(),
 					pClient->GetPlayer()->GetY(), pClient->GetPlayer()->GetZ());
+//glfwSleep(0.055);
 			}
+glfwUnlockMutex(oPlayerTick);
 
 			oPlayerJoinedTeam.CompleteTpcPacketSize();
 			oPlayerJoinedTeam.BroadcastTcp(PUBLIC_CLIENT);
+//glfwSleep(0.055);
+//glfwUnlockMutex(oPlayerTick);
 		}
 		break;
 	// Local Player Info
@@ -279,11 +287,11 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient)
 			return false;
 		}
 
-		if (snPacketSize < 8) return false;		// Check packet size
+		if (nDataSize < 4) return false;		// Check packet size
 		else {
 			u_char cNameLength;
 			string sName;
-			oPacket.unpack("c", &cNameLength); if ((u_short)cNameLength > snPacketSize - 7) cNameLength = (snPacketSize - 7);
+			oPacket.unpack("c", &cNameLength); if ((u_short)cNameLength > nDataSize - 3) cNameLength = (nDataSize - 3);
 			oPacket.unpack("et", (int)cNameLength, &sName);
 			PlayerGet(pClient->GetPlayerID())->SetName(sName);
 			oPacket.unpack("cc", &pClient->cCommandRate, &pClient->cUpdateRate);
@@ -296,7 +304,7 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient)
 
 				// Refuse with reason 2
 				CPacket oJoinServerRefusePacket;
-				oJoinServerRefusePacket.pack("hhc", 0, (u_short)3, 2);
+				oJoinServerRefusePacket.pack("hcc", 0, (u_char)3, 2);
 				oJoinServerRefusePacket.CompleteTpcPacketSize();
 				oJoinServerRefusePacket.SendTcp(pClient, TCP_CONNECTED);
 			}
@@ -309,17 +317,18 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient)
 				pClient->GetPlayer()->SetTeam(2);
 
 				// Set the player tick time
+				// TODO: Do something about this, see if it's needed, and remove it if not, or make it useful, etc.
 				pClient->GetPlayer()->fTickTime = 1.0f / pClient->cCommandRate;
 
 				// Send a Load Level packet to load the current level
 				CPacket oLoadLevelPacket;
-				oLoadLevelPacket.pack("hht", 0, (u_short)20, &sLevelName);
+				oLoadLevelPacket.pack("hct", 0, (u_char)20, &sLevelName);
 				oLoadLevelPacket.CompleteTpcPacketSize();
 				oLoadLevelPacket.SendTcp(pClient, PUBLIC_CLIENT);
 
 				// Send a Current Players Info to the new client
 				CPacket oCurrentPlayersInfoPacket;
-				oCurrentPlayersInfoPacket.pack("hh", 0, (u_short)21);
+				oCurrentPlayersInfoPacket.pack("hc", 0, (u_char)21);
 				for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 				{
 					// Include the client who's connecting and all clients with at least Public status
@@ -342,9 +351,9 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient)
 				oCurrentPlayersInfoPacket.CompleteTpcPacketSize();
 				oCurrentPlayersInfoPacket.SendTcp(pClient, PUBLIC_CLIENT);
 
-				// Send a Player Joined Server packet to all other clients with Public status
+				// Send a Player Joined Server packet to all the other clients with Public status
 				CPacket oPlayerJoinedServerPacket;
-				oPlayerJoinedServerPacket.pack("hh", 0, (u_short)25);
+				oPlayerJoinedServerPacket.pack("hc", 0, (u_char)25);
 				oPlayerJoinedServerPacket.pack("c", (u_char)pClient->GetPlayerID());
 				oPlayerJoinedServerPacket.pack("c", (u_char)pClient->GetPlayer()->GetName().length());
 				oPlayerJoinedServerPacket.pack("t", &pClient->GetPlayer()->GetName());
@@ -356,14 +365,14 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient)
 
 				// Send a Enter Game Permission packet
 				CPacket oEnterGamePermissionPacket;
-				oEnterGamePermissionPacket.pack("hh", 0, (u_short)6);
+				oEnterGamePermissionPacket.pack("hc", 0, (u_char)6);
 				oEnterGamePermissionPacket.CompleteTpcPacketSize();
 				oEnterGamePermissionPacket.SendTcp(pClient, PUBLIC_CLIENT);
 			}
 		}
 		break;
 	default:
-		printf("Error: Got unknown TCP packet of type %d and size %d.\n", snPacketType, snPacketSize);
+		printf("Error: Got unknown TCP packet of type %d and data size %d.\n", cPacketType, nDataSize);
 		return false;
 		break;
 	}
@@ -372,9 +381,9 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient)
 }
 
 // Process a received UDP packet
-bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize, CClient * pClient)
+bool NetworkProcessUdpPacket(CPacket & oPacket, CClient * pClient)
 {
-	if (nPacketSize < 1) return false;
+	u_int nDataSize = oPacket.size() - 1;
 	u_char cPacketType; oPacket.unpack("c", &cPacketType);
 
 	switch (cPacketType) {
@@ -397,7 +406,7 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize, CClient * pClie
 			return false;
 		}
 
-		if (nPacketSize != 2) return false;		// Check packet size
+		if (nDataSize != 1) return false;		// Check packet size
 		else {
 			u_char cSequenceNumber;
 			oPacket.unpack("c", &cSequenceNumber);
@@ -415,7 +424,7 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize, CClient * pClie
 			return false;
 		}
 
-		if (nPacketSize != 5) return false;		// Check packet size
+		if (nDataSize != 4) return false;		// Check packet size
 		else {
 			PingData_t oPingData;
 			oPacket.unpack("cccc", &oPingData.cPingData[0], &oPingData.cPingData[1], &oPingData.cPingData[2], &oPingData.cPingData[3]);
@@ -429,7 +438,7 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize, CClient * pClie
 			if (pClient->GetPingSentTimes().MatchAndRemoveAfter(oPingData)) {
 				double dLatency = glfwGetTime() - pClient->GetPingSentTimes().GetLastMatchedValue();
 				pClient->SetLastLatency(static_cast<u_short>(ceil(dLatency * 10000)));
-				printf("#%d RTT = %.4lf ms -> %d\n", pClient->GetPlayerID(), dLatency * 1000, pClient->GetLastLatency());
+				//printf("#%d RTT = %.4lf ms -> %d\n", pClient->GetPlayerID(), dLatency * 1000, pClient->GetLastLatency());
 			}
 		}
 		break;
@@ -441,20 +450,28 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize, CClient * pClie
 			return false;
 		}
 
-		if (nPacketSize < 8) return false;		// Check packet size
+		if (nDataSize < 8) return false;		// Check packet size
 		else {
 glfwLockMutex(oPlayerTick);
 
 			u_char cCommandSequenceNumber;
+			u_char cCommandSeriesNumber;
 			u_char cMovesCount;
 			char cMoveDirection;
 			float fZ;
-			oPacket.unpack("cc", &cCommandSequenceNumber, &cMovesCount);
+			oPacket.unpack("ccc", &cCommandSequenceNumber, &cCommandSeriesNumber, &cMovesCount);
+			cMovesCount += 1;
 
-			// A special case for the first command we receive from this client
-			if (pClient->bNoCommandsReceived) {
+			if (cCommandSeriesNumber != pClient->cCurrentCommandSeriesNumber) {
+				printf("Got a Command with mismatching series number, cCommandSequenceNumber = %d, cMovesCount = %d, ignoring.\n", cCommandSequenceNumber, cMovesCount);
+				break;
+			}
+
+			// A special case for the first command we receive from this client in this new series
+			if (pClient->bFirstCommand) {
 				pClient->cLastCommandSequenceNumber = (u_char)(cCommandSequenceNumber - cMovesCount);
-				pClient->bNoCommandsReceived = false;
+printf("Got first command from client %d, last %d, with %d moves\n", cCommandSequenceNumber, pClient->cLastCommandSequenceNumber, cMovesCount);
+				pClient->bFirstCommand = false;
 			}
 
 			if (cCommandSequenceNumber == pClient->cLastCommandSequenceNumber) {
@@ -464,11 +481,12 @@ glfwLockMutex(oPlayerTick);
 			} else
 			{
 				int nMove = (int)cMovesCount - (char)(cCommandSequenceNumber - pClient->cLastCommandSequenceNumber);
+				if (nMove < 0) printf("!!MISSING!! %d command move(s) from player #%d, due to lost packets:\n", -nMove, pClient->GetPlayerID());
 				if (nMove < 0) nMove = 0;
 
 				++pClient->cLastCommandSequenceNumber;
 				if (cCommandSequenceNumber != pClient->cLastCommandSequenceNumber) {
-					printf("Lost %d UDP command packet(s) from player %d!\n", (u_char)(cCommandSequenceNumber - pClient->cLastCommandSequenceNumber), pClient->GetPlayerID());
+					printf("Lost %d UDP command packet(s) from player #%d!\n", (u_char)(cCommandSequenceNumber - pClient->cLastCommandSequenceNumber), pClient->GetPlayerID());
 				}
 				pClient->cLastCommandSequenceNumber = cCommandSequenceNumber;
 
@@ -512,7 +530,7 @@ glfwLockMutex(oPlayerTick);
 glfwUnlockMutex(oPlayerTick);
 		break;
 	default:
-		printf("Error: Got unknown UDP packet of type %d and size %d.\n", (int)cPacketType, nPacketSize);
+		printf("Error: Got unknown UDP packet of type %d and data size %d.\n", cPacketType, nDataSize);
 		return false;
 		break;
 	}
@@ -521,7 +539,7 @@ glfwUnlockMutex(oPlayerTick);
 }
 
 // Process a potential UDP Handshake packet
-bool NetworkProcessUdpHandshakePacket(u_char *cPacket, int nPacketSize, struct sockaddr_in &oSenderAddress)
+bool NetworkProcessUdpHandshakePacket(u_char * cPacket, u_short nPacketSize, struct sockaddr_in & oSenderAddress)
 {
 	// Check if the given packet is a UDP Handshake packet
 	if (nPacketSize == 1 + SIGNATURE_SIZE && cPacket[0] == (u_char)100)
@@ -542,7 +560,7 @@ bool NetworkProcessUdpHandshakePacket(u_char *cPacket, int nPacketSize, struct s
 
 			// Send a UDP Connection Established packet
 			CPacket oUDPConnectionEstablishedPacket;
-			oUDPConnectionEstablishedPacket.pack("hh", 0, (u_short)5);
+			oUDPConnectionEstablishedPacket.pack("hc", 0, (u_char)5);
 			oUDPConnectionEstablishedPacket.CompleteTpcPacketSize();
 			oUDPConnectionEstablishedPacket.SendTcp(pClient, UDP_CONNECTED);
 

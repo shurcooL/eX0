@@ -9,9 +9,10 @@ CClient::CClient(SOCKET nTcpSocket)
 	m_nTcpSocket = nTcpSocket;
 	m_nJoinStatus = TCP_CONNECTED;
 	cLastCommandSequenceNumber = 0;
+	cCurrentCommandSeriesNumber = 0;
 	cCurrentUpdateSequenceNumber = 0;
 	nUpdateEventId = 0;
-	bNoCommandsReceived = true;
+	bFirstCommand = true;
 	m_nLastLatency = 0;
 
 	m_nPlayerID = -1;

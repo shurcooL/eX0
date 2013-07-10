@@ -1,0 +1,73 @@
+Client:
+Joining team Red.
+cLastAckedCommandSequenceNumber (in packet 28) = 78, while cCurrentCommandSequen
+ceNumber = 78
+Player #0 (name 'shurcooL`') joined team 0.
+Joining team Blue.
+cLastAckedCommandSequenceNumber (in packet 28) = 87, while cCurrentCommandSequen
+ceNumber = 87
+Player #0 (name 'shurcooL`') joined team 1.
+Joining team Red.
+cLastAckedCommandSequenceNumber (in packet 28) = 99, while cCurrentCommandSequen
+ceNumber = 99
+Player #0 (name 'shurcooL`') joined team 0.
+Joining team Blue.
+cLastAckedCommandSequenceNumber (in packet 28) = 113, while cCurrentCommandSeque
+nceNumber = 112
+WARNING!!!!!: I predict a mismatch!!
+Player #0 (name 'shurcooL`') joined team 1.
+Snapping-A to server's position (0.500000 difference).
+Snapping-A to server's position (0.249999 difference).
+Snapping-A to server's position (0.250001 difference).
+Snapping-A to server's position (0.249999 difference).
+Snapping-A to server's position (0.250001 difference).
+Snapping-A to server's position (0.250000 difference).
+Joining team Red.
+cLastAckedCommandSequenceNumber (in packet 28) = 120, while cCurrentCommandSeque
+nceNumber = 119
+WARNING!!!!!: I predict a mismatch!!
+Player #0 (name 'shurcooL`') joined team 0.
+Snapping-A to server's position (0.499999 difference).
+Snapping-A to server's position (0.249999 difference).
+Snapping-A to server's position (0.250004 difference).
+Snapping-A to server's position (0.249999 difference).
+Snapping-A to server's position (0.249999 difference).
+Snapping-A to server's position (0.249999 difference).
+Snapping-A to server's position (0.249999 difference).
+Snapping-A to server's position (0.249999 difference).
+Snapping-A to server's position (0.249996 difference).
+Snapping-A to server's position (0.250007 difference).
+Snapping-A to server's position (0.249999 difference).
+Snapping-A to server's position (0.249999 difference).
+Snapping-A to server's position (0.249999 difference).
+51.16645600 sec: NxtTk=51.199999999999235, NxtTk/12.8=3.999999999999940
+Deinit
+
+Server:
+Player #0 (name 'shurcooL`') joined team 0.
+Positioning player 0 at -107.000000, 100.000000.
+Got first command from client 79, last 78, with 1 moves
+Player #0 (name 'shurcooL`') joined team 1.
+Positioning player 0 at -68.000000, -157.000000.
+Got first command from client 88, last 87, with 1 moves
+#0 RTT = 9.2470 ms -> 93
+Player #0 (name 'shurcooL`') joined team 0.
+Positioning player 0 at 182.000000, -23.000000.
+Got first command from client 100, last 99, with 1 moves
+Player #0 (name 'shurcooL`') joined team 1.
+Positioning player 0 at -15.000000, -54.000000.
+Got first command from client 113, last 113, with 1 moves
+Got a duplicate UDP command packet from player 0, discarding.
+Player #0 (name 'shurcooL`') joined team 0.
+Positioning player 0 at -202.000000, -122.000000.
+Got first command from client 120, last 120, with 1 moves
+Got a duplicate UDP command packet from player 0, discarding.
+#0 RTT = 12.1230 ms -> 122
+#0 RTT = 8.8710 ms -> 89
+===================== 50.000071
+#0 RTT = 9.5150 ms -> 96
+#0 RTT = 10.3790 ms -> 104
+Player #0 (name 'shurcooL`') has left the game (gracefully).
+Deleted a client (socket 5 closed).
+===================== 60.000369
+Deinit

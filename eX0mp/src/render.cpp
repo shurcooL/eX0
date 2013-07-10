@@ -30,7 +30,7 @@ void RenderStaticScene()
 				for (nLoop2 = 0; nLoop2 < oTristripLevel.strip[nLoop1].num_vertices; nLoop2++)
 				{
 					//glColor3f(1.0 - (nLoop2 % 2 * 1), (nLoop2 % 2 * 1), 0.0);
-					glTexCoord2f((float)oTristripLevel.strip[nLoop1].vertex[nLoop2].x / 256.0, (float)oTristripLevel.strip[nLoop1].vertex[nLoop2].y / -256.0);
+					glTexCoord2f((float)oTristripLevel.strip[nLoop1].vertex[nLoop2].x / 256.0f, (float)oTristripLevel.strip[nLoop1].vertex[nLoop2].y / -256.0f);
 					glVertex2d(oTristripLevel.strip[nLoop1].vertex[nLoop2].x, oTristripLevel.strip[nLoop1].vertex[nLoop2].y);
 				}
 			glEnd();
@@ -48,13 +48,13 @@ void RenderStaticScene()
 			if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			glLineWidth(1.0f);
 			glBegin(GL_TRIANGLES);
-				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v0->g.x / 256.0, (float)pPolyBooleanLevel->tria[nLoop1].v0->g.y / -256.0);
+				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v0->g.x / 256.0f, (float)pPolyBooleanLevel->tria[nLoop1].v0->g.y / -256.0f);
 				glVertex2i(pPolyBooleanLevel->tria[nLoop1].v0->g.x, pPolyBooleanLevel->tria[nLoop1].v0->g.y);
 
-				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v1->g.x / 256.0, (float)pPolyBooleanLevel->tria[nLoop1].v1->g.y / -256.0);
+				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v1->g.x / 256.0f, (float)pPolyBooleanLevel->tria[nLoop1].v1->g.y / -256.0f);
 				glVertex2i(pPolyBooleanLevel->tria[nLoop1].v1->g.x, pPolyBooleanLevel->tria[nLoop1].v1->g.y);
 
-				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v2->g.x / 256.0, (float)pPolyBooleanLevel->tria[nLoop1].v2->g.y / -256.0);
+				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v2->g.x / 256.0f, (float)pPolyBooleanLevel->tria[nLoop1].v2->g.y / -256.0f);
 				glVertex2i(pPolyBooleanLevel->tria[nLoop1].v2->g.x, pPolyBooleanLevel->tria[nLoop1].v2->g.y);
 			glEnd();
 			if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -63,7 +63,7 @@ void RenderStaticScene()
 	}
 
 	// draw the outline
-	glColor3f(0.9, 0.9, 0.9);
+	glColor3d(0.9, 0.9, 0.9);
 	glLineWidth(1.5);
 	glEnable(GL_LINE_SMOOTH);
 	glEnable(GL_BLEND);
@@ -108,12 +108,12 @@ void RenderHUD(void)
 			OglUtilsPrint(0, 408, 0, false, "reloading!");
 		}
 		if (oPlayers[iLocalPlayerID]->GetHealth() <= 40.0)
-			glColor3f(0.9, 0.1, 0.1);
+			glColor3d(0.9, 0.1, 0.1);
 		else if (oPlayers[iLocalPlayerID]->GetHealth() <= 75.0)
-			glColor3f(0.9, 0.5, 0.1);
+			glColor3d(0.9, 0.5, 0.1);
 		else
-			glColor3f(1, 1, 1);
-		sTempString = (string)"health: " + itos(ceil(oPlayers[iLocalPlayerID]->GetHealth()));
+			glColor3d(1, 1, 1);
+		sTempString = (string)"health: " + itos((int)ceil(oPlayers[iLocalPlayerID]->GetHealth()));
 		OglUtilsPrint(0, 426, 0, false, (char *)sTempString.c_str());
 		glColor3f(1, 1, 1);
 		sTempString = (string)"ammo: " + itos(oPlayers[iLocalPlayerID]->GetSelClipAmmo());
@@ -172,16 +172,16 @@ void RenderHUD(void)
 
 		sTempString = "x: " + ftos(PlayerGet(iLocalPlayerID)->GetIntX());
 		glLoadIdentity();
-		OglUtilsPrint(0, 20, 0, false, (char *)sTempString.c_str());
+		OglUtilsPrint(0, 35, 0, false, (char *)sTempString.c_str());
 		sTempString = "y: " + ftos(PlayerGet(iLocalPlayerID)->GetIntY());
 		glLoadIdentity();
-		OglUtilsPrint(0, 30, 0, false, (char *)sTempString.c_str());
+		OglUtilsPrint(0, 45, 0, false, (char *)sTempString.c_str());
 		sTempString = "z: " + ftos(PlayerGet(iLocalPlayerID)->GetZ());
 		glLoadIdentity();
-		OglUtilsPrint(0, 40, 0, false, (char *)sTempString.c_str());
+		OglUtilsPrint(0, 55, 0, false, (char *)sTempString.c_str());
 		sTempString = "velocity: " + ftos(PlayerGet(iLocalPlayerID)->GetVelocity());
 		glLoadIdentity();
-		OglUtilsPrint(150, 20, 0, false, (char *)sTempString.c_str());
+		OglUtilsPrint(150, 35, 0, false, (char *)sTempString.c_str());
 
 		for (int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
 		{
@@ -192,17 +192,17 @@ void RenderHUD(void)
 					+ " lat: " + ftos(oPlayers[iLoop1]->GetLastLatency() * 0.1f)
 					//+ " ccsn: " + itos(oPlayers[iLoop1]->cCurrentCommandSequenceNumber)
 					+ " lacsn: " + itos(oPlayers[iLoop1]->cLastAckedCommandSequenceNumber);
-				OglUtilsPrint(0, 50 + iLoop1 * 10, 0, false, (char *)sTempString.c_str());
+				OglUtilsPrint(0, 70 + iLoop1 * 10, 0, false, (char *)sTempString.c_str());
 			}
 		}
 
 		sTempString = "max oLocallyPredictedInputs.size(): " + itos(iTempInt);
 		glLoadIdentity();
-		OglUtilsPrint(0, 50 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
+		OglUtilsPrint(0, 70 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
 		//sTempString = "fTempFloat: " + ftos(fTempFloat);
-		sTempString = "Latency: " + ftos(fLastLatency);
+		/*sTempString = "Latency: " + ftos(fLastLatency);
 		glLoadIdentity();
-		OglUtilsPrint(0, 65 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());
+		OglUtilsPrint(0, 85 + nPlayerCount * 10, 0, false, (char *)sTempString.c_str());*/
 
 		// Networking info
 		sTempString = "cCurrentCommandSequenceNumber = " + itos(cCurrentCommandSequenceNumber);
@@ -314,10 +314,10 @@ void RenderFOV()
 	glEnable(GL_BLEND);
 	glShadeModel(GL_SMOOTH);
 	glBegin(GL_QUADS);
-		glColor4f(1, 1, 1, 0.075);
+		glColor4d(1, 1, 1, 0.075);
 		glVertex2i(-250, -15);
 		glVertex2i(250, -15);
-		glColor4f(1, 1, 1, 0.025);
+		glColor4d(1, 1, 1, 0.025);
 		glVertex2i(750, 1000);
 		glVertex2i(-750, 1000);
 	glEnd();
@@ -326,7 +326,7 @@ void RenderFOV()
 	// Darken what's not
 	glStencilFunc(GL_NOTEQUAL, 1, 1);
 	glBegin(GL_QUADS);
-		glColor4f(0, 0, 0, 0.6);
+		glColor4d(0, 0, 0, 0.6);
 		glVertex2i(-750, -250);
 		glVertex2i(750, -250);
 		glVertex2i(750, 1000);

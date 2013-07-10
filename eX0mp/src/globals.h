@@ -39,7 +39,7 @@ p = pointer
 #include <deque>
 #include <GL/glfw.h>	// the glfw header
 
-#include "mmgr/mmgr.h"	// Fluid Studios Memory Manager
+//#include "mmgr/mmgr.h"	// Fluid Studios Memory Manager
 
 
 ////////////////////
@@ -110,7 +110,7 @@ extern bool			bFullscreen;
 extern float		fMouseSensitivity;
 extern bool			bAutoReload;
 
-extern int			iCursorX, iCursorY;
+extern int			nDesktopCursorX, nDesktopCursorY;
 extern int			iMouseX, iMouseY;
 extern int			iMouseMovedX[MOUSE_FILTERING_SAMPLES], iMouseMovedY[MOUSE_FILTERING_SAMPLES];
 //extern int			iMouseMovedX, iMouseMovedY;

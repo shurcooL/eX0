@@ -3,6 +3,7 @@
 
 #pragma comment(linker, "/NODEFAULTLIB:\"LIBCMT\"")
 
+bool		bKeepRunning = true;
 double		dTimePassed = 0;
 double		dCurTime = 0;
 double		dBaseTime = 0;
@@ -61,17 +62,6 @@ void Deinit()
 	glfwTerminate();
 }
 
-void Terminate(int nExitCode)
-{
-	// deinit
-	Deinit();
-
-	// DEBUG: Print out the memory usage stats
-	//m_dumpMemoryReport();
-
-	exit(nExitCode);
-}
-
 // syncronizes random seed with all clients
 void SyncRandSeed(void)
 {
@@ -80,20 +70,21 @@ void SyncRandSeed(void)
 	//srand(static_cast<unsigned int>(time(NULL)));
 }
 
-#ifdef WIN32
-BOOL WINAPI CtrlCHandler(DWORD dwCtrlType)
+void Terminate(int nExitCode)
 {
-	if (dwCtrlType == CTRL_C_EVENT || dwCtrlType == CTRL_BREAK_EVENT)
-		Terminate(1);
+	if (nExitCode != 0) {
+		// deinit
+		Deinit();
 
-	return FALSE;
+		// DEBUG: Print out the memory usage stats
+		//m_dumpMemoryReport();
+
+		exit(nExitCode);
+	} else {
+		if (bKeepRunning) bKeepRunning = false;
+		else Terminate(10);
+	}
 }
-#else
-void sigint_handler(int sig)
-{
-	Terminate(1);
-}
-#endif
 
 void PrintHi(void *p)
 {
@@ -101,13 +92,35 @@ void PrintHi(void *p)
 	printf("===================== %f\n", glfwGetTime());
 }
 
+#ifdef WIN32
+BOOL WINAPI CtrlCHandler(DWORD dwCtrlType)
+{
+	if (dwCtrlType == CTRL_C_EVENT || dwCtrlType == CTRL_BREAK_EVENT || dwCtrlType == CTRL_CLOSE_EVENT
+		|| dwCtrlType == CTRL_LOGOFF_EVENT || dwCtrlType == CTRL_SHUTDOWN_EVENT)
+	{
+		Terminate(0);
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
+#else
+void signal_handler(int sig)
+{
+	Terminate(0);
+}
+#endif
+
+// main function
 int main(int argc, char *argv[])
 {
 	// Add a Ctrl+C signal handler, for abrupt termination
 #ifdef WIN32
-	SetConsoleCtrlHandler(CtrlCHandler, TRUE);
+	SetConsoleCtrlHandler(&CtrlCHandler, TRUE);
 #else
-	signal(SIGINT, sigint_handler);
+	signal(SIGINT, &signal_handler);
+	signal(SIGHUP, &signal_handler);
 #endif
 
 	// Print the version and date/time built
@@ -127,15 +140,15 @@ int main(int argc, char *argv[])
 		Terminate(1);
 	} else printf("Started the server successfully.\n");
 
+	CTimedEvent oEvent(ceil(glfwGetTime() * 0.1) * 10, 10.0, PrintHi, NULL);
+	pTimedEventScheduler->ScheduleEvent(oEvent);
+
 	// make sure that the physics won't count all the time passed during init
 	dBaseTime = glfwGetTime();
 	dFpsBaseTime = dBaseTime;
 
-	CTimedEvent oEvent(ceil(glfwGetTime() * 0.1) * 10, 10.0, PrintHi, NULL);
-	pTimedEventScheduler->ScheduleEvent(oEvent);
-
 	// Main loop
-	while (true)
+	while (bKeepRunning)
 	{
 		// time passed calcs
 		dCurTime = glfwGetTime();
@@ -145,7 +158,7 @@ int main(int argc, char *argv[])
 		// fps calcs
 		nFpsFrames++;
 		dFpsTimePassed = dCurTime - dFpsBaseTime;
-		if (dFpsTimePassed >= 10.0f)
+		if (dFpsTimePassed >= 3.0f)
 		{
 			sFpsString = (string)"eX0ds - " + ftos(nFpsFrames / (float)dFpsTimePassed) + " fps";
 			//printf("%s\n", sFpsString.c_str());
@@ -157,7 +170,8 @@ int main(int argc, char *argv[])
 	}
 
 	// Clean up and exit nicely
-	Terminate(0);
+	Deinit();
 
+	printf("Returning 0 from main(). :)\n");
 	return 0;
 }

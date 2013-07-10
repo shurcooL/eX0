@@ -4,6 +4,12 @@
 #include <string>
 using std::multiset;
 
+/*#ifdef EX0_CLIENT
+#	include "../eX0mp/src/mmgr/mmgr.h"
+#else
+#	include "../eX0ds/src/mmgr/mmgr.h"
+#endif // EX0_CLIENT*/
+
 #include "CTimedEventScheduler.h"
 
 #include "CTimedEvent.h"

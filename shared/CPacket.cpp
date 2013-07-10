@@ -15,7 +15,7 @@ CPacket::CPacket()
 	m_pBufferPosition = m_pBuffer;
 }
 
-CPacket::CPacket(u_char *pBuffer, int nSize)
+CPacket::CPacket(u_char *pBuffer, u_int nSize)
 {
 	eX0_assert(nSize > 0, "nSize > 0");
 
@@ -31,14 +31,17 @@ CPacket::~CPacket()
 		delete[] m_pBuffer;
 }
 
-u_char * CPacket::GetPacket(void)
+u_char * CPacket::GetPacket()
 {
 	return m_pBuffer;
 }
 
-int CPacket::Size(void) const
+u_int CPacket::size() const
 {
-	return (int)(m_pBufferPosition - m_pBuffer);
+	if (m_bOwnBuffer)
+		return (u_int)(m_pBufferPosition - m_pBuffer);
+	else
+		return m_nSize;
 }
 
 /*
@@ -51,9 +54,9 @@ int CPacket::Size(void) const
 **  s - string (known length)
 **  z - string (16-bit length is automatically prepended)
 */
-size_t CPacket::pack(char *format, ...)
+u_int CPacket::pack(char *format, ...)
 {
-	eX0_assert(m_nSize == 0, "Tried to pack a constant (existing) CPacket");
+	eX0_assert(m_bOwnBuffer, "Tried to pack a constant (existing) CPacket");
 
 	va_list ap;
 	int h;
@@ -64,7 +67,7 @@ size_t CPacket::pack(char *format, ...)
 	double d;
 	char *s;
 	string *t;
-	size_t size = 0, len;
+	u_int size = 0, len;
 
 	va_start(ap, format);
 
@@ -160,7 +163,7 @@ void CPacket::unpack(char *format, ...)
 	double *d;
 	char *s;
 	string *t;
-	size_t len, count, maxstrlen = 0;
+	u_int len, count, maxstrlen = 0;
 
 	va_start(ap, format);
 
@@ -240,7 +243,7 @@ void CPacket::unpack(char *format, ...)
 
 	va_end(ap);
 
-	eX0_assert(Size() <= m_nSize, "Tried to unpack more data than exists in a CPacket");
+	eX0_assert((u_int)(m_pBufferPosition - m_pBuffer) <= m_nSize, "Tried to unpack more data than exists in a CPacket");
 }
 
 /*
@@ -361,9 +364,11 @@ u_int64 CPacket::unpacki64(u_char *buf)
 		| ((u_int64)buf[4]<<24) | ((u_int64)buf[5]<<16) | ((u_int64)buf[6]<<8) | (u_int64)buf[7];
 }
 
-void CPacket::CompleteTpcPacketSize(void)
+void CPacket::CompleteTpcPacketSize()
 {
-	packi16((u_char *)GetPacket(), Size());
+	eX0_assert(size() >= 3);
+
+	packi16(GetPacket(), size() - 3);
 }
 
 // TODO: This should be merged between client and server
@@ -371,7 +376,7 @@ void CPacket::CompleteTpcPacketSize(void)
 bool CPacket::SendTcp(/*CClient *pClient, */JoinStatus nMinimumJoinStatus)
 {
 	if (nJoinStatus < nMinimumJoinStatus) { printf("SendTcp failed\n"); return false; }
-	else if (sendall(nServerTcpSocket, (char *)GetPacket(), Size(), 0) == SOCKET_ERROR) {
+	else if (sendall(nServerTcpSocket, (char *)GetPacket(), size(), 0) == SOCKET_ERROR) {
 		NetworkPrintError("sendall");
 		return false;
 	}
@@ -381,7 +386,7 @@ bool CPacket::SendTcp(/*CClient *pClient, */JoinStatus nMinimumJoinStatus)
 bool CPacket::SendUdp(/*CClient *pClient, */JoinStatus nMinimumJoinStatus)
 {
 	if (nJoinStatus < nMinimumJoinStatus) { printf("SendUdp failed\n"); return false; }
-	else if (sendudp(nServerUdpSocket, (char *)GetPacket(), Size(), 0) != Size()) {
+	else if (sendudp(nServerUdpSocket, (char *)GetPacket(), size(), 0) != size()) {
 		NetworkPrintError("sendudp (send)");
 		return false;
 	}
@@ -391,7 +396,7 @@ bool CPacket::SendUdp(/*CClient *pClient, */JoinStatus nMinimumJoinStatus)
 bool CPacket::SendTcp(CClient *pClient, JoinStatus nMinimumJoinStatus)
 {
 	if (pClient->GetJoinStatus() < nMinimumJoinStatus) { printf("SendTcp failed (not high enough JoinStatus)\n"); return false; }
-	else if (sendall(pClient->GetSocket(), (char *)GetPacket(), Size(), 0) == SOCKET_ERROR) {
+	else if (sendall(pClient->GetSocket(), (char *)GetPacket(), size(), 0) == SOCKET_ERROR) {
 		NetworkPrintError("sendall");
 		return false;
 	}
@@ -404,7 +409,7 @@ bool CPacket::BroadcastTcp(JoinStatus nMinimumJoinStatus)
 		// Broadcast the packet to all players that are connected
 		if (PlayerGet(nPlayer)->pClient != NULL
 		  && PlayerGet(nPlayer)->pClient->GetJoinStatus() >= nMinimumJoinStatus) {
-			if (sendall(PlayerGet(nPlayer)->pClient->GetSocket(), (char *)GetPacket(), Size(), 0) == SOCKET_ERROR) {
+			if (sendall(PlayerGet(nPlayer)->pClient->GetSocket(), (char *)GetPacket(), size(), 0) == SOCKET_ERROR) {
 				NetworkPrintError("sendall");
 				return false;
 			}
@@ -419,7 +424,7 @@ bool CPacket::BroadcastTcpExcept(CClient *pClient, JoinStatus nMinimumJoinStatus
 		// Broadcast the packet to all players that are connected, except the specified one
 		if (pClient != PlayerGet(nPlayer)->pClient && PlayerGet(nPlayer)->pClient != NULL
 		  && PlayerGet(nPlayer)->pClient->GetJoinStatus() >= nMinimumJoinStatus) {
-			if (sendall(PlayerGet(nPlayer)->pClient->GetSocket(), (char *)GetPacket(), Size(), 0) == SOCKET_ERROR) {
+			if (sendall(PlayerGet(nPlayer)->pClient->GetSocket(), (char *)GetPacket(), size(), 0) == SOCKET_ERROR) {
 				NetworkPrintError("sendall");
 				return false;
 			}
@@ -431,8 +436,8 @@ bool CPacket::BroadcastTcpExcept(CClient *pClient, JoinStatus nMinimumJoinStatus
 bool CPacket::SendUdp(CClient *pClient, JoinStatus nMinimumJoinStatus)
 {
 	if (pClient->GetJoinStatus() < nMinimumJoinStatus) { printf("SendUdp failed (not high enough JoinStatus)\n"); return false; }
-	else if (sendudp(nUdpSocket, (char *)GetPacket(), Size(), 0,
-		(struct sockaddr *)&pClient->GetAddress(), sizeof(pClient->GetAddress())) != Size()) {
+	else if (sendudp(nUdpSocket, (char *)GetPacket(), size(), 0,
+		(struct sockaddr *)&pClient->GetAddress(), sizeof(pClient->GetAddress())) != size()) {
 		NetworkPrintError("sendudp (sendto)");
 		return false;
 	}
@@ -445,8 +450,8 @@ bool CPacket::BroadcastUdp(JoinStatus nMinimumJoinStatus)
 		// Broadcast the packet to all players that are connected
 		if (PlayerGet(nPlayer)->pClient != NULL
 		  && PlayerGet(nPlayer)->pClient->GetJoinStatus() >= nMinimumJoinStatus) {
-			if (sendudp(nUdpSocket, (char *)GetPacket(), Size(), 0,
-				(struct sockaddr *)&PlayerGet(nPlayer)->pClient->GetAddress(), sizeof(PlayerGet(nPlayer)->pClient->GetAddress())) != Size()) {
+			if (sendudp(nUdpSocket, (char *)GetPacket(), size(), 0,
+				(struct sockaddr *)&PlayerGet(nPlayer)->pClient->GetAddress(), sizeof(PlayerGet(nPlayer)->pClient->GetAddress())) != size()) {
 				NetworkPrintError("sendudp (sendto)");
 				return false;
 			}
@@ -464,8 +469,8 @@ bool CPacket::BroadcastUdpExcept(CClient *pClient, JoinStatus nMinimumJoinStatus
 
 void CPacket::Print() const
 {
-	printf("Packet (%d bytes): ", (m_nSize == 0 ? Size() : m_nSize));
-	for (int nByte = 0; nByte < (m_nSize == 0 ? Size() : m_nSize); ++nByte)
-		printf("%d ", (u_char)m_pBuffer[nByte]);
+	printf("Packet (%d bytes): ", size());
+	for (u_int nByte = 0; nByte < size(); ++nByte)
+		printf("%d ", m_pBuffer[nByte]);
 	printf("\n");
 }

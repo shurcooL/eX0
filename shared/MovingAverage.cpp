@@ -6,6 +6,12 @@ using std::pair;
 #include <stdio.h>
 #include "NetworkIncludes.h"
 
+/*#ifdef EX0_CLIENT
+#	include "../eX0mp/src/mmgr/mmgr.h"
+#else
+#	include "../eX0ds/src/mmgr/mmgr.h"
+#endif // EX0_CLIENT*/
+
 #include "MovingAverage.h"
 
 MovingAverage::MovingAverage(double dTimeSpan, u_int nMinSize)

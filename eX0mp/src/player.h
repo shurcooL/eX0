@@ -119,6 +119,7 @@ private:
 	State_t						oOnlyKnownState;
 
 	unsigned short int	m_nLastLatency;
+	u_char		cCurrentCommandSeriesNumber;
 
 	State_t GetStateInPast(float fTimeAgo);
 };

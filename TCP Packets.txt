@@ -12,27 +12,27 @@ double - double, 8 bytes
 Common TCP Packet Header:
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 Packet Length in Bytes (short) - 2 bytes
-Packet Type (short)            - 2 bytes
+Packet Type (char)             - 1 bytes
 ----------------------------------------
-Total TCP Packet Header Length - 4 bytes
+Total TCP Packet Header Length - 3 bytes
 
 Client -> Server TCP Packets:
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-1. Join Server Request (size == 4 + 18 + SIGNATURE_SIZE == 22 + SIGNATURE_SIZE):
+1. Join Server Request (size == 18 + SIGNATURE_SIZE):
 Version (short) = 1
 Passphrase (16 char) = "somerandompass01"
 Signature (SIGNATURE_SIZE = 8 char)
 
-7. Entered Game Notification (size == 4 + 0 == 4):
+7. Entered Game Notification (size == 0):
 Empty
 
-10. Send Text message (size >= 4 + 1 >= 5):
+10. Send Text message (size >= 1):
 Message (* char)
 
-27. Join Team Request (size == 4 + 1 == 5):
+27. Join Team Request (size == 1):
 Team (char)
 
-30. Local Player Info (size >= 4 + 4 >= 8):
+30. Local Player Info (size >= 4):
 Name Length (char)
 Name (* char)
 Command Rate (char)
@@ -40,27 +40,27 @@ Update Rate (char)
 
 Server -> Client TCP Packets:
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-2. Join Server Accept (size == 4 + 2 == 6):
+2. Join Server Accept (size == 2):
 Your Id (char)
 TotalPlayerCount (char)
 
-3. Join Server Refuse (size == 4 + 1 == 5):
+3. Join Server Refuse (size == 1):
 Refuse Reason (char)
 
-5. UDP Connection Established (size == 4 + 0 == 4):
+5. UDP Connection Established (size == 0):
 Empty
 
-6. Enter Game Permission (size == 4 + 0 == 4):
+6. Enter Game Permission (size == 0):
 Empty
 
-11. Broadcast Text Message (size >= 4 + 2 >= 6):
+11. Broadcast Text Message (size >= 2):
 Player Id (char)
 Message (* char)
 
-20. Load Level (size >= 4 + 1 >= 5):
+20. Load Level (size >= 1):
 Level Filename (* char)
 
-21. Current Players Info (size >= 4 + nPlayerCount >= 4 + nPlayerCount):
+21. Current Players Info (size >= nPlayerCount):
 [
 	Name Length (char) >= 1
 	Name (* char)
@@ -76,15 +76,15 @@ Level Filename (* char)
 	Name Length (char) = 0
 ]
 
-25. Player Joined Server (size >= 4 + 3 >= 7):
+25. Player Joined Server (size >= 3):
 Player Id (char)
 Name Length (char)
 Name (* char)
 
-26. Player Left Server (size == 4 + 1 == 5):
+26. Player Left Server (size == 1):
 Player Id (char)
 
-28. Player Joined Team (size >= 4 + 2 >= 6):
+28. Player Joined Team (size >= 2):
 Player Id (char)
 Team (char)
 [ if (Team != 2)

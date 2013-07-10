@@ -38,7 +38,7 @@ p = pointer
 #include <queue>
 #include <GL/glfw.h>	// the glfw header
 
-#include "mmgr/mmgr.h"	// Fluid Studios Memory Manager
+//#include "mmgr/mmgr.h"	// Fluid Studios Memory Manager
 
 
 ////////////////////

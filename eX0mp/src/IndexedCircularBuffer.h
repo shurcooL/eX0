@@ -5,25 +5,25 @@
 template <typename T, typename Tp> class IndexedCircularBuffer
 {
 public:
-	IndexedCircularBuffer(void);
-	~IndexedCircularBuffer(void);
+	IndexedCircularBuffer();
+	~IndexedCircularBuffer();
 
 	bool push(T & oItem, Tp nPosition);
-	void pop(void);
+	void pop();
 
 	T & operator [](Tp nPosition);
 
-	int begin(void);
-	int end(void);
+	Tp begin();
+	Tp end();
 
-	T & front(void);
-	T & back(void);
+	T & front();
+	T & back();
 
-	bool empty(void);
-	//bool full(void);
-	u_int size(void);
+	bool empty();
+	//bool full();
+	u_int size();
 
-	void clear(void);
+	void clear();
 
 private:
 	T		*m_pBuffer;
@@ -31,7 +31,7 @@ private:
 	Tp		m_nBufferHead;
 	Tp		m_nBufferTail;
 
-	u_int capacity(void);
+	u_int capacity();
 };
 
 #include "IndexedCircularBuffer.cpp"

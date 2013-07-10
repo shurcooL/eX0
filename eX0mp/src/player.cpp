@@ -20,6 +20,8 @@ CPlayer::CPlayer()
 	fOldY = 0;
 	fVelX = 0;
 	fVelY = 0;
+	fIntX = 0;
+	fIntY = 0;
 	fZ = 0;
 	fOldZ = 0;
 	iIsStealth = 0;
@@ -38,6 +40,7 @@ CPlayer::CPlayer()
 	// Network related
 	bConnected = false;
 	m_nLastLatency = 0;
+	cCurrentCommandSeriesNumber = 0;
 }
 
 CPlayer::~CPlayer()
@@ -47,11 +50,8 @@ CPlayer::~CPlayer()
 
 void CPlayer::FakeTick()
 {
-glfwLockMutex(oPlayerTick);
-
 	// is the player not connected?
 	if (!bConnected) {
-		glfwUnlockMutex(oPlayerTick);
 		return;
 	}
 
@@ -63,17 +63,12 @@ glfwLockMutex(oPlayerTick);
 
 		++cCurrentCommandSequenceNumber;
 	}
-
-glfwUnlockMutex(oPlayerTick);
 }
 
 void CPlayer::Tick()
 {
-glfwLockMutex(oPlayerTick);
-
 	// is the player dead?
 	if (IsDead() || !bConnected) {
-		glfwUnlockMutex(oPlayerTick);
 		return;
 	}
 
@@ -87,6 +82,10 @@ glfwLockMutex(oPlayerTick);
 	{
 		//fTicks -= fTickTime;
 		dNextTickTime += 1.0 / cCommandRate;
+		/*if ((cCurrentCommandSequenceNumber + 1) == 255) {	// cCurrentCommandSequenceNumber will be incremented by 1 this tick
+			//double d = glfwGetTime() / (256.0 / cCommandRate);
+			printf("%.8lf sec: NxtTk=%.15lf, NxtTk/12.8=%.15lf\n", glfwGetTime(), dNextTickTime, dNextTickTime / (256.0 / cCommandRate));
+		}*/
 		fTicks = dCurTime - (dNextTickTime - 1.0 / cCommandRate);
 
 		if (iID == iLocalPlayerID) {
@@ -108,21 +107,23 @@ glfwLockMutex(oPlayerTick);
 				oMove.oInput = oInput;
 				oMove.oState.fX = GetX(); oMove.oState.fY = GetY(); oMove.oState.fZ = GetZ();
 				oUnconfirmedMoves.push(oMove, cCurrentCommandSequenceNumber);
+//printf("pushed a move on oUnconfirmedMoves, size() = %d, cur# => %d\n", oUnconfirmedMoves.size(), cCurrentCommandSequenceNumber);
 
 				iTempInt = max<int>(iTempInt, (int)oUnconfirmedMoves.size() - 1);
 
-				// Send the Update Own Position packet
-				CPacket oUpdateOwnPositionPacket;
-				oUpdateOwnPositionPacket.pack("ccc", (u_char)1, // packet type
-													 cCurrentCommandSequenceNumber, // sequence number
-													 (u_char)oUnconfirmedMoves.size());
+				// Send the Client Command packet
+				CPacket oClientCommandPacket;
+				oClientCommandPacket.pack("cccc", (u_char)1,		// packet type
+												 cCurrentCommandSequenceNumber,		// sequence number
+												 cCurrentCommandSeriesNumber,		// series number
+												 (u_char)(oUnconfirmedMoves.size() - 1));
 				for (u_char it1 = oUnconfirmedMoves.begin(); it1 != oUnconfirmedMoves.end(); ++it1)
 				{
-					oUpdateOwnPositionPacket.pack("cf", oUnconfirmedMoves[it1].oInput.cMoveDirection,
-														oUnconfirmedMoves[it1].oInput.fZ);
+					oClientCommandPacket.pack("cf", oUnconfirmedMoves[it1].oInput.cMoveDirection,
+													oUnconfirmedMoves[it1].oInput.fZ);
 				}
 				if ((rand() % 100) >= 0 || iLocalPlayerID != 0) // DEBUG: Simulate packet loss
-					oUpdateOwnPositionPacket.SendUdp();
+					oClientCommandPacket.SendUdp();
 
 				// Ping time calculation
 				if (nPingPacketNumber < -1) {
@@ -155,8 +156,6 @@ glfwLockMutex(oPlayerTick);
 	}
 
 	UpdateInterpolatedPos();
-
-glfwUnlockMutex(oPlayerTick);
 }
 
 // returns number of clips left in the selected weapon
@@ -233,12 +232,17 @@ void CPlayer::RespawnReset()
 	fOldY = 0;
 	fVelX = 0;
 	fVelY = 0;
+	fIntX = 0;
+	fIntY = 0;
 	fZ = 0;
 	fOldZ = 0;
-	iIsStealth = 0;
+	//iIsStealth = 0;
 	nMoveDirection = -1;
 	iSelWeapon = 2;
 	fHealth = 100.0f;
+
+	// Increment the Command packet series
+	cCurrentCommandSeriesNumber += 1;
 }
 
 bool CPlayer::IsDead()
@@ -1007,7 +1011,6 @@ void PlayerInit()
 			oPlayers[iLoop1] = new CPlayer();
 			oPlayers[iLoop1]->iID = iLoop1;
 			oPlayers[iLoop1]->InitWeapons();
-			oPlayers[iLoop1]->UpdateInterpolatedPos();
 		}
 	}
 }

@@ -1,12 +1,11 @@
 #include "globals.h"
 
-int			iCursorX = 320;
-int			iCursorY = 240;
+bool		bWindowWasActive = false;
+int			nDesktopCursorX, nDesktopCursorY;
 int			iMouseX, iMouseY;
 int			iMouseMovedX[MOUSE_FILTERING_SAMPLES], iMouseMovedY[MOUSE_FILTERING_SAMPLES];
 float		fFilteredMouseMovedX = 0;
 float		fFilteredMouseMovedY = 0;
-int			iMouseButtonsDown;
 float		fMouseSensitivity = 0.25f;
 bool		bAutoReload = true;
 
@@ -19,35 +18,69 @@ bool		bSelectTeamReady = false;		// Indicates we're ready to select a team, ie. 
 // do mouse movement calcs
 void InputMouseMovCalcs()
 {
-	bool bMouseMoved = false;
+	bool bWindowActive = (glfwGetWindowParam(GLFW_ACTIVE) == GL_TRUE && !bSelectTeamDisplay);
 
-	glfwGetMousePos(&iMouseX, &iMouseY);
+	if (bWindowActive && bWindowWasActive) {
+		bool bMouseMoved = false;
 
-	if ((iMouseX - 320) || (iMouseY - 240))
-	{
-		glfwSetMousePos(320, 240);
-	}
+		glfwGetMousePos(&iMouseX, &iMouseY);
 
-	for (int iLoop1 = MOUSE_FILTERING_SAMPLES - 1; iLoop1 > 0 ; iLoop1--)
-	{
-		iMouseMovedX[iLoop1] = iMouseMovedX[iLoop1 - 1];
-		iMouseMovedY[iLoop1] = iMouseMovedY[iLoop1 - 1];
+		if ((iMouseX - 320) || (iMouseY - 240))
+		{
+			glfwSetMousePos(320, 240);
+		}
 
-		if (iMouseMovedX[iLoop1] || iMouseMovedY[iLoop1])
+		for (int iLoop1 = MOUSE_FILTERING_SAMPLES - 1; iLoop1 > 0; --iLoop1)
+		{
+			iMouseMovedX[iLoop1] = iMouseMovedX[iLoop1 - 1];
+			iMouseMovedY[iLoop1] = iMouseMovedY[iLoop1 - 1];
+
+			if (iMouseMovedX[iLoop1] || iMouseMovedY[iLoop1])
+				bMouseMoved = true;
+		}
+
+		iMouseMovedX[0] = iMouseX - 320;
+		iMouseMovedY[0] = iMouseY - 240;
+		//iMouseMovedX = iMouseX - 320;
+		//iMouseMovedY = iMouseY - 240;
+
+		if (iMouseMovedX[0] || iMouseMovedY[0])
+		//if (iMouseMovedX || iMouseMovedY)
 			bMouseMoved = true;
-	}
 
-	iMouseMovedX[0] = iMouseX - 320;
-	iMouseMovedY[0] = iMouseY - 240;
-	//iMouseMovedX = iMouseX - 320;
-	//iMouseMovedY = iMouseY - 240;
+		if (bMouseMoved)
+			InputMouseMoved();
+	} else if (bWindowActive && !bWindowWasActive)
+	{
+		printf("Window became active.\n");
 
-	if (iMouseMovedX[0] || iMouseMovedY[0])
-	//if (iMouseMovedX || iMouseMovedY)
-		bMouseMoved = true;
+		// Window became active again
+		//glfwGetMousePos(&nDesktopCursorX, &nDesktopCursorY);
+		//POINT pos; GetCursorPos(&pos); nDesktopCursorX = pos.x; nDesktopCursorY = pos.y; printf("Mouse was at pos (%d, %d).\n", nDesktopCursorX, nDesktopCursorY);
+		glfwDisable(GLFW_MOUSE_CURSOR);
+		glfwSetMousePos(320, 240);
+	} else if (!bWindowActive && bWindowWasActive)
+	{
+		printf("Window went inactive.\n");
 
-	if (bMouseMoved)
-		InputMouseMoved();
+		// Window went inactive
+		glfwEnable(GLFW_MOUSE_CURSOR);
+		//glfwSetMousePos(nDesktopCursorX, nDesktopCursorY);
+		//SetCursorPos(nDesktopCursorX, nDesktopCursorY); printf("Putting mouse to pos (%d, %d).\n", nDesktopCursorX, nDesktopCursorY);
+
+		for (int nLoop1 = 0; nLoop1 < MOUSE_FILTERING_SAMPLES; ++nLoop1) {
+			iMouseMovedX[nLoop1] = 0;
+			iMouseMovedY[nLoop1] = 0;
+		}
+
+		bSelectTeamDisplay = true;
+	}/* else
+	{
+		int x, y;
+		glfwGetMousePos(&x, &y); printf("Mouse is now at pos (%d, %d).\n", x, y);
+	}*/
+
+	bWindowWasActive = bWindowActive;
 }
 
 // check if a key is held down
@@ -143,7 +176,7 @@ void InputProcessKey(int iKey, int iAction)
 				if (sChatString.length() > 0) {
 					// Send the text message packet
 					CPacket oSendMessagePacket;
-					oSendMessagePacket.pack("hht", 0, 10, &sChatString);
+					oSendMessagePacket.pack("hct", 0, (u_char)10, &sChatString);
 					oSendMessagePacket.CompleteTpcPacketSize();
 					oSendMessagePacket.SendTcp();
 				}
@@ -173,7 +206,7 @@ void InputProcessKey(int iKey, int iAction)
 			if (bSelectTeamDisplay && iGameState == 0) {
 				bSelectTeamDisplay = false;
 			} else {
-				Terminate(0);
+				glfwCloseWindow();		// A window must be open since we got this event
 			}
 			break;
 		// 'r' - reload
@@ -246,49 +279,37 @@ void InputProcessKey(int iKey, int iAction)
 			}
 			break;
 		case '1':
-			if (!bSelectTeamDisplay && iGameState == 0) {
-				bSelectTeamDisplay = true;
-			}
 			if (bSelectTeamDisplay && bSelectTeamReady && PlayerGet(iLocalPlayerID)->GetTeam() != 0 && iGameState == 0) {
 				bSelectTeamDisplay = bSelectTeamReady = false;
-				printf("Joining team Red.\n");
 				PlayerGet(iLocalPlayerID)->GiveHealth(-150.0f);
 
 				// Send a Join Team Request packet
 				CPacket oJoinTeamRequest;
-				oJoinTeamRequest.pack("hhc", 0, (u_short)27, (u_char)0);
+				oJoinTeamRequest.pack("hcc", 0, (u_char)27, (u_char)0);
 				oJoinTeamRequest.CompleteTpcPacketSize();
 				oJoinTeamRequest.SendTcp();
 			}
 			break;
 		case '2':
-			if (!bSelectTeamDisplay && iGameState == 0) {
-				bSelectTeamDisplay = true;
-			}
 			if (bSelectTeamDisplay && bSelectTeamReady && PlayerGet(iLocalPlayerID)->GetTeam() != 1 && iGameState == 0) {
 				bSelectTeamDisplay = bSelectTeamReady = false;
-				printf("Joining team Blue.\n");
 				PlayerGet(iLocalPlayerID)->GiveHealth(-150.0f);
 
 				// Send a Join Team Request packet
 				CPacket oJoinTeamRequest;
-				oJoinTeamRequest.pack("hhc", 0, (u_short)27, (u_char)1);
+				oJoinTeamRequest.pack("hcc", 0, (u_char)27, (u_char)1);
 				oJoinTeamRequest.CompleteTpcPacketSize();
 				oJoinTeamRequest.SendTcp();
 			}
 			break;
 		case '3':
-			if (!bSelectTeamDisplay && iGameState == 0) {
-				bSelectTeamDisplay = true;
-			}
 			if (bSelectTeamDisplay && bSelectTeamReady && PlayerGet(iLocalPlayerID)->GetTeam() != 2 && iGameState == 0) {
 				bSelectTeamDisplay = bSelectTeamReady = false;
-				printf("Joining as a Spectator.\n");
 				PlayerGet(iLocalPlayerID)->GiveHealth(-150.0f);
 
 				// Send a Join Team Request packet
 				CPacket oJoinTeamRequest;
-				oJoinTeamRequest.pack("hhc", 0, (u_short)27, (u_char)2);
+				oJoinTeamRequest.pack("hcc", 0, (u_char)27, (u_char)2);
 				oJoinTeamRequest.CompleteTpcPacketSize();
 				oJoinTeamRequest.SendTcp();
 			}
@@ -374,7 +395,7 @@ void InputMouseHold()
 	if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	// left mouse button is held down
 	{
-		//oPlayers[iLocalPlayerID]->Fire();
+		oPlayers[iLocalPlayerID]->Fire();
 	}
 	else
 	// left mouse button is NOT held down
@@ -411,10 +432,8 @@ void GLFWCALL InputProcessMouse(int iButton, int iAction)
 			//if (iGameState == 0) oPlayers[iLocalPlayerID]->Fire();
 			break;
 		case GLFW_MOUSE_BUTTON_RIGHT:
-			//iMouseButtonsDown |= 2;
 			break;
 		case GLFW_MOUSE_BUTTON_MIDDLE:
-			//iMouseButtonsDown |= 4;
 			if (iGameState == 0) oPlayers[iLocalPlayerID]->iSelWeapon =
 				((oPlayers[iLocalPlayerID]->iSelWeapon == 3) ? 2 : 3);
 			break;
@@ -429,13 +448,10 @@ void GLFWCALL InputProcessMouse(int iButton, int iAction)
 	{
 		switch (iButton) {
 		case GLFW_MOUSE_BUTTON_LEFT:
-			//iMouseButtonsDown &= ~1;
 			break;
 		case GLFW_MOUSE_BUTTON_RIGHT:
-			//iMouseButtonsDown &= ~2;
 			break;
 		case GLFW_MOUSE_BUTTON_MIDDLE:
-			//iMouseButtonsDown &= ~4;
 			break;
 		default:
 			break;

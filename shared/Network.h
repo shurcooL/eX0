@@ -13,7 +13,7 @@ class CPacket;
 // Packets
 #define MAX_TCP_PACKET_SIZE		1448
 #define MAX_UDP_PACKET_SIZE		1448
-#define MAX_PACKET_SIZE			__max(MAX_TCP_PACKET_SIZE, MAX_UDP_PACKET_SIZE)
+#define MAX_PACKET_SIZE			(std::max<int>(MAX_TCP_PACKET_SIZE, MAX_UDP_PACKET_SIZE))
 
 enum JoinStatus {
 	DISCONNECTED = 0,
@@ -59,16 +59,16 @@ void GLFWCALL NetworkThread(void *pArgument);
 
 #ifdef EX0_CLIENT
 // Process a received TCP packet
-bool NetworkProcessTcpPacket(CPacket & oPacket/*, CClient * pClient*/);
+bool NetworkProcessTcpPacket(CPacket & oPacket);
 
 // Process a received UDP packet
-bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize/*, CClient * pClient*/);
+bool NetworkProcessUdpPacket(CPacket & oPacket);
 #else
 // Process a received TCP packet
-bool NetworkProcessTcpPacket(CPacket & oPacket, CClient * & pClient);
+bool NetworkProcessTcpPacket(CPacket & oPacket, CClient *& pClient);
 
 // Process a received UDP packet
-bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize, CClient * pClient);
+bool NetworkProcessUdpPacket(CPacket & oPacket, CClient * pClient);
 #endif // EX0_CLIENT
 
 #ifdef EX0_CLIENT
@@ -81,7 +81,7 @@ void NetworkShutdownThread();
 void NetworkDestroyThread();
 #else
 // Process a potential UDP Handshake packet
-bool NetworkProcessUdpHandshakePacket(u_char * oPacket, int nPacketSize, struct sockaddr_in & oSenderAddress);
+bool NetworkProcessUdpHandshakePacket(u_char * cPacket, u_short nPacketSize, struct sockaddr_in & oSenderAddress);
 #endif // EX0_CLIENT
 
 // Shutdown the networking component

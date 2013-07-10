@@ -13,6 +13,12 @@
 
 using namespace std;
 
+/*#ifdef EX0_CLIENT
+#	include "../eX0mp/src/mmgr/mmgr.h"
+#else
+#	include "../eX0ds/src/mmgr/mmgr.h"
+#endif // EX0_CLIENT*/
+
 /*#if !defined(_WINSOCK2API_)
 // Winsock 2 header defines this, but Winsock 1.1 header doesn't.  In
 // the interest of not requiring the Winsock 2 SDK which we don't really

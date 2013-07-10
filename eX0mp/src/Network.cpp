@@ -135,7 +135,7 @@ void SendTimeRequestPacket(void *p)
 	++cNextTimeRequestSequenceNumber;
 	oTimeRequestPacket.SendUdp(UDP_CONNECTED);
 
-	printf("Sent TRqP #%d at %.5lf ms\n", ++nTrpSent, glfwGetTime() * 1000);
+	//printf("Sent TRqP #%d at %.5lf ms\n", ++nTrpSent, glfwGetTime() * 1000);
 }
 
 // Connect to a server
@@ -197,7 +197,7 @@ bool NetworkConnect(char *szHost, int nPort)
 
 	// Create and send a Join Server Request packet
 	CPacket oJoinServerRequestPacket;
-	oJoinServerRequestPacket.pack("hhhs", 0, 1, 1, "somerandompass01");
+	oJoinServerRequestPacket.pack("hchs", 0, (u_char)1, 1, "somerandompass01");
 	double dSignature = glfwGetTime();
 	memcpy(cSignature, (void *)&dSignature, SIGNATURE_SIZE);
 	for (int nSignatureByte = 0; nSignatureByte < SIGNATURE_SIZE; ++nSignatureByte)
@@ -274,11 +274,10 @@ void GLFWCALL NetworkThread(void *pArgument)
 				// Check if received enough to check the packet size
 				u_short snRealPacketSize = MAX_TCP_PACKET_SIZE;
 				if (snCurrentPacketSize >= 2)
-					snRealPacketSize = ntohs(*reinterpret_cast<short *>(buf));
+					snRealPacketSize = 3 + ntohs(*reinterpret_cast<u_short *>(buf));
 				if (snRealPacketSize > MAX_TCP_PACKET_SIZE) {		// Make sure the packet is not larger than allowed
 					printf("Got a TCP packet that's larger than allowed.\n");
 					snRealPacketSize = MAX_TCP_PACKET_SIZE;
-					// TODO: I think I should also check if packet is smaller than allowed, e.g. snRealPacketSize == 0 or something (a malicious packet)
 				}
 				// Received an entire packet
 				while (snCurrentPacketSize >= snRealPacketSize)
@@ -286,7 +285,7 @@ void GLFWCALL NetworkThread(void *pArgument)
 					// Process it
 					CPacket oPacket(buf, snRealPacketSize);
 					if (!NetworkProcessTcpPacket(oPacket)) {
-						printf("Couldn't process a TCP packet (type %d):\n  ", ntohs(*((u_short *)(buf + 2))));
+						printf("Couldn't process a TCP packet (type %d):\n  ", *reinterpret_cast<u_char *>(buf + 2));
 						oPacket.Print();
 					}
 
@@ -297,7 +296,7 @@ void GLFWCALL NetworkThread(void *pArgument)
 					memmove(buf, buf + snRealPacketSize, snCurrentPacketSize);
 
 					if (snCurrentPacketSize >= 2)
-						snRealPacketSize = ntohs(*reinterpret_cast<short *>(buf));
+						snRealPacketSize = 3 + ntohs(*reinterpret_cast<u_short *>(buf));
 					else snRealPacketSize = MAX_TCP_PACKET_SIZE;
 					if (snRealPacketSize > MAX_TCP_PACKET_SIZE) {		// Make sure the packet is not larger than allowed
 						printf("Got a TCP packet that's larger than allowed.\n");
@@ -324,8 +323,8 @@ void GLFWCALL NetworkThread(void *pArgument)
 
 				// Process the received UDP packet
 				CPacket oPacket(cUdpBuffer, nbytes);
-				if (!NetworkProcessUdpPacket(oPacket, nbytes)) {
-					printf("Couldn't process a UDP packet (type %d):\n  ", *cUdpBuffer);
+				if (!NetworkProcessUdpPacket(oPacket)) {
+					printf("Couldn't process a UDP packet (type %d):\n  ", cUdpBuffer[0]);
 					oPacket.Print();
 				}
 			}
@@ -343,16 +342,15 @@ void GLFWCALL NetworkThread(void *pArgument)
 }
 
 // Process a received TCP packet
-bool NetworkProcessTcpPacket(CPacket & oPacket/*, CClient * oClient*/)
+bool NetworkProcessTcpPacket(CPacket & oPacket)
 {
-	u_short snPacketSize; oPacket.unpack("h", &snPacketSize);
-	if (snPacketSize < 4) return false;
-	u_short snPacketType; oPacket.unpack("h", &snPacketType);
+	u_short nDataSize; oPacket.unpack("h", &nDataSize);
+	u_char cPacketType; oPacket.unpack("c", &cPacketType);
 
 if (glfwGetKey(GLFW_KEY_TAB) == GLFW_RELEASE)
 fTempFloat = static_cast<float>(glfwGetTime());
 
-	switch (snPacketType) {
+	switch (cPacketType) {
 	// Join Server Accept
 	case 2:
 		// Check if we have already been accepted by the server
@@ -361,7 +359,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			return false;
 		}
 
-		if (snPacketSize != 6) return false;		// Check packet size
+		if (nDataSize != 2) return false;		// Check packet size
 		else {
 			char cLocalPlayerID;
 			char cPlayerCount;
@@ -403,7 +401,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			return false;
 		}
 
-		if (snPacketSize != 5) return false;		// Check packet size
+		if (nDataSize != 1) return false;		// Check packet size
 		else {
 			char cRefuseReason;
 			oPacket.unpack("c", &cRefuseReason);
@@ -423,7 +421,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			return false;
 		}
 
-		if (snPacketSize != 4) return false;		// Check packet size
+		if (nDataSize != 0) return false;		// Check packet size
 		else {
 			// The UDP connection with the server is fully established
 			nJoinStatus = UDP_CONNECTED;
@@ -439,7 +437,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 
 			// Send a Local Player Info packet
 			CPacket oLocalPlayerInfoPacket;
-			oLocalPlayerInfoPacket.pack("hh", 0, (u_short)30);
+			oLocalPlayerInfoPacket.pack("hc", 0, (u_char)30);
 			oLocalPlayerInfoPacket.pack("c", (u_char)PlayerGet(iLocalPlayerID)->GetName().length());
 			oLocalPlayerInfoPacket.pack("t", &PlayerGet(iLocalPlayerID)->GetName());
 			oLocalPlayerInfoPacket.pack("cc", cCommandRate, cUpdateRate);
@@ -458,7 +456,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			return false;
 		}
 
-		if (snPacketSize != 4) return false;		// Check packet size
+		if (nDataSize != 0) return false;		// Check packet size
 		else {
 			glfwLockMutex(oJoinGameMutex);
 			if (bFinishedSyncingClock)
@@ -479,11 +477,11 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			return false;
 		}
 
-		if (snPacketSize < 6) return false;		// Check packet size
+		if (nDataSize < 2) return false;		// Check packet size
 		else {
 			char cPlayerID;
 			string sTextMessage;
-			oPacket.unpack("cet", (char *)&cPlayerID, snPacketSize - 5, &sTextMessage);
+			oPacket.unpack("cet", (char *)&cPlayerID, nDataSize - 1, &sTextMessage);
 
 			// Print out the text message
 			pChatMessages->AddMessage(PlayerGet(cPlayerID)->GetName() + ": " + sTextMessage);
@@ -499,10 +497,10 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			return false;
 		}
 
-		if (snPacketSize < 5) return false;		// Check packet size
+		if (nDataSize < 1) return false;		// Check packet size
 		else {
 			string sLevelName;
-			oPacket.unpack("et", snPacketSize - 4, &sLevelName);
+			oPacket.unpack("et", nDataSize, &sLevelName);
 
 			printf("Loading level '%s'.\n", sLevelName.c_str());
 			string sLevelPath = "levels/" + sLevelName + ".wwl";
@@ -520,7 +518,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			return false;
 		}
 
-		if (snPacketSize < 4 + nPlayerCount) return false;		// Check packet size
+		if (nDataSize < nPlayerCount) return false;		// Check packet size
 		else {
 			u_char cNameLength;
 			string sName;
@@ -544,7 +542,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 						//cCurrentCommandSequenceNumber = cLastCommandSequenceNumber;
 						PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
 						if (nPlayer == iLocalPlayerID) {
-							//PlayerGet(nPlayer)->Position(fX, fY, fZ);
+							eX0_assert(false, "local player can't be on a non-spectator team already!");
 						} else {
 							PlayerGet(nPlayer)->Position(fX, fY, fZ, cLastCommandSequenceNumber);
 						}
@@ -581,7 +579,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			return false;
 		}
 
-		if (snPacketSize < 7) return false;		// Check packet size
+		if (nDataSize < 3) return false;		// Check packet size
 		else {
 			u_char cPlayerID;
 			u_char cNameLength;
@@ -615,10 +613,11 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			return false;
 		}
 
-		if (snPacketSize != 5) return false;		// Check packet size
+		if (nDataSize != 1) return false;		// Check packet size
 		else {
 			u_char cPlayerID;
 			oPacket.unpack("c", &cPlayerID);
+
 			if (cPlayerID == iLocalPlayerID)
 				printf("Got a Player Left Server packet, with the local player ID %d.", iLocalPlayerID);
 			if (PlayerGet(cPlayerID)->bConnected == false)
@@ -640,7 +639,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			return false;
 		}
 
-		if (snPacketSize < 6) return false;		// Check packet size
+		if (nDataSize < 2) return false;		// Check packet size
 		else {
 glfwLockMutex(oPlayerTick);
 
@@ -649,33 +648,37 @@ glfwLockMutex(oPlayerTick);
 			u_char cLastCommandSequenceNumber;
 			float fX, fY, fZ;
 			oPacket.unpack("cc", &cPlayerID, &cTeam);
+
 			eX0_assert(nJoinStatus >= IN_GAME || cPlayerID != iLocalPlayerID, "We should be IN_GAME if we receive a Player Joined Team packet about us.");
-			if (cTeam != 2) {
+
+			if (PlayerGet(cPlayerID)->bConnected == false) printf("Got a Player Joined Team packet, but player %d was not connected.\n", cPlayerID);
+			PlayerGet(cPlayerID)->SetTeam(cTeam);
+			if (PlayerGet(cPlayerID)->GetTeam() != 2)
+			{
+				// This resets the variables and increments the Command Series Number
 				PlayerGet(cPlayerID)->RespawnReset();
 
 				oPacket.unpack("cfff", &cLastCommandSequenceNumber, &fX, &fY, &fZ);
 				PlayerGet(cPlayerID)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
+//printf("cLastAckedCommandSequenceNumber (in packet 28) = %d, while cCurrentCommandSequenceNumber = %d\n", cLastCommandSequenceNumber, cCurrentCommandSequenceNumber);
 				PlayerGet(cPlayerID)->Position(fX, fY, fZ, PlayerGet(cPlayerID)->cLastAckedCommandSequenceNumber);
 			}
-			if (PlayerGet(cPlayerID)->bConnected == false)
-				printf("Got a Player Joined Team packet, but player %d was not connected.\n", cPlayerID);
-			PlayerGet((int)cPlayerID)->SetTeam((int)cTeam);
 
 			printf("Player #%d (name '%s') joined team %d.\n", cPlayerID, PlayerGet(cPlayerID)->GetName().c_str(), cTeam);
-			pChatMessages->AddMessage(((int)cPlayerID == iLocalPlayerID ? "Joined " : PlayerGet((int)cPlayerID)->GetName() + " joined ")
+			pChatMessages->AddMessage(((int)cPlayerID == iLocalPlayerID ? "Joined " : PlayerGet(cPlayerID)->GetName() + " joined ")
 				+ (cTeam == 0 ? "team Red" : (cTeam == 1 ? "team Blue" : "Spectators")) + ".");
 
 			if (cPlayerID == iLocalPlayerID)
 			{
-				bSelectTeamReady = true;
 				oUnconfirmedMoves.clear();
+				bSelectTeamReady = true;
 			}
 
 glfwUnlockMutex(oPlayerTick);
 		}
 		break;
 	default:
-		printf("Error: Got unknown TCP packet of type %d and size %d.\n", snPacketType, snPacketSize);
+		printf("Error: Got unknown TCP packet of type %d and data size %d.\n", cPacketType, nDataSize);
 		return false;
 		break;
 	}
@@ -696,13 +699,15 @@ void NetworkJoinGame()
 	PlayerGet(iLocalPlayerID)->dNextTickTime = ceil(glfwGetTime() / (1.0 / cCommandRate)) * (1.0 / cCommandRate);
 	printf("abc: %f, %d\n", d, cCurrentCommandSequenceNumber);
 	d -= floor(d);
+	printf("tick % = %f, nextTickAt = %.10lf\n", d*100, PlayerGet(iLocalPlayerID)->dNextTickTime);
+	printf("%.8lf sec: NxtTk=%.15lf, NxtTk/12.8=%.15lf\n", glfwGetTime(), PlayerGet(iLocalPlayerID)->dNextTickTime, PlayerGet(iLocalPlayerID)->dNextTickTime / (256.0 / cCommandRate));
 	PlayerGet(iLocalPlayerID)->fTicks = (float)(d * PlayerGet(iLocalPlayerID)->fTickTime);
 
 	nJoinStatus = IN_GAME;
 
 	// Send an Entered Game Notification packet
 	CPacket oEnteredGameNotificationPacket;
-	oEnteredGameNotificationPacket.pack("hh", 0, (u_short)7);
+	oEnteredGameNotificationPacket.pack("hc", 0, (u_char)7);
 	oEnteredGameNotificationPacket.CompleteTpcPacketSize();
 	oEnteredGameNotificationPacket.SendTcp();
 
@@ -720,9 +725,9 @@ void PrintHi(void *p)
 }
 
 // Process a received UDP packet
-bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize/*, CClient * oClient*/)
+bool NetworkProcessUdpPacket(CPacket & oPacket)
 {
-	if (nPacketSize < 1) return false;
+	u_int nDataSize = oPacket.size() - 1;
 	u_char cPacketType; oPacket.unpack("c", &cPacketType);
 
 	switch (cPacketType) {
@@ -734,7 +739,7 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize/*, CClient * oCl
 			return false;
 		}
 
-		if (nPacketSize != 10) return false;		// Check packet size
+		if (nDataSize != 9) return false;		// Check packet size
 		else {
 			u_char cSequenceNumber;
 			double dTime;
@@ -749,9 +754,8 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize/*, CClient * oCl
 					dShortestLatencyLocalTime = glfwGetTime();
 					dShortestLatencyRemoteTime = dTime;
 				}
-				printf("Got a TRP #%d at %.5lf ms latency: %.5lf ms (shortest = %.5lf ms)\n", nTrpReceived, glfwGetTime() * 1000, dLatency * 1000, dShortestLatency * 1000);
-			} else
-				printf("Got an unnecessary TRP #%d packet, ignoring.\n", nTrpReceived);
+				//printf("Got a TRP #%d at %.5lf ms latency: %.5lf ms (shortest = %.5lf ms)\n", nTrpReceived, glfwGetTime() * 1000, dLatency * 1000, dShortestLatency * 1000);
+			} else printf("Got an unnecessary TRP #%d packet, ignoring.\n", nTrpReceived);
 
 			if (nTrpReceived == 30) {
 				pTimedEventScheduler->RemoveEventById(nSendTimeRequestPacketEventId);
@@ -791,7 +795,7 @@ bool NetworkProcessUdpPacket(CPacket & oPacket, int nPacketSize/*, CClient * oCl
 			return false;
 		}*/
 
-		if (nPacketSize < 2 + nPlayerCount) return false;		// Check packet size
+		if (nDataSize < 1 + (u_int)nPlayerCount) return false;		// Check packet size
 		else {
 glfwLockMutex(oPlayerTick);
 
@@ -816,13 +820,14 @@ glfwLockMutex(oPlayerTick);
 				for (int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 				{
 					oPacket.unpack("c", &cPlayerInfo);
-					if (cPlayerInfo == 1) {
+					if (cPlayerInfo == 1 && PlayerGet(nPlayer)->GetTeam() != 2) {
 						// Active player
 						oPacket.unpack("c", &cLastCommandSequenceNumber);
 						oPacket.unpack("fff", &fX, &fY, &fZ);
 
-						bool bNewerCommand = (cLastCommandSequenceNumber != PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber)
-							|| PlayerGet(nPlayer)->bFirstUpdate;
+						bool bNewerCommand = (cLastCommandSequenceNumber != PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber);
+if (PlayerGet(nPlayer)->bFirstUpdate) printf("Got first update (new %d), oUnconfirmedMoves.size() = %d, cur# = %d, lastack = %d -> %d\n", bNewerCommand, oUnconfirmedMoves.size(),
+											 cCurrentCommandSequenceNumber, PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber, cLastCommandSequenceNumber);
 						PlayerGet(nPlayer)->bFirstUpdate = false;
 						if (bNewerCommand) {
 							PlayerGet(nPlayer)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
@@ -853,7 +858,8 @@ glfwLockMutex(oPlayerTick);
 								Vector2 oClientPrediction(PlayerGet(iLocalPlayerID)->GetX(), PlayerGet(iLocalPlayerID)->GetY());
 								// If the client prediction differs from the server's value by more than a treshold amount, snap to server's value
 								if ((oServerPosition - oClientPrediction).SquaredLength() > 0.001f)
-									printf("Snapping-A to server's position (%f difference).\n", (oServerPosition - oClientPrediction).Length());
+									printf("Snapping-A to server's position (%f difference):\n  server = (%.4f, %.4f), client = (%.4f, %.4f)\n", (oServerPosition - oClientPrediction).Length(),
+										oServerPosition.x, oServerPosition.y, oClientPrediction.x, oClientPrediction.y);
 
 								// DEBUG: Should make sure the player can't see other players
 								// through walls, if he accidentally gets warped through a wall
@@ -887,6 +893,7 @@ glfwLockMutex(oPlayerTick);
 								{
 									printf("Snapping-B to server's position (%f difference).\n", (oServerPosition - oClientPrediction).Length());
 
+									// DEBUG: Figure out why I have this here, I'm not sure if it's correct or its purpose
 									oUnconfirmedMoves.pop();
 
 									// DEBUG: Should make sure the player can't see other players
@@ -918,8 +925,7 @@ glfwLockMutex(oPlayerTick);
 									PlayerGet(iLocalPlayerID)->SetZ(fOriginalZ);
 								}
 							} else {
-								//eX0_assert(false);
-								printf("WTF\n");
+								eX0_assert(false, "WTF - server is ahead of client?? confirmed command from the future lol\n");
 							}
 
 							// Drop the moves that have been confirmed now
@@ -974,7 +980,7 @@ glfwUnlockMutex(oPlayerTick);
 			return false;
 		}
 
-		if (nPacketSize != 5 + 2 * nPlayerCount) return false;		// Check packet size
+		if (nDataSize != 4 + 2 * nPlayerCount) return false;		// Check packet size
 		else {
 			PingData_t oPingData;
 			oPacket.unpack("cccc", &oPingData.cPingData[0], &oPingData.cPingData[1], &oPingData.cPingData[2], &oPingData.cPingData[3]);
@@ -1007,7 +1013,7 @@ glfwUnlockMutex(oPlayerTick);
 			return false;
 		}
 
-		if (nPacketSize != 13) return false;		// Check packet size
+		if (nDataSize != 12) return false;		// Check packet size
 		else {
 			double dLocalTimeAtPungReceive = glfwGetTime();		// Make note of current time (t2)
 
@@ -1043,15 +1049,14 @@ glfwUnlockMutex(oPlayerTick);
 						double dAverageTimeDifference = -oRecentTimeDifference.WeightedMovingAverage();
 						glfwSetTime(dAverageTimeDifference + glfwGetTime());
 						oRecentTimeDifference.clear();
-						//printf("Performed time adjustment by %.5lf ms.\n", dAverageTimeDifference * 1000);
+						printf("Performed time adjustment by %.5lf ms.\n", dAverageTimeDifference * 1000);
 					}
-				} //else \
-					printf("Time diff %.5lf ms (l-r)\n", ((dLocalTimeAtPongSend + dLocalTimeAtPungReceive) * 0.5 - dServerTime) * 1000);
+				} //else printf("Time diff %.5lf ms (l-r)\n", ((dLocalTimeAtPongSend + dLocalTimeAtPungReceive) * 0.5 - dServerTime) * 1000);
 			}
 		}
 		break;
 	default:
-		printf("Error: Got unknown UDP packet of type %d and size %d.\n", (int)cPacketType, nPacketSize);
+		printf("Error: Got unknown UDP packet of type %d and data size %d.\n", cPacketType, nDataSize);
 		return false;
 		break;
 	}

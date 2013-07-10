@@ -18,6 +18,8 @@ CPlayer::CPlayer()
 	fOldY = 0;
 	fVelX = 0;
 	fVelY = 0;
+	fIntX = 0;
+	fIntY = 0;
 	fZ = 0;
 	fOldZ = 0;
 	iIsStealth = 0;
@@ -638,7 +640,6 @@ void PlayerInit()
 			oPlayers[iLoop1] = new CPlayer();
 			oPlayers[iLoop1]->iID = iLoop1;
 			oPlayers[iLoop1]->InitWeapons();
-			oPlayers[iLoop1]->UpdateInterpolatedPos();
 		}
 	}
 }
