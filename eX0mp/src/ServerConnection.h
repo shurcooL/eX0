@@ -9,7 +9,7 @@ public:
 	ServerConnection();
 	~ServerConnection();
 
-	bool Connect(const char * szHostname, u_short nPort);
+	virtual bool Connect(const char * szHostname, u_short nPort);
 	void GenerateSignature();
 
 	u_char		cLastUpdateSequenceNumber;

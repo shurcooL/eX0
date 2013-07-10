@@ -1,14 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
-  <Class Name="ClientConnection">
+  <Class Name="ClientConnection" Collapsed="true">
     <Position X="5.5" Y="2.75" Width="1.5" />
-    <NestedTypes>
-      <Struct Name="ClientConnection::TcpPacketBuffer_t" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>c:\Work\Generation 10\eX0\eX0\shared\ClientConnection.h</NewMemberFileName>
-        </TypeIdentifier>
-      </Struct>
-    </NestedTypes>
     <TypeIdentifier>
       <HashCode>AIECBARAAAABABAQAIEAQAABQAgAACVAAgEAIAQAAJI=</HashCode>
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\ClientConnection.h</FileName>
@@ -63,11 +56,25 @@
       <FileName>c:\Work\Generation 10\eX0\eX0\shared\PlayerStateAuther.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="ServerConnection">
+  <Class Name="ServerConnection" Collapsed="true">
     <Position X="7.75" Y="2.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ABgAAAAAAAAAAAAAAAAAAIBAAAAAAAAAAAAAAAAAQAA=</HashCode>
       <FileName>src\ServerConnection.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="LocalClientConnection" Collapsed="true">
+    <Position X="5.25" Y="4" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAABAAAAAAAAAAAAAAAAAAAAAAAAEAAQAAgAAAAAAA=</HashCode>
+      <FileName>c:\Work\Generation 10\eX0\eX0\shared\LocalClientConnection.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="LocalServerConnection" Collapsed="true">
+    <Position X="7.5" Y="4" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AgAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAgAAAAAAA=</HashCode>
+      <FileName>src\LocalServerConnection.h</FileName>
     </TypeIdentifier>
   </Class>
   <Font Name="Tahoma" Size="8.25" />

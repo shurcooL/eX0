@@ -313,6 +313,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\LocalClientConnection.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\LocalClientConnection.h"
+				>
+			</File>
+			<File
 				RelativePath="..\shared\LocalController.cpp"
 				>
 			</File>
@@ -326,6 +334,14 @@
 			</File>
 			<File
 				RelativePath="..\shared\LocalServer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\LocalServerConnection.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\LocalServerConnection.h"
 				>
 			</File>
 			<File

@@ -99,12 +99,13 @@ void GLFWCALL InputProcessKey(int iKey, int iAction)
 			switch (iKey) {
 			// Enter key
 			case GLFW_KEY_ENTER:
+			case GLFW_KEY_KP_ENTER:
 				nChatMode = 0;
 				glfwDisable(GLFW_KEY_REPEAT);
 				// Send the chat string
 				if (sChatString.length() > 0) {
 					// Send the text message packet
-					CPacket oSendMessagePacket;
+					CPacket oSendMessagePacket(CPacket::BOTH);
 					oSendMessagePacket.pack("hct", 0, (u_char)10, &sChatString);
 					oSendMessagePacket.CompleteTpcPacketSize();
 					pServer->SendTcp(oSendMessagePacket);
@@ -148,7 +149,7 @@ void GLFWCALL InputProcessKey(int iKey, int iAction)
 			break;
 		// 'v' - change camera view
 		case 'V':
-			iCameraType = (iCameraType + 1) % 3;
+			iCameraType = (iCameraType + 1) % 4;
 			break;
 		// restart the game
 		/*case GLFW_KEY_F1:
@@ -191,6 +192,7 @@ glfwUnlockMutex(oPlayerTick);
 			break;
 		// chat
 		case GLFW_KEY_ENTER:
+		case GLFW_KEY_KP_ENTER:
 			sChatString = "";
 			nChatMode = 2;
 			glfwEnable(GLFW_KEY_REPEAT);
@@ -212,9 +214,19 @@ glfwUnlockMutex(oPlayerTick);
 				bSelectTeamDisplay = bSelectTeamReady = false;
 				pLocalPlayer->GiveHealth(-150);
 
-				if (pLocalServer == NULL && pServer != NULL) {
+				// Send a Join Team Request packet
+				CPacket oJoinTeamRequest(CPacket::BOTH);
+				oJoinTeamRequest.pack("hc", 0, (u_char)27);
+				if (pLocalPlayer->pConnection != NULL && pLocalPlayer->pConnection->IsMultiPlayer() || pServer != NULL && false/*pServer->IsMultiPlayer()*/) {
+					oJoinTeamRequest.pack("c", (u_char)0);		// 1st player
+				}
+				oJoinTeamRequest.pack("c", (u_char)0);		// Red team
+				oJoinTeamRequest.CompleteTpcPacketSize();
+				pServer->SendTcp(oJoinTeamRequest);
+
+				/*if (pLocalServer == NULL && pServer != NULL) {
 					// Send a Join Team Request packet
-					CPacket oJoinTeamRequest;
+					CPacket oJoinTeamRequest(CPacket::BOTH);
 					oJoinTeamRequest.pack("hcc", 0, (u_char)27, (u_char)0);
 					oJoinTeamRequest.CompleteTpcPacketSize();
 					pServer->SendTcp(oJoinTeamRequest);
@@ -263,31 +275,37 @@ glfwUnlockMutex(oPlayerTick);
 
 					oPlayerJoinedTeamPacket.CompleteTpcPacketSize();
 					ClientConnection::BroadcastTcp(oPlayerJoinedTeamPacket, PUBLIC_CLIENT);
-				}
+				}*/
 			}
 			break;
 		case '2':
-if (pLocalServer != NULL || pServer == NULL) break;
 			if (bSelectTeamDisplay && bSelectTeamReady && pLocalPlayer->GetTeam() != 1 && iGameState == 0) {
 				bSelectTeamDisplay = bSelectTeamReady = false;
 				pLocalPlayer->GiveHealth(-150);
 
 				// Send a Join Team Request packet
-				CPacket oJoinTeamRequest;
-				oJoinTeamRequest.pack("hcc", 0, (u_char)27, (u_char)1);
+				CPacket oJoinTeamRequest(CPacket::BOTH);
+				oJoinTeamRequest.pack("hc", 0, (u_char)27);
+				if (pLocalPlayer->pConnection != NULL && pLocalPlayer->pConnection->IsMultiPlayer() || pServer != NULL && false/*pServer->IsMultiPlayer()*/) {
+					oJoinTeamRequest.pack("c", (u_char)0);		// 1st player
+				}
+				oJoinTeamRequest.pack("c", (u_char)1);		// Blue team
 				oJoinTeamRequest.CompleteTpcPacketSize();
 				pServer->SendTcp(oJoinTeamRequest);
 			}
 			break;
 		case '3':
-if (pLocalServer != NULL || pServer == NULL) break;
 			if (bSelectTeamDisplay && bSelectTeamReady && pLocalPlayer->GetTeam() != 2 && iGameState == 0) {
 				bSelectTeamDisplay = bSelectTeamReady = false;
 				pLocalPlayer->GiveHealth(-150);
 
 				// Send a Join Team Request packet
-				CPacket oJoinTeamRequest;
-				oJoinTeamRequest.pack("hcc", 0, (u_char)27, (u_char)2);
+				CPacket oJoinTeamRequest(CPacket::BOTH);
+				oJoinTeamRequest.pack("hc", 0, (u_char)27);
+				if (pLocalPlayer->pConnection != NULL && pLocalPlayer->pConnection->IsMultiPlayer() || pServer != NULL && false/*pServer->IsMultiPlayer()*/) {
+					oJoinTeamRequest.pack("c", (u_char)0);		// 1st player
+				}
+				oJoinTeamRequest.pack("c", (u_char)2);		// Spectator team
 				oJoinTeamRequest.CompleteTpcPacketSize();
 				pServer->SendTcp(oJoinTeamRequest);
 			}
@@ -295,6 +313,47 @@ if (pLocalServer != NULL || pServer == NULL) break;
 		case '0':
 			if (bSelectTeamDisplay && bSelectTeamReady && iGameState == 0) {
 				bSelectTeamDisplay = false;
+			}
+			break;
+		case '=':
+glfwLockMutex(oPlayerTick);
+			for (int i = 0; i < 10; ++i)
+			{//Bot test
+				int nBotNumber = pLocalPlayer->pConnection->GetPlayerCount();
+				CPlayer * pTestPlayer = new CPlayer();
+				std::string sName = "Test Mimic " + itos(nBotNumber);
+				pTestPlayer->SetName(sName);
+				pTestPlayer->m_pController = new LocalController(*pTestPlayer);
+				pTestPlayer->m_pStateAuther = new LocalStateAuther(*pTestPlayer);
+				//(new LocalClientConnection())->SetPlayer(pTestPlayer);
+				//pTestPlayer->pConnection->SetJoinStatus(IN_GAME);
+				pLocalPlayer->pConnection->AddPlayer(pTestPlayer);
+
+				pTestPlayer->fTickTime = 1.0f / g_cCommandRate;
+
+				// Send a Join Team Request packet
+				CPacket oJoinTeamRequest(CPacket::BOTH);
+				oJoinTeamRequest.pack("hccc", 0, (u_char)27, (u_char)nBotNumber /*nth player on this connection*/, (u_char)1);
+				oJoinTeamRequest.CompleteTpcPacketSize();
+				pServer->SendTcp(oJoinTeamRequest);
+			}
+glfwUnlockMutex(oPlayerTick);
+			break;
+		case '-':
+			for (int i = 0; i < 10; ++i)
+			{//Kick last player
+				if (pLocalPlayer->pConnection->GetPlayerCount() <= 1) break;
+
+				CPlayer * pPlayerToRemove = pLocalPlayer->pConnection->GetPlayer(pLocalPlayer->pConnection->GetPlayerCount() - 1);
+
+				// Send a Player Left Server to all the other clients
+				CPacket oPlayerLeftServerPacket(CPacket::BOTH);
+				oPlayerLeftServerPacket.pack("hc", 0, (u_char)26);
+				oPlayerLeftServerPacket.pack("c", pPlayerToRemove->iID);
+				oPlayerLeftServerPacket.CompleteTpcPacketSize();
+				ClientConnection::BroadcastTcp(oPlayerLeftServerPacket, PUBLIC_CLIENT);
+
+				pLocalPlayer->pConnection->RemovePlayer(pPlayerToRemove);
 			}
 			break;
 		// any other key
@@ -342,9 +401,18 @@ void InputMouseMoved()
 	if (pLocalPlayer->fAimingDistance < 25.0)
 		pLocalPlayer->fAimingDistance = 25.0;*/
 
-	pLocalPlayer->Rotate(fFilteredMouseMovedX * fMouseSensitivity / 100.0f
-		* (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? 0.5f : 1.0f));
+	float fRotationAmount = fFilteredMouseMovedX * fMouseSensitivity / 100.0f
+		* (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? 0.5f : 1.0f);
 		//* 200.0 / pLocalPlayer->fAimingDistance);
+glfwLockMutex(oPlayerTick);
+	//pLocalPlayer->Rotate(fRotationAmount);
+	// DEBUG: This is a test only, fix it
+	for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
+		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->m_pController != NULL && typeid(*PlayerGet(nPlayer)->m_pController) == typeid(LocalController)) {
+			PlayerGet(nPlayer)->Rotate(fRotationAmount);
+		}
+	}
+glfwUnlockMutex(oPlayerTick);
 }
 
 // calculate the filtered mouse moved vars

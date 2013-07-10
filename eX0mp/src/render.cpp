@@ -200,7 +200,7 @@ void RenderHUD()
 			OglUtilsPrint(150, 35, 0, false, (char *)sTempString.c_str());
 		}
 
-		for (u_int iLoop1 = 0; iLoop1 < nPlayerCount; ++iLoop1)
+		for (u_int iLoop1 = 0; iLoop1 < nPlayerCount && iLoop1 < 10; ++iLoop1)
 		{
 			if (PlayerGet(iLoop1) != NULL) {
 				glLoadIdentity();
@@ -208,7 +208,7 @@ void RenderHUD()
 					+ "' hp: " + itos((int)PlayerGet(iLoop1)->GetHealth())
 					+ " lat: " + ftos(PlayerGet(iLoop1)->GetLastLatency() * 0.1f)
 					+ " lacsn: " + itos(PlayerGet(iLoop1)->cLatestAuthStateSequenceNumber);
-				OglUtilsPrint(0, 70 + iLoop1 * 10, 0, false, (char *)sTempString.c_str());
+				OglUtilsPrint(0, 70 + iLoop1 * 8, 1, false, (char *)sTempString.c_str());
 			}
 		}
 
@@ -304,16 +304,20 @@ void RenderOffsetCamera(bool bLocalPlayerReferenceFrame)
 	{
 		// Camera view
 		if (iCameraType == 0) {
+			glTranslatef(-345, 0, -680);
+			glRotatef(-90, 0, 0, 1);
+		} else if (iCameraType == 1) {
 			//glTranslatef(-200, -250, -680);
 			//glRotatef(-40, 0, 0, 1);
 			glTranslatef(345, -185, -680);
 			glRotatef(57, 0, 0, 1);
-		} else if (iCameraType == 1) {
+		} else if (iCameraType == 2) {
 			glTranslatef(0, -250, -680);
 			//glTranslatef(0, glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? -250 - pLocalPlayer->fAimingDistance : -250,
 			//				glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? -680 : -680);
 			//glTranslatef(0, -500, -1360);
-		} else if (iCameraType == 2) {
+			//glTranslatef(0, -750, -2040);
+		} else if (iCameraType == 3) {
 			glTranslatef(0, 0, -450);
 			glRotatef(-40, 1, 0, 0);
 			glTranslatef(0, -160, 0);

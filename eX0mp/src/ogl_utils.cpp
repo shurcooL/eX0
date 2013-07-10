@@ -19,6 +19,7 @@ bool OglUtilsInitGL()
 
 	// set the correct viewport
 	glViewport(0, 0, 640, 480);
+	//glViewport(0, 0, 1920, 1200);
 
 	// init matrices
 	OglUtilsSwitchMatrix(WORLD_SPACE_MATRIX);
@@ -180,7 +181,8 @@ void OglUtilsSwitchMatrix(int iWhichMatrix)
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 
-		gluPerspective(45.0, 640.0f / 480.0f, 100.0, 5000.0);
+		gluPerspective(45.0, 640.0 / 480.0, 100.0, 5000.0);
+		//gluPerspective(45.0, 1.6, 100.0, 5000.0);
 
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();

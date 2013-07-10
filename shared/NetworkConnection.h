@@ -16,7 +16,7 @@ class NetworkConnection
 protected:
 	NetworkConnection();
 	NetworkConnection(const SOCKET nTcpSocket);
-	~NetworkConnection();
+	virtual ~NetworkConnection();
 
 public:
 	void SetJoinStatus(const JoinStatus nJoinStatus);
@@ -34,8 +34,10 @@ public:
 	void SetSignature(const u_char cSignature[m_knSignatureSize]);
 	const u_char * GetSignature() const;
 
-	bool SendTcp(CPacket & oPacket, JoinStatus nMinimumJoinStatus = IN_GAME);
-	bool SendUdp(CPacket & oPacket, JoinStatus nMinimumJoinStatus = IN_GAME);
+	virtual bool SendTcp(CPacket & oPacket, JoinStatus nMinimumJoinStatus = IN_GAME);
+	virtual bool SendUdp(CPacket & oPacket, JoinStatus nMinimumJoinStatus = IN_GAME);
+
+	virtual bool IsLocal() { return false; }
 
 private:
 	volatile JoinStatus		m_nJoinStatus;

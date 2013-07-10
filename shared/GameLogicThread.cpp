@@ -109,6 +109,5 @@ glfwUnlockMutex(oPlayerTick);
 		glfwSleep(0.0001);
 	}
 
-	//printf("GameLogicThread has ended.\n");
 	pThread->ThreadEnded();
 }

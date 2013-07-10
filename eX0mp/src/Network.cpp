@@ -131,23 +131,14 @@ void SendTimeRequestPacket(void *)
 // Connect to a server
 bool NetworkConnect(const char * szHostname, u_short nPort)
 {
-	pServer = new ServerConnection();
+	if (szHostname == NULL || *szHostname == '\0')
+		pServer = new LocalServerConnection();
+	else
+		pServer = new ServerConnection();
+
 	if (!pServer->Connect(szHostname, nPort)) {
 		return false;
 	}
-
-	// Create the networking thread
-	NetworkCreateThread();
-
-	// Create and send a Join Server Request packet
-	pServer->GenerateSignature();
-	CPacket oJoinServerRequestPacket;
-	if (strlen(NETWORK_PROTOCOL_PASSPHRASE) != 16) throw 1;
-	oJoinServerRequestPacket.pack("hchs", 0, (u_char)1, NETWORK_PROTOCOL_VERSION, NETWORK_PROTOCOL_PASSPHRASE);
-	for (int nSignatureByte = 0; nSignatureByte < NetworkConnection::m_knSignatureSize; ++nSignatureByte)
-		oJoinServerRequestPacket.pack("c", pServer->GetSignature()[nSignatureByte]);
-	oJoinServerRequestPacket.CompleteTpcPacketSize();
-	pServer->SendTcp(oJoinServerRequestPacket, TCP_CONNECTED);
 
 	return true;
 }
@@ -283,8 +274,6 @@ void GLFWCALL NetworkThread(void * pArgument)
 	if (pTimedEventScheduler != NULL)
 		pTimedEventScheduler->RemoveAllEvents();
 
-	//printf("Network thread has ended.\n");
-	//oNetworkThread = -1;
 	pThread->ThreadEnded();
 }
 
@@ -313,7 +302,7 @@ fTempFloat = static_cast<float>(glfwGetTime());
 			oPacket.unpack("cc", &cLocalPlayerId, (char *)&cPlayerCount);
 
 			iLocalPlayerID = (int)cLocalPlayerId;
-			nPlayerCount = (int)cPlayerCount;
+			nPlayerCount = (int)cPlayerCount + 1;
 
 			//PlayerInit();
 			pLocalPlayer = new CPlayer(static_cast<u_int>(cLocalPlayerId));
@@ -619,24 +608,26 @@ glfwLockMutex(oPlayerTick);
 			oPacket.unpack("cc", &cPlayerID, &cTeam);
 
 			eX0_assert(pServer->GetJoinStatus() >= IN_GAME || cPlayerID != iLocalPlayerID, "We should be IN_GAME if we receive a Player Joined Team packet about us.");
-
 			if (PlayerGet(cPlayerID) == NULL) { printf("Got a Player Joined Team packet, but player %d was not connected.\n", cPlayerID); return false; }
-			PlayerGet(cPlayerID)->SetTeam(cTeam);
-			if (PlayerGet(cPlayerID)->GetTeam() != 2)
-			{
-				// This resets the variables
-				PlayerGet(cPlayerID)->RespawnReset();
 
-				// Increment the Command packet series
-				static_cast<NetworkStateAuther *>(PlayerGet(cPlayerID)->m_pStateAuther)->cCurrentCommandSeriesNumber += 1;
+			if (false == pServer->IsLocal()) {
+				PlayerGet(cPlayerID)->SetTeam(cTeam);
+				if (PlayerGet(cPlayerID)->GetTeam() != 2)
+				{
+					// This resets the variables
+					PlayerGet(cPlayerID)->RespawnReset();
 
-				oPacket.unpack("cfff", &cLastCommandSequenceNumber, &fX, &fY, &fZ);
-				PlayerGet(cPlayerID)->cLatestAuthStateSequenceNumber = cLastCommandSequenceNumber;
-				static_cast<NetworkStateAuther *>(PlayerGet(cPlayerID)->m_pStateAuther)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
-				PlayerGet(cPlayerID)->m_oInputCmdsTEST.clear();			// DEBUG: Can't do this from this thread really
-				PlayerGet(cPlayerID)->m_oAuthUpdatesTEST.clear();		// DEBUG: Can't do this from this thread really
+					// Increment the Command packet series
+					static_cast<NetworkStateAuther *>(PlayerGet(cPlayerID)->m_pStateAuther)->cCurrentCommandSeriesNumber += 1;
+
+					oPacket.unpack("cfff", &cLastCommandSequenceNumber, &fX, &fY, &fZ);
+					PlayerGet(cPlayerID)->cLatestAuthStateSequenceNumber = cLastCommandSequenceNumber;
+					static_cast<NetworkStateAuther *>(PlayerGet(cPlayerID)->m_pStateAuther)->cLastAckedCommandSequenceNumber = cLastCommandSequenceNumber;
+					PlayerGet(cPlayerID)->m_oInputCmdsTEST.clear();			// DEBUG: Can't do this from this thread really
+					PlayerGet(cPlayerID)->m_oAuthUpdatesTEST.clear();		// DEBUG: Can't do this from this thread really
 //printf("cLastAckedCommandSequenceNumber (in packet 28) = %d, while cCurrentCommandSequenceNumber = %d\n", cLastCommandSequenceNumber, cCurrentCommandSequenceNumber);
-				PlayerGet(cPlayerID)->Position(fX, fY, fZ, PlayerGet(cPlayerID)->cLatestAuthStateSequenceNumber);
+					PlayerGet(cPlayerID)->Position(fX, fY, fZ, PlayerGet(cPlayerID)->cLatestAuthStateSequenceNumber);
+				}
 			}
 
 			printf("Player #%d (name '%s') joined team %d.\n", cPlayerID, PlayerGet(cPlayerID)->GetName().c_str(), cTeam);
@@ -694,12 +685,6 @@ void NetworkJoinGame()
 	bSelectTeamReady = true;
 }
 
-void PrintHi(void *)
-{
-	//printf("%30.20f\n", glfwGetTime());
-	printf("===================== %f\n", glfwGetTime());
-}
-
 // Process a received UDP packet
 bool NetworkProcessUdpPacket(CPacket & oPacket)
 {
@@ -742,9 +727,6 @@ bool NetworkProcessUdpPacket(CPacket & oPacket)
 				dTimePassed = 0;
 				dCurTime = glfwGetTime();
 				dBaseTime = dCurTime;
-
-				CTimedEvent oEvent(ceil(glfwGetTime()), 1.0, PrintHi, NULL);
-				//pTimedEventScheduler->ScheduleEvent(oEvent);
 
 				glfwLockMutex(oJoinGameMutex);
 				if (bGotPermissionToEnter)
@@ -907,10 +889,7 @@ void NetworkDeinit()
 	NetworkShutdownThread();
 	NetworkDestroyThread();
 
-	if (pServer != NULL) {
-		delete pServer;
-		pServer = NULL;
-	}
+	delete pServer; pServer = NULL;
 	//NetworkCloseSocket(pServer->GetTcpSocket());
 	//NetworkCloseSocket(pServer->GetUdpSocket());
 

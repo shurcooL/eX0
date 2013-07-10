@@ -1,11 +1,11 @@
-eX0 Protocol Handshake Draft
-============================
+eX0 Local Protocol
+==================
 
  Client					       | Server
 ===============================================|================================================
 					       |
 ----------------------------------------- Connecting -------------------------------------------
-Connect (TCP) to server,
+Create LocalServerConnection,
 Set nJoinStatus = TCP_CONN.
 						Accept TCP connection,
 						Create CClient(nTcpSocket),

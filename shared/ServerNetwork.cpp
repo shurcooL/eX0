@@ -145,9 +145,9 @@ bool NetworkProcessTcpPacket(CPacket & oPacket, ClientConnection *& pConnection)
 			}
 
 			// Let the new client join only if there are free slots avaliable
-			if (ClientConnection::size() <= nPlayerCount)
+			if (CPlayer::GetPlayerCount() < nPlayerCount)
 			{
-				printf("Accepting this player (now %d/%d).\n", ClientConnection::size(), nPlayerCount);
+				printf("Accepting this player (now %d/%d).\n", CPlayer::GetPlayerCount() + 1, nPlayerCount);
 
 				// Assign this client the avaliable player id
 				pConnection->SetSignature(cSignature);
@@ -160,7 +160,7 @@ glfwUnlockMutex(oPlayerTick);
 
 				// Accept the connection, send a Join Server Accept packet
 				CPacket oJoinServerAcceptPacket;
-				oJoinServerAcceptPacket.pack("hccc", 0, (u_char)2, (u_char)pConnection->GetPlayerID(), (u_char)nPlayerCount);
+				oJoinServerAcceptPacket.pack("hccc", 0, (u_char)2, (u_char)pConnection->GetPlayerID(), (u_char)(nPlayerCount - 1));
 				oJoinServerAcceptPacket.CompleteTpcPacketSize();
 				pConnection->SendTcp(oJoinServerAcceptPacket, TCP_CONNECTED);
 			} else {
@@ -215,7 +215,7 @@ glfwUnlockMutex(oPlayerTick);
 			printf("%s\n", (pConnection->GetPlayer()->GetName() + ": " + sTextMessage).c_str());
 
 			// Create a Broadcast Text Message packet
-			CPacket oBroadcastMessagePacket;
+			CPacket oBroadcastMessagePacket(CPacket::BOTH);
 			oBroadcastMessagePacket.pack("hcct", 0, (u_char)11, (u_char)pConnection->GetPlayerID(), &sTextMessage);
 			oBroadcastMessagePacket.CompleteTpcPacketSize();
 
@@ -231,23 +231,29 @@ glfwUnlockMutex(oPlayerTick);
 			return false;
 		}
 
-		if (nDataSize != 1) return false;		// Check packet size
+		// TODO: Make this more formal... i.e. for now, only local connections are allowed to be multiplayer
+		eX0_assert(pConnection->IsLocal() || !pConnection->IsMultiPlayer(), "pConnection->IsLocal() || !pConnection->IsMultiPlayer()");
+
+		if (!pConnection->IsMultiPlayer() && nDataSize != 1) return false;			// Check packet size
+		else if (pConnection->IsMultiPlayer() && nDataSize != 2) return false;		// Check packet size
 		else {
+			u_char cPlayerNumber = 0;
 			u_char cTeam;
+			if (pConnection->IsMultiPlayer()) oPacket.unpack("c", &cPlayerNumber);
 			oPacket.unpack("c", &cTeam);
 
 glfwLockMutex(oPlayerTick);
-			pConnection->GetPlayer()->SetTeam((int)cTeam);
-			printf("Player #%d (name '%s') joined team %d.\n", pConnection->GetPlayerID(), pConnection->GetPlayer()->GetName().c_str(), cTeam);
+			pConnection->GetPlayer(cPlayerNumber)->SetTeam((int)cTeam);
+			printf("Player #%d (name '%s') joined team %d.\n", pConnection->GetPlayerID(cPlayerNumber), pConnection->GetPlayer(cPlayerNumber)->GetName().c_str(), cTeam);
 
 			// Create a Player Joined Team packet
-			CPacket oPlayerJoinedTeamPacket;
-			oPlayerJoinedTeamPacket.pack("hcc", 0, (u_char)28, pConnection->GetPlayerID());
-			oPlayerJoinedTeamPacket.pack("c", (u_char)pConnection->GetPlayer()->GetTeam());
+			CPacket oPlayerJoinedTeamPacket(CPacket::BOTH);
+			oPlayerJoinedTeamPacket.pack("hcc", 0, (u_char)28, pConnection->GetPlayerID(cPlayerNumber));
+			oPlayerJoinedTeamPacket.pack("c", (u_char)pConnection->GetPlayer(cPlayerNumber)->GetTeam());
 
-			if (pConnection->GetPlayer()->GetTeam() != 2)
+			if (pConnection->GetPlayer(cPlayerNumber)->GetTeam() != 2)
 			{
-				pConnection->GetPlayer()->RespawnReset();
+				pConnection->GetPlayer(cPlayerNumber)->RespawnReset();
 
 				// DEBUG: Randomly position the player
 				float x, y;
@@ -255,26 +261,30 @@ glfwLockMutex(oPlayerTick);
 					x = static_cast<float>(rand() % 2000 - 1000);
 					y = static_cast<float>(rand() % 2000 - 1000);
 				} while (ColHandIsPointInside((int)x, (int)y) || !ColHandCheckPlayerPos(&x, &y));
-				pConnection->GetPlayer()->Position(x, y, 0.001f * (rand() % 1000) * Math::TWO_PI);
-				printf("Positioning player %d at %f, %f.\n", pConnection->GetPlayerID(), x, y);
+				pConnection->GetPlayer(cPlayerNumber)->Position(x, y, 0.001f * (rand() % 1000) * Math::TWO_PI);
+				printf("Positioning player %d at %f, %f.\n", pConnection->GetPlayerID(cPlayerNumber), x, y);
 
-				// DEBUG: Perform the cLastRecvedCommandSequenceNumber synchronization to time
-				double d = glfwGetTime() / (256.0 / g_cCommandRate);
-				d -= floor(d);
-				d *= 256.0;
-				static_cast<NetworkController *>(pConnection->GetPlayer()->m_pController)->cLastRecvedCommandSequenceNumber = (u_char)d;
-				pConnection->GetPlayer()->cLatestAuthStateSequenceNumber = (u_char)d;
+				if (false == pConnection->IsLocal()) {
+					// DEBUG: Perform the cLastRecvedCommandSequenceNumber synchronization to time
+					double d = glfwGetTime() / (256.0 / g_cCommandRate);
+					d -= floor(d);
+					d *= 256.0;
+					static_cast<NetworkController *>(pConnection->GetPlayer(cPlayerNumber)->m_pController)->cLastRecvedCommandSequenceNumber = (u_char)d;
+					pConnection->GetPlayer(cPlayerNumber)->cLatestAuthStateSequenceNumber = (u_char)d;
+				}
 
-				pConnection->GetPlayer()->m_oInputCmdsTEST.clear();			// DEBUG: Is this the right thing to do? Right place to do it?
-				pConnection->GetPlayer()->m_oAuthUpdatesTEST.clear();		// DEBUG: Is this the right thing to do? Right place to do it?
+				pConnection->GetPlayer(cPlayerNumber)->m_oInputCmdsTEST.clear();			// DEBUG: Is this the right thing to do? Right place to do it?
+				pConnection->GetPlayer(cPlayerNumber)->m_oAuthUpdatesTEST.clear();		// DEBUG: Is this the right thing to do? Right place to do it?
 
-				// Start expecting the first command packet from this player
-				static_cast<NetworkController *>(pConnection->GetPlayer()->m_pController)->cCurrentCommandSeriesNumber += 1;
-				static_cast<NetworkController *>(pConnection->GetPlayer()->m_pController)->bFirstCommand = true;
+				if (false == pConnection->IsLocal()) {
+					// Start expecting the first command packet from this player
+					static_cast<NetworkController *>(pConnection->GetPlayer(cPlayerNumber)->m_pController)->cCurrentCommandSeriesNumber += 1;
+					static_cast<NetworkController *>(pConnection->GetPlayer(cPlayerNumber)->m_pController)->bFirstCommand = true;
+				}
 
-				oPlayerJoinedTeamPacket.pack("c", pConnection->GetPlayer()->cLatestAuthStateSequenceNumber);
-				oPlayerJoinedTeamPacket.pack("fff", pConnection->GetPlayer()->GetX(),
-					pConnection->GetPlayer()->GetY(), pConnection->GetPlayer()->GetZ());
+				oPlayerJoinedTeamPacket.pack("c", pConnection->GetPlayer(cPlayerNumber)->cLatestAuthStateSequenceNumber);
+				oPlayerJoinedTeamPacket.pack("fff", pConnection->GetPlayer(cPlayerNumber)->GetX(),
+					pConnection->GetPlayer(cPlayerNumber)->GetY(), pConnection->GetPlayer(cPlayerNumber)->GetZ());
 			}
 glfwUnlockMutex(oPlayerTick);
 

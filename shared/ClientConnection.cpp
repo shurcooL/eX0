@@ -9,20 +9,41 @@ std::list<ClientConnection *> ClientConnection::m_oConnections;
 
 ClientConnection::ClientConnection(SOCKET nTcpSocket)
 	: NetworkConnection(nTcpSocket),
+	  cCurrentUpdateSequenceNumber(0),
 	  oTcpPacketBuffer(),
-	  m_oPingSentTimes(PING_SENT_TIMES_HISTORY)
+	  m_nLastLatency(0),
+	  m_oPingSentTimes(PING_SENT_TIMES_HISTORY),
+	  m_pPlayer(NULL),
+	  m_oPlayers()
 {
 	printf("ClientConnection(%d) Ctor.\n", GetTcpSocket());
 
-	cCurrentUpdateSequenceNumber = 0;
-	m_nLastLatency = 0;
-
-	m_pPlayer = NULL;
+	//cCurrentUpdateSequenceNumber = 0;
+	//m_nLastLatency = 0;
+	//m_pPlayer = NULL;
 
 	// Schedule the bad client timeout event
 	CTimedEvent oEvent = CTimedEvent(glfwGetTime() + BAD_CLIENT_TIMEOUT, 0, &ClientConnection::BadClientTimeout, this);
 	m_nBadClientTimeoutEventId = oEvent.GetId();
 	pTimedEventScheduler->ScheduleEvent(oEvent);
+
+	m_oConnections.push_back(this);
+}
+
+ClientConnection::ClientConnection()
+	: NetworkConnection(),
+	  cCurrentUpdateSequenceNumber(0),
+	  oTcpPacketBuffer(),
+	  m_nLastLatency(0),
+	  m_oPingSentTimes(PING_SENT_TIMES_HISTORY),
+	  m_pPlayer(NULL),
+	  m_oPlayers()
+{
+	printf("ClientConnection() Ctor.\n");
+
+	//cCurrentUpdateSequenceNumber = 0;
+	//m_nLastLatency = 0;
+	//m_pPlayer = NULL;
 
 	m_oConnections.push_back(this);
 }
@@ -60,7 +81,8 @@ bool ClientConnection::BroadcastTcp(CPacket & oPacket, JoinStatus nMinimumJoinSt
 	for (std::list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1)
 	{
 		// Broadcast the packet to all players that are connected
-		if ((*it1)->GetJoinStatus() >= nMinimumJoinStatus) {
+		if ((*it1)->GetJoinStatus() >= nMinimumJoinStatus
+			&& (oPacket.GetSendMode() == CPacket::BOTH || (oPacket.GetSendMode() == CPacket::NETWORK && !(*it1)->IsLocal()))) {
 			/*if (sendall((*it1)->GetTcpSocket(), (char *)oPacket.GetPacket(), oPacket.size(), 0) == SOCKET_ERROR) {
 				NetworkPrintError("sendall");
 				return false;
@@ -89,7 +111,8 @@ bool ClientConnection::BroadcastTcpExcept(CPacket & oPacket, ClientConnection * 
 	for (std::list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1)
 	{
 		// Broadcast the packet to all players that are connected, except the specified one
-		if (*it1 != pConnection && (*it1)->GetJoinStatus() >= nMinimumJoinStatus) {
+		if (*it1 != pConnection && (*it1)->GetJoinStatus() >= nMinimumJoinStatus
+			&& (oPacket.GetSendMode() == CPacket::BOTH || (oPacket.GetSendMode() == CPacket::NETWORK && !(*it1)->IsLocal()))) {
 			/*if (sendall((*it1)->GetTcpSocket(), (char *)oPacket.GetPacket(), oPacket.size(), 0) == SOCKET_ERROR) {
 				NetworkPrintError("sendall");
 				return false;
@@ -119,7 +142,8 @@ bool ClientConnection::BroadcastUdp(CPacket & oPacket, JoinStatus nMinimumJoinSt
 	for (std::list<ClientConnection *>::iterator it1 = m_oConnections.begin(); it1 != m_oConnections.end(); ++it1)
 	{
 		// Broadcast the packet to all players that are connected
-		if ((*it1)->GetJoinStatus() >= nMinimumJoinStatus) {
+		if ((*it1)->GetJoinStatus() >= nMinimumJoinStatus
+			&& (oPacket.GetSendMode() == CPacket::BOTH || (oPacket.GetSendMode() == CPacket::NETWORK && !(*it1)->IsLocal()))) {
 			/*if (sendudp((*it1)->GetUdpSocket(), (char *)oPacket.GetPacket(), oPacket.size(), 0,
 				(sockaddr *)&(*it1)->GetUdpAddress(), sizeof((*it1)->GetUdpAddress())) != static_cast<int>(oPacket.size()))
 			{
@@ -132,12 +156,12 @@ bool ClientConnection::BroadcastUdp(CPacket & oPacket, JoinStatus nMinimumJoinSt
 	return true;
 }
 
-/*bool ClientConnection::BroadcastUdpExcept(CPacket & oPacket, ClientConnection * pConnection, JoinStatus nMinimumJoinStatus)
+bool ClientConnection::BroadcastUdpExcept(CPacket & /*oPacket*/, ClientConnection * /*pConnection*/, JoinStatus /*nMinimumJoinStatus*/)
 {
 	// TODO
-	printf("BroadcastUdpExcept failed because it's not finished\n");
+	printf("BroadcastUdpExcept failed because it's not finished.\n");
 	throw 0;
-}*/
+}
 
 u_short ClientConnection::GetLastLatency() const { return m_nLastLatency; }
 void ClientConnection::SetLastLatency(u_short nLastLatency) { m_nLastLatency = nLastLatency; }
@@ -147,7 +171,7 @@ HashMatcher<PingData_t, double> & ClientConnection::GetPingSentTimes() { return 
 u_int ClientConnection::GetPlayerID() const { return (m_pPlayer == NULL) ? 123 : m_pPlayer->iID; }
 void ClientConnection::SetPlayer(CPlayer * pPlayer)
 {
-	eX0_assert(pPlayer != NULL, "null parameter");
+	eX0_assert(pPlayer != NULL, "null pPlayer parameter");
 	eX0_assert(GetPlayer() == NULL, "SetPlayer() should only be called once per connection.");
 
 	m_pPlayer = pPlayer;
@@ -159,6 +183,42 @@ void ClientConnection::SetPlayer(CPlayer * pPlayer)
 
 bool ClientConnection::HasPlayer() const { return m_pPlayer != NULL; }
 CPlayer * ClientConnection::GetPlayer() { return m_pPlayer; }
+
+void ClientConnection::AddPlayer(CPlayer * pPlayer)
+{
+	eX0_assert(true == HasPlayer(), "true == HasPlayer()");
+	eX0_assert(true == IsLocal(), "true == IsLocal() failed, means Non-Local client wants to be multiplayer");	// DEBUG: This is a temporary restriction, in future allow network clients to be multiplayer
+
+	m_oPlayers.push_back(pPlayer);
+}
+
+void ClientConnection::RemovePlayer(CPlayer * pPlayer)
+{
+	eX0_assert(true == HasPlayer(), "true == HasPlayer()");		// DEBUG: Should include the 1st player in the array also, or something
+	eX0_assert(false == m_oPlayers.empty(), "false == m_oPlayers.empty()");
+	eX0_assert(true == IsLocal(), "true == IsLocal() failed, means Non-Local client wants to be multiplayer");	// DEBUG: This is a temporary restriction, in future allow network clients to be multiplayer
+
+	for (std::vector<CPlayer *>::iterator it1 = m_oPlayers.begin(); it1 != m_oPlayers.end(); ++it1)
+	{
+		if (*it1 == pPlayer) {
+			m_oPlayers.erase(it1);
+			return;
+		}
+	}
+}
+
+CPlayer * ClientConnection::GetPlayer(u_int nPlayerNumber)
+{
+	eX0_assert(nPlayerNumber < GetPlayerCount(), "nPlayerNumber < GetPlayerCount()");
+
+	if (nPlayerNumber == 0) return GetPlayer();
+	else return m_oPlayers.at(nPlayerNumber - 1);
+}
+
+u_int ClientConnection::GetPlayerCount() const
+{
+	return (false == HasPlayer() ? 0 : 1 + m_oPlayers.size());
+}
 
 // Returns a connection from its TCP socket number
 ClientConnection * ClientConnection::GetFromTcpSocket(SOCKET nTcpSocket)
@@ -197,7 +257,9 @@ ClientConnection * ClientConnection::GetFromSignature(u_char cSignature[m_knSign
 
 void ClientConnection::CancelBadClientTimeout()
 {
-	pTimedEventScheduler->RemoveEventById(m_nBadClientTimeoutEventId);
+	if (pTimedEventScheduler != NULL) {
+		pTimedEventScheduler->RemoveEventById(m_nBadClientTimeoutEventId);
+	}
 	m_nBadClientTimeoutEventId = 0;
 }
 

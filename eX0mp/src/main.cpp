@@ -72,6 +72,7 @@ bool Init(int, char *[])
 		glfwGetDesktopMode(&oDesktopMode);
 		glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 0);
 		glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
+		//if (glfwOpenWindow(1920, 1200, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow()) { printf("Opened a window (try 0)...\n"); } else
 		if (glfwOpenWindow(640, 480, 8, 8, 8, 0, 24, 8, bFullscreen ? GLFW_FULLSCREEN : GLFW_WINDOW) && CheckWindow())
 		{
 			printf("Opened a window (try 1)...\n");
@@ -133,7 +134,7 @@ bool Init(int, char *[])
 		return false;
 	}
 	WeaponInitSpecs();
-	nPlayerCount = 8;					// Set the max player limit for this server
+	nPlayerCount = 256;					// Set the max player limit for this server
 	if (bWindowModeDEBUG) pChatMessages = new CHudMessageQueue(0, 480 - 150, 5, 7.5f);
 	//FpsCounter::Initialize();
 	if (!NetworkInit()) {				// Initialize the networking
@@ -186,7 +187,7 @@ void GLFWCALL ResizeWindow(int iWidth, int iHeight)
 	printf("ResizeWindow to %dx%d.\n", iWidth, iHeight);
 	if ((iWidth * iHeight != 0) && (iWidth != 640 || iHeight != 480)) {
 #ifdef WIN32
-		MessageBox(NULL, "Refusing to run in non-native resolution (for now).", EX0_BUILD_STRING, MB_OK);
+		//MessageBox(NULL, "Refusing to run in non-native resolution (for now).", EX0_BUILD_STRING, MB_OK);
 #else
 		printf("Refusing to run in non-native resolution (for now).\n");
 #endif
@@ -378,11 +379,12 @@ int main(int argc, char *argv[])
 
 #ifdef EX0_DEBUG
 	char ch = static_cast<char>(getchar());
-	if (ch == 's') nRunModeDEBUG = 1;			// Server only
+	if (ch == 'c') nRunModeDEBUG = 0;			// Client only
+	else if (ch == 's') nRunModeDEBUG = 1;		// Server only
 	else if (ch == 'b') nRunModeDEBUG = 2;		// Both server and client
 	else if (ch == 'n') nRunModeDEBUG = 3;		// Off-line client/server (no network)
 	else if (ch == 'd') { nRunModeDEBUG = 1; bWindowModeDEBUG = false; }	// Dedicated server (no window)
-	else nRunModeDEBUG = 0;						// Client only
+	else return 9;
 #else
 	nRunModeDEBUG = 0;		// Force client-only functionality
 #endif
@@ -405,14 +407,40 @@ int main(int argc, char *argv[])
 		NetworkConnect(argv[1], DEFAULT_PORT);
 	} else if (nRunModeDEBUG == 2)
 	{
-		//NetworkConnect(argv[1], DEFAULT_PORT);
+		// Connect to local server
+		NetworkConnect(NULL, 0);
+		//pServer = new LocalServerConnection();
+		pServer->SetJoinStatus(IN_GAME);
+
 glfwLockMutex(oPlayerTick);
 		pLocalPlayer = new CPlayer(iLocalPlayerID);
 		pLocalPlayer->SetName(sLocalPlayerName);
 		pLocalPlayer->m_pController = new LocalController(*pLocalPlayer);
 		pLocalPlayer->m_pStateAuther = new LocalStateAuther(*pLocalPlayer);
+		(new LocalClientConnection())->SetPlayer(pLocalPlayer);
+		pLocalPlayer->pConnection->SetJoinStatus(IN_GAME);
 
 		pLocalPlayer->fTickTime = 1.0f / g_cCommandRate;
+
+		for (int nBotNumber = 1; nBotNumber <= 4; ++nBotNumber)
+		{//Bot test
+			CPlayer * pTestPlayer = new CPlayer();
+			std::string sName = "Test Mimic " + itos(nBotNumber);
+			pTestPlayer->SetName(sName);
+			pTestPlayer->m_pController = new LocalController(*pTestPlayer);
+			pTestPlayer->m_pStateAuther = new LocalStateAuther(*pTestPlayer);
+			//(new LocalClientConnection())->SetPlayer(pTestPlayer);
+			//pTestPlayer->pConnection->SetJoinStatus(IN_GAME);
+			pLocalPlayer->pConnection->AddPlayer(pTestPlayer);
+
+			pTestPlayer->fTickTime = 1.0f / g_cCommandRate;
+
+			// Send a Join Team Request packet
+			CPacket oJoinTeamRequest(CPacket::BOTH);
+			oJoinTeamRequest.pack("hccc", 0, (u_char)27, (u_char)nBotNumber /*nth player on this connection*/, (u_char)1);
+			oJoinTeamRequest.CompleteTpcPacketSize();
+			pServer->SendTcp(oJoinTeamRequest);
+		}
 
 		// Start the game
 		printf("Entered the game.\n");
@@ -425,6 +453,7 @@ glfwUnlockMutex(oPlayerTick);
 	{
 glfwLockMutex(oPlayerTick);
 		pLocalPlayer = new CPlayer(iLocalPlayerID);
+		pLocalPlayer->SetName(sLocalPlayerName);
 		pLocalPlayer->m_pController = new LocalController(*pLocalPlayer);
 		pLocalPlayer->m_pStateAuther = new LocalStateAuther(*pLocalPlayer);
 

@@ -53,7 +53,7 @@ const u_char * NetworkConnection::GetSignature() const { return m_cSignature; }
 bool NetworkConnection::SendTcp(CPacket & oPacket, JoinStatus nMinimumJoinStatus)
 {
 	if (GetJoinStatus() < nMinimumJoinStatus) {
-		printf("SendTcp failed (not high enough JoinStatus)\n");
+		printf("SendTcp(type #%d) failed, not high enough JoinStatus.\n", oPacket.GetPacket()[2]);
 		return false;
 	}
 	else if (sendall(GetTcpSocket(), reinterpret_cast<const char *>(oPacket.GetPacket()), oPacket.size(), 0) == SOCKET_ERROR)
@@ -68,7 +68,7 @@ bool NetworkConnection::SendTcp(CPacket & oPacket, JoinStatus nMinimumJoinStatus
 bool NetworkConnection::SendUdp(CPacket & oPacket, JoinStatus nMinimumJoinStatus)
 {
 	if (GetJoinStatus() < nMinimumJoinStatus) {
-		printf("SendUdp failed (not high enough JoinStatus)\n");
+		printf("SendUdp(type #%d) failed, not high enough JoinStatus.\n", oPacket.GetPacket()[0]);
 		return false;
 	}
 	else if (sendudp(GetUdpSocket(),

@@ -23,7 +23,7 @@ CTimedEvent::CTimedEvent()
 	m_pArgument = NULL;
 }
 
-CTimedEvent::CTimedEvent(double dTime, double dInterval, EventFunction_f pEventFunction, void *pArgument)
+CTimedEvent::CTimedEvent(double dTime, double dInterval, EventFunction_f pEventFunction, void * pArgument)
 {
 	m_nId = m_nNextFreeId++;
 

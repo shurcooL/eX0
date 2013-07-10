@@ -29,7 +29,8 @@ Empty
 10. Send Text message (size >= 1):
 Message (* char)
 
-27. Join Team Request (size == 1):
+27. Join Team Request (size == 1 {+ 1}):
+{ Player Number (char) }
 Team (char)
 
 30. Local Player Info (size >= 4):
@@ -41,7 +42,7 @@ Update Rate (char)
 Server -> Client TCP Packets:
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 2. Join Server Accept (size == 2):
-Your Id (char)
+Your Player Id (char)
 TotalPlayerCount (char)
 
 3. Join Server Refuse (size == 1):

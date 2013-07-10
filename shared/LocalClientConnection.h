@@ -1,15 +1,20 @@
 #pragma once
-#ifndef __ClientConnection_H__
-#define __ClientConnection_H__
+#ifndef __LocalClientConnection_H__
+#define __LocalClientConnection_H__
 
-class ClientConnection
-	: public NetworkConnection
+class LocalClientConnection
+	: public ClientConnection
 {
 public:
-	ClientConnection(SOCKET nTcpSocket);
-	~ClientConnection();
+	LocalClientConnection();
+	~LocalClientConnection();
 
-	u_short GetLastLatency() const;
+	bool SendTcp(CPacket & oPacket, JoinStatus nMinimumJoinStatus = IN_GAME);
+	bool SendUdp(CPacket & oPacket, JoinStatus nMinimumJoinStatus = IN_GAME);
+
+	bool IsLocal() { return true; }
+
+	/*u_short GetLastLatency() const;
 	void SetLastLatency(u_short nLastLatency);
 
 	HashMatcher<PingData_t, double> & GetPingSentTimes();
@@ -18,13 +23,6 @@ public:
 	void SetPlayer(CPlayer * pPlayer);
 	bool HasPlayer() const;
 	CPlayer * GetPlayer();
-
-	void AddPlayer(CPlayer * pPlayer);
-	void RemovePlayer(CPlayer * pPlayer);
-	CPlayer * GetPlayer(u_int nPlayerNumber);
-	u_int GetPlayerID(u_int nPlayerNumber) { return GetPlayer(nPlayerNumber)->iID; }
-	u_int GetPlayerCount() const;
-	bool IsMultiPlayer() const { return GetPlayerCount() > 1; }
 
 	void CancelBadClientTimeout();
 
@@ -50,21 +48,17 @@ public:
 	static u_int size() { return m_oConnections.size(); }
 	static void CloseAll();
 
-protected:
-	ClientConnection();
-
 private:
 	u_short		m_nLastLatency;
 	HashMatcher<PingData_t, double>		m_oPingSentTimes;
 
-	CPlayer *	m_pPlayer;
-	std::vector<CPlayer *>	m_oPlayers;
+	CPlayer * m_pPlayer;
 
 	u_int		m_nBadClientTimeoutEventId;
 
 	static std::list<ClientConnection *>		m_oConnections;
 
-	static void BadClientTimeout(void * pClientConnection);
+	static void BadClientTimeout(void * pClientConnection);*/
 };
 
-#endif // __ClientConnection_H__
+#endif // __LocalClientConnection_H__

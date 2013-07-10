@@ -121,6 +121,7 @@ public:
 	ClientConnection * pConnection;
 //#endif
 
+	static u_int GetPlayerCount();
 	static void DeleteAll();
 
 protected:
@@ -152,6 +153,7 @@ private:
 #endif // EX0_CLIENT
 
 	static std::vector<CPlayer *>		m_oPlayers;
+	static u_int						m_nPlayerCount;
 
 	static void Add(CPlayer * pPlayer);
 	static void Add(CPlayer * pPlayer, u_int nPlayerId);

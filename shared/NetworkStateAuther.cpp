@@ -190,7 +190,7 @@ void NetworkStateAuther::ProcessUpdate(CPacket & oPacket)
 		for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 		{
 			oPacket.unpack("c", &cPlayerInfo);
-			if (cPlayerInfo == 1 && PlayerGet(nPlayer)->GetTeam() != 2) {
+			if (cPlayerInfo == 1 && PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->GetTeam() != 2) {
 				// Active player
 				oPacket.unpack("c", &cLastCommandSequenceNumber);
 				oPacket.unpack("fff", &fX, &fY, &fZ);

@@ -7,12 +7,14 @@
 #	include "../eX0ds/src/globals.h"
 #endif // EX0_CLIENT
 
-CPacket::CPacket()
+CPacket::CPacket(SendMode nSendMode)
 {
 	m_pBuffer = new u_char[MAX_PACKET_SIZE];
 	m_nSize = 0;
 	m_bOwnBuffer = true;
 	m_pBufferPosition = m_pBuffer;
+	m_nPacketType = WRITE_ONLY;
+	m_nSendMode = nSendMode;
 }
 
 CPacket::CPacket(u_char * pBuffer, u_int nSize)
@@ -23,6 +25,8 @@ CPacket::CPacket(u_char * pBuffer, u_int nSize)
 	m_nSize = nSize;
 	m_bOwnBuffer = false;
 	m_pBufferPosition = m_pBuffer;
+	m_nPacketType = READ_ONLY;
+	m_nSendMode = BOTH;		// Not used/needed in the READ_ONLY version of CPacket
 }
 
 CPacket::~CPacket()
@@ -36,19 +40,34 @@ const u_char * CPacket::GetPacket() const
 	return m_pBuffer;
 }
 
-u_int CPacket::size() const
+const u_int CPacket::size() const
 {
-	if (m_bOwnBuffer)
+	/*if (m_bOwnBuffer)
 		return (u_int)(m_pBufferPosition - m_pBuffer);
 	else
-		return m_nSize;
+		return m_nSize;*/
+
+	eX0_assert(m_nPacketType == READ_ONLY || (u_int)(m_pBufferPosition - m_pBuffer) == m_nSize, "packet equality");
+	return m_nSize;
+}
+
+const CPacket::SendMode CPacket::GetSendMode() const
+{
+	return m_nSendMode;
 }
 
 void CPacket::CompleteTpcPacketSize()
 {
+	eX0_assert(m_nPacketType == WRITE_ONLY, "m_nPacketType == WRITE_ONLY in ConvertToReadOnly()");
 	eX0_assert(size() >= 3);
 
 	packi16(m_pBuffer, size() - 3);
+}
+
+void CPacket::ConvertToReadOnly()
+{
+	m_pBufferPosition = m_pBuffer;
+	m_nPacketType = READ_ONLY;
 }
 
 /*
@@ -63,7 +82,8 @@ void CPacket::CompleteTpcPacketSize()
 */
 u_int CPacket::pack(char *format, ...)
 {
-	eX0_assert(m_bOwnBuffer, "Tried to pack a constant (existing) CPacket");
+	//eX0_assert(m_bOwnBuffer, "Tried to pack a constant (existing) CPacket");
+	eX0_assert(m_nPacketType == WRITE_ONLY, "m_nPacketType == WRITE_ONLY in pack()");
 
 	va_list ap;
 	int h;
@@ -150,6 +170,8 @@ u_int CPacket::pack(char *format, ...)
 
 	va_end(ap);
 
+	m_nSize += size;
+
 	eX0_assert(CPacket::size() <= MAX_PACKET_SIZE, "Tried to pack more data than can fit into a packet");
 
 	return size;
@@ -162,6 +184,8 @@ u_int CPacket::pack(char *format, ...)
 */
 void CPacket::unpack(char *format, ...)
 {
+	eX0_assert(m_nPacketType == READ_ONLY, "m_nPacketType == READ_ONLY");
+
 	va_list ap;
 	short *h;
 	int *l;
@@ -253,7 +277,7 @@ void CPacket::unpack(char *format, ...)
 	va_end(ap);
 
 	eX0_assert((u_int)(m_pBufferPosition - m_pBuffer) <= m_nSize, "Tried to unpack more data than exists in a CPacket");
-	if (!((u_int)(m_pBufferPosition - m_pBuffer) <= m_nSize)) {
+	if (false == ((u_int)(m_pBufferPosition - m_pBuffer) <= m_nSize)) {
 		Print();
 	}
 }

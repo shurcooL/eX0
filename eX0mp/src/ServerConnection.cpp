@@ -14,6 +14,9 @@ ServerConnection::~ServerConnection()
 
 bool ServerConnection::Connect(const char * szHostname, u_short nPort)
 {
+	eX0_assert(szHostname != NULL && *szHostname != '\0');
+	eX0_assert(pLocalServer == NULL, "connecting to a remote server while running a local server, doesn't make sense!");
+
 	hostent *he;
 	sockaddr_in	oServerAddress;
 	SOCKET nTcpSocket, nUdpSocket;
@@ -70,6 +73,19 @@ bool ServerConnection::Connect(const char * szHostname, u_short nPort)
 	// Successfully connected (TCP) to the server
 	SetJoinStatus(TCP_CONNECTED);
 	printf("Established a TCP connection (local port %d), attempting to join the game.\n", ntohs(oLocalTcpAddress.sin_port));
+
+	// Create the networking thread
+	NetworkCreateThread();
+
+	// Create and send a Join Server Request packet
+	GenerateSignature();
+	CPacket oJoinServerRequestPacket;
+	if (strlen(NETWORK_PROTOCOL_PASSPHRASE) != 16) throw 1;
+	oJoinServerRequestPacket.pack("hchs", 0, (u_char)1, NETWORK_PROTOCOL_VERSION, NETWORK_PROTOCOL_PASSPHRASE);
+	for (int nSignatureByte = 0; nSignatureByte < NetworkConnection::m_knSignatureSize; ++nSignatureByte)
+		oJoinServerRequestPacket.pack("c", GetSignature()[nSignatureByte]);
+	oJoinServerRequestPacket.CompleteTpcPacketSize();
+	SendTcp(oJoinServerRequestPacket, TCP_CONNECTED);
 
 	return true;
 }

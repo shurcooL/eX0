@@ -372,6 +372,7 @@ void LocalServer::BroadcastPingPacket(void *)
 {
 	glfwLockMutex(oPlayerTick);
 
+	// Construct the Ping Packet
 	CPacket oPingPacket;
 	oPingPacket.pack("c", (u_char)10);
 	float fPingData = static_cast<float>(glfwGetTime());
@@ -394,8 +395,9 @@ void LocalServer::BroadcastPingPacket(void *)
 
 	for (u_int nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 	{
-		// Broadcast the packet to all players that are IN_GAME
-		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME)
+		// Broadcast the packet to all network players that are IN_GAME
+		if (PlayerGet(nPlayer) != NULL && PlayerGet(nPlayer)->pConnection != NULL && PlayerGet(nPlayer)->pConnection->GetJoinStatus() == IN_GAME
+			&& false == PlayerGet(nPlayer)->pConnection->IsLocal())
 		{
 			// TODO: Need a mutex to protect PingSentTimes
 			PlayerGet(nPlayer)->pConnection->GetPingSentTimes().push(oPingData, glfwGetTime());

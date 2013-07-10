@@ -14,6 +14,7 @@ string		sLocalPlayerName = "New Player";
 #endif
 
 std::vector<CPlayer *> CPlayer::m_oPlayers;
+u_int CPlayer::m_nPlayerCount = 0;
 
 //float	fPlayerTickTime;// = 0.025f;
 //float	fPlayerTickTime = 0.050f;
@@ -59,6 +60,7 @@ CPlayer::CPlayer()
 //#endif
 
 	Add(this);
+	++m_nPlayerCount;
 
 	InitWeapons();
 }
@@ -101,6 +103,7 @@ CPlayer::CPlayer(u_int nPlayerId)
 //#endif
 
 	Add(this, nPlayerId);
+	++m_nPlayerCount;
 
 	InitWeapons();
 }
@@ -108,6 +111,7 @@ CPlayer::CPlayer(u_int nPlayerId)
 CPlayer::~CPlayer()
 {
 	Remove(this);
+	--m_nPlayerCount;
 
 	delete m_pController;
 	delete m_pStateAuther;
@@ -227,7 +231,9 @@ void CPlayer::Tick()
 	//			 (i.e. perhaps, even local player on local server should be treated as with a remote controller)
 
 	//if (iID == iLocalPlayerID)
-	if (this == pLocalPlayer)
+	//if (this == pLocalPlayer)
+	// TODO: Fix this up... Don't use typid, rather make smart use of virtual functions, etc.
+	if (this->m_pController != NULL && typeid(*this->m_pController) == typeid(LocalController))
 	{
 		m_pController->RequestInput(0);
 
@@ -1143,6 +1149,11 @@ u_int CPlayer::NextFreePlayerId()
 	// No free slots in the current array, so extend it by 1
 	m_oPlayers.push_back(NULL);
 	return m_oPlayers.size() - 1;
+}
+
+u_int CPlayer::GetPlayerCount()
+{
+	return m_nPlayerCount;
 }
 
 void CPlayer::Remove(CPlayer * pPlayer)

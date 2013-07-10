@@ -11,14 +11,18 @@
 class CPacket
 {
 public:
-	CPacket();
+	enum SendMode { BOTH, NETWORK/*, LOCAL*/ };
+
+	CPacket(SendMode nSendMode = NETWORK);
 	CPacket(u_char * pBuffer, u_int nSize);
 	~CPacket();
 
 	const u_char * GetPacket() const;
-	u_int size() const;
+	const u_int size() const;
+	const SendMode GetSendMode() const;
 
 	void CompleteTpcPacketSize();
+	void ConvertToReadOnly();
 
 	u_int pack(char *format, ...);
 	void unpack(char *format, ...);
@@ -38,9 +42,11 @@ private:
 	CPacket & operator =(const CPacket &);
 
 	u_char		*m_pBuffer;
-	u_int		m_nSize;		// Only used when it's a pre-made packet, not own buffer
+	u_int		m_nSize;
 	bool		m_bOwnBuffer;
 	u_char		*m_pBufferPosition;
+	enum PacketType { WRITE_ONLY, READ_ONLY }	m_nPacketType;
+	SendMode	m_nSendMode;
 };
 
 #endif // __CPacket_H__
