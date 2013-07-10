@@ -1,0 +1,437 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source/Header Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx;h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Source/Header Files\gpc">
+      <UniqueIdentifier>{3cb6d17d-e85b-4402-8abc-f5b504005dfd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source/Header Files\Mgc">
+      <UniqueIdentifier>{f524048d-eaa7-42ed-a9c7-0ab841925796}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source/Header Files\mmgr">
+      <UniqueIdentifier>{d88e886e-c810-4f59-b03c-9dc9fcc0ecb0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source/Header Files\PolyBoolean">
+      <UniqueIdentifier>{1027f662-fd5f-4719-b816-be793001d8d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source/Header Files\OGLTextureManager">
+      <UniqueIdentifier>{99deee5f-a0cb-4ce7-8b1f-1137cbe7190c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\input.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\InputListener.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\InputManager.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\LocalServerConnection.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\CHudMessageQueue.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\HidController.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\IndexedCircularBuffer.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Network.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ogl_utils.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PlayerInputListener.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ServerConnection.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gpc\gpc.c">
+      <Filter>Source/Header Files\gpc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Mgc\MgcDist2DVecLin.cpp">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Mgc\MgcIntr2DLinLin.cpp">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Mgc\MgcMath.cpp">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Mgc\MgcVector2.cpp">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mmgr\mmgr.cpp">
+      <Filter>Source/Header Files\mmgr</Filter>
+    </ClCompile>
+    <ClCompile Include="src\OGLTextureManager\TextureManager.cpp">
+      <Filter>Source/Header Files\OGLTextureManager</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PolyBoolean\triamono.cpp">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PolyBoolean\pbgeom.cpp">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PolyBoolean\pbio.cpp">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PolyBoolean\pbpolys.cpp">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PolyBoolean\pbsweep.cpp">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PolyBoolean\polybool.cpp">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PolyBoolean\triacons.cpp">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AiController.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ClientConnection.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\col_hand.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\CPacket.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\CTimedEvent.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\CTimedEventScheduler.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\FpsCounter.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game_data.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GameLogicThread.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GameServer.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GameSession.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GameTimer.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\HashMatcher.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\LocalClientConnection.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\LocalController.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\LocalStateAuther.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MovingAverage.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\NetworkConnection.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\NetworkController.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\NetworkStateAuther.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\particle.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\player.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PlayerController.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PlayerStateAuther.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RemoteClientConnection.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ServerNetwork.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Thread.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ThreadSafeQueue.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ThroughputMonitor.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\WeaponSystem.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ws-util.cpp">
+      <Filter>Source/Header Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\input.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\InputListener.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\InputManager.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\LocalServerConnection.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\CHudMessageQueue.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\globals.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\HidController.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\IndexedCircularBuffer.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ogl_utils.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PlayerInputListener.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\render.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ServerConnection.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\gpc\gpc.h">
+      <Filter>Source/Header Files\gpc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Mgc\MagicFMLibType.h">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Mgc\MgcDist2DVecLin.h">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Mgc\MgcIntr2DLinLin.h">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Mgc\MgcLine2.h">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Mgc\MgcMath.h">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Mgc\MgcRay2.h">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Mgc\MgcRTLib.h">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Mgc\MgcSegment2.h">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Mgc\MgcVector2.h">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mmgr\nommgr.h">
+      <Filter>Source/Header Files\mmgr</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mmgr\mmgr.h">
+      <Filter>Source/Header Files\mmgr</Filter>
+    </ClInclude>
+    <ClInclude Include="src\OGLTextureManager\TextureManager.h">
+      <Filter>Source/Header Files\OGLTextureManager</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PolyBoolean\ObjHeap.h">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PolyBoolean\pbarea.h">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PolyBoolean\pbdefs.h">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PolyBoolean\pbgeom.h">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PolyBoolean\pbimpl.h">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PolyBoolean\pbio.h">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PolyBoolean\pbtria.h">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PolyBoolean\polybool.h">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PolyBoolean\Sort.h">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AiController.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ClientConnection.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\col_hand.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\CPacket.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\CTimedEvent.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\CTimedEventScheduler.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\FpsCounter.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game_data.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GameLogicThread.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GameServer.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GameSession.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GameTimer.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GlobalSettings.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\HashMatcher.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\LocalClientConnection.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\LocalController.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\LocalStateAuther.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MovingAverage.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Network.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\NetworkConnection.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\NetworkController.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\NetworkIncludes.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\NetworkStateAuther.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\particle.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\player.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PlayerController.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PlayerStateAuther.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\RemoteClientConnection.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Thread.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ThreadSafeQueue.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ThroughputMonitor.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\WeaponSystem.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ws-util.h">
+      <Filter>Source/Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\Mgc\MgcVector2.inl">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </None>
+    <None Include="src\Mgc\MgcLine2.inl">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </None>
+    <None Include="src\Mgc\MgcMath.inl">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </None>
+    <None Include="src\Mgc\MgcRay2.inl">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </None>
+    <None Include="src\Mgc\MgcSegment2.inl">
+      <Filter>Source/Header Files\Mgc</Filter>
+    </None>
+    <None Include="src\PolyBoolean\pbgeom.inl">
+      <Filter>Source/Header Files\PolyBoolean</Filter>
+    </None>
+    <None Include="ClassDiagram1.cd" />
+  </ItemGroup>
+</Project>

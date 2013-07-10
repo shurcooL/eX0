@@ -1,0 +1,241 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{108128BA-9C43-4B4B-A381-66857C06B3BC}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>eX0</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>EX0_CLIENT;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>glfw.lib;opengl32.lib;glu32.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>LIBCMT.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>EX0_CLIENT;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalIncludeDirectories>.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>glfw.lib;opengl32.lib;glu32.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\AiController.cpp" />
+    <ClCompile Include="src\CHudMessageQueue.cpp" />
+    <ClCompile Include="src\ClientConnection.cpp" />
+    <ClCompile Include="src\col_hand.cpp" />
+    <ClCompile Include="src\CPacket.cpp" />
+    <ClCompile Include="src\CTimedEvent.cpp" />
+    <ClCompile Include="src\CTimedEventScheduler.cpp" />
+    <ClCompile Include="src\FpsCounter.cpp" />
+    <ClCompile Include="src\GameLogicThread.cpp" />
+    <ClCompile Include="src\GameServer.cpp" />
+    <ClCompile Include="src\GameSession.cpp" />
+    <ClCompile Include="src\GameTimer.cpp" />
+    <ClCompile Include="src\game_data.cpp" />
+    <ClCompile Include="src\gpc\gpc.c" />
+    <ClCompile Include="src\HashMatcher.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\HidController.cpp" />
+    <ClCompile Include="src\IndexedCircularBuffer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\input.cpp" />
+    <ClCompile Include="src\InputListener.cpp" />
+    <ClCompile Include="src\InputManager.cpp" />
+    <ClCompile Include="src\LocalClientConnection.cpp" />
+    <ClCompile Include="src\LocalController.cpp" />
+    <ClCompile Include="src\LocalServerConnection.cpp" />
+    <ClCompile Include="src\LocalStateAuther.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\math.cpp" />
+    <ClCompile Include="src\Mgc\MgcDist2DVecLin.cpp" />
+    <ClCompile Include="src\Mgc\MgcIntr2DLinLin.cpp" />
+    <ClCompile Include="src\Mgc\MgcMath.cpp" />
+    <ClCompile Include="src\Mgc\MgcVector2.cpp" />
+    <ClCompile Include="src\mmgr\mmgr.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\MovingAverage.cpp" />
+    <ClCompile Include="src\Network.cpp" />
+    <ClCompile Include="src\NetworkConnection.cpp" />
+    <ClCompile Include="src\NetworkController.cpp" />
+    <ClCompile Include="src\NetworkStateAuther.cpp" />
+    <ClCompile Include="src\OGLTextureManager\TextureManager.cpp" />
+    <ClCompile Include="src\ogl_utils.cpp" />
+    <ClCompile Include="src\particle.cpp" />
+    <ClCompile Include="src\player.cpp" />
+    <ClCompile Include="src\PlayerController.cpp" />
+    <ClCompile Include="src\PlayerInputListener.cpp" />
+    <ClCompile Include="src\PlayerStateAuther.cpp" />
+    <ClCompile Include="src\PolyBoolean\pbgeom.cpp" />
+    <ClCompile Include="src\PolyBoolean\pbio.cpp" />
+    <ClCompile Include="src\PolyBoolean\pbpolys.cpp" />
+    <ClCompile Include="src\PolyBoolean\pbsweep.cpp" />
+    <ClCompile Include="src\PolyBoolean\polybool.cpp" />
+    <ClCompile Include="src\PolyBoolean\triacons.cpp" />
+    <ClCompile Include="src\PolyBoolean\triamono.cpp" />
+    <ClCompile Include="src\RemoteClientConnection.cpp" />
+    <ClCompile Include="src\render.cpp" />
+    <ClCompile Include="src\ServerConnection.cpp" />
+    <ClCompile Include="src\ServerNetwork.cpp" />
+    <ClCompile Include="src\Thread.cpp" />
+    <ClCompile Include="src\ThreadSafeQueue.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\ThroughputMonitor.cpp" />
+    <ClCompile Include="src\WeaponSystem.cpp" />
+    <ClCompile Include="src\ws-util.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\AiController.h" />
+    <ClInclude Include="src\CHudMessageQueue.h" />
+    <ClInclude Include="src\ClientConnection.h" />
+    <ClInclude Include="src\col_hand.h" />
+    <ClInclude Include="src\CPacket.h" />
+    <ClInclude Include="src\CTimedEvent.h" />
+    <ClInclude Include="src\CTimedEventScheduler.h" />
+    <ClInclude Include="src\FpsCounter.h" />
+    <ClInclude Include="src\GameLogicThread.h" />
+    <ClInclude Include="src\GameServer.h" />
+    <ClInclude Include="src\GameSession.h" />
+    <ClInclude Include="src\GameTimer.h" />
+    <ClInclude Include="src\game_data.h" />
+    <ClInclude Include="src\globals.h" />
+    <ClInclude Include="src\GlobalSettings.h" />
+    <ClInclude Include="src\gpc\gpc.h" />
+    <ClInclude Include="src\HashMatcher.h" />
+    <ClInclude Include="src\HidController.h" />
+    <ClInclude Include="src\IndexedCircularBuffer.h" />
+    <ClInclude Include="src\input.h" />
+    <ClInclude Include="src\InputListener.h" />
+    <ClInclude Include="src\InputManager.h" />
+    <ClInclude Include="src\LocalClientConnection.h" />
+    <ClInclude Include="src\LocalController.h" />
+    <ClInclude Include="src\LocalServerConnection.h" />
+    <ClInclude Include="src\LocalStateAuther.h" />
+    <ClInclude Include="src\main.h" />
+    <ClInclude Include="src\math.h" />
+    <ClInclude Include="src\Mgc\MagicFMLibType.h" />
+    <ClInclude Include="src\Mgc\MgcDist2DVecLin.h" />
+    <ClInclude Include="src\Mgc\MgcIntr2DLinLin.h" />
+    <ClInclude Include="src\Mgc\MgcLine2.h" />
+    <ClInclude Include="src\Mgc\MgcMath.h" />
+    <ClInclude Include="src\Mgc\MgcRay2.h" />
+    <ClInclude Include="src\Mgc\MgcRTLib.h" />
+    <ClInclude Include="src\Mgc\MgcSegment2.h" />
+    <ClInclude Include="src\Mgc\MgcVector2.h" />
+    <ClInclude Include="src\mmgr\mmgr.h" />
+    <ClInclude Include="src\mmgr\nommgr.h" />
+    <ClInclude Include="src\MovingAverage.h" />
+    <ClInclude Include="src\Network.h" />
+    <ClInclude Include="src\NetworkConnection.h" />
+    <ClInclude Include="src\NetworkController.h" />
+    <ClInclude Include="src\NetworkIncludes.h" />
+    <ClInclude Include="src\NetworkStateAuther.h" />
+    <ClInclude Include="src\OGLTextureManager\TextureManager.h" />
+    <ClInclude Include="src\ogl_utils.h" />
+    <ClInclude Include="src\particle.h" />
+    <ClInclude Include="src\player.h" />
+    <ClInclude Include="src\PlayerController.h" />
+    <ClInclude Include="src\PlayerInputListener.h" />
+    <ClInclude Include="src\PlayerStateAuther.h" />
+    <ClInclude Include="src\PolyBoolean\ObjHeap.h" />
+    <ClInclude Include="src\PolyBoolean\pbarea.h" />
+    <ClInclude Include="src\PolyBoolean\pbdefs.h" />
+    <ClInclude Include="src\PolyBoolean\pbgeom.h" />
+    <ClInclude Include="src\PolyBoolean\pbimpl.h" />
+    <ClInclude Include="src\PolyBoolean\pbio.h" />
+    <ClInclude Include="src\PolyBoolean\pbtria.h" />
+    <ClInclude Include="src\PolyBoolean\polybool.h" />
+    <ClInclude Include="src\PolyBoolean\Sort.h" />
+    <ClInclude Include="src\RemoteClientConnection.h" />
+    <ClInclude Include="src\render.h" />
+    <ClInclude Include="src\ServerConnection.h" />
+    <ClInclude Include="src\Thread.h" />
+    <ClInclude Include="src\ThreadSafeQueue.h" />
+    <ClInclude Include="src\ThroughputMonitor.h" />
+    <ClInclude Include="src\WeaponSystem.h" />
+    <ClInclude Include="src\ws-util.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram1.cd" />
+    <None Include="src\Mgc\MgcLine2.inl" />
+    <None Include="src\Mgc\MgcMath.inl" />
+    <None Include="src\Mgc\MgcRay2.inl" />
+    <None Include="src\Mgc\MgcSegment2.inl" />
+    <None Include="src\Mgc\MgcVector2.inl" />
+    <None Include="src\PolyBoolean\pbgeom.inl" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
