@@ -761,6 +761,8 @@ void LaunchProcessInBackground(std::initializer_list<std::string> Argv)
 
 void PlaySound(const std::string Path)
 {
+	if (!bWindowModeDEBUG || !glfwGetWindowParam(GLFW_ACTIVE)) return;
+
 #ifdef EX0_DEBUG
 	if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT))
 		LaunchProcessInBackground({"/usr/bin/afplay", "--volume", "0.5", "--rate", "0.25", Path});		// HACK: OS X dependency
