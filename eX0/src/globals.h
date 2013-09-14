@@ -135,6 +135,7 @@ using namespace Mgc;
 // global variables //
 //////////////////////
 extern int nRunModeDEBUG;	// DEBUG: For debug purposes only, remove later
+extern bool bWindowModeDEBUG;
 
 extern volatile int	iGameState;
 extern bool			bPaused;

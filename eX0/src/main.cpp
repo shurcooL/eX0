@@ -110,8 +110,8 @@ bool Init(int, char *[])
 			if (!glfwGetWindowParam(GLFW_OPENED)) return false;
 		}
 		glfwSwapInterval(1);		// Turn V-Sync on
-		//glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
-		glfwSetWindowPos(oDesktopMode.Width - 650, oDesktopMode.Height / 2 - 240);
+		glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
+		//glfwSetWindowPos(oDesktopMode.Width - 650, oDesktopMode.Height / 2 - 240);
 		glfwSetWindowTitle(EX0_BUILD_STRING);	// set the window title
 
 		// init OpenGL
@@ -422,6 +422,14 @@ int main(int argc, char * argv[])
 //return 0;
 
 
+	// Get current working directory
+	/*{
+		auto cwd = getcwd(nullptr, 0);
+		if (nullptr != cwd) {
+			printf("Current-working-dir is '%s' (should be the folder where ./eX0 is).\n", cwd);
+			free(cwd);
+		}
+	}*/
 
 	// Print the version and date/time built
 	printf("%s\n\n", EX0_BUILD_STRING);
@@ -454,12 +462,21 @@ int main(int argc, char * argv[])
 	{
 		if (argc >= 3)
 			sLocalPlayerName = argv[2];
-#ifndef EX0_DEBUG
+#ifdef EX0_DEBUG
+		else
+			sLocalPlayerName = "shurcooL";
+#else
 		else {
+#ifdef WIN32
 			CHAR lpBuffer[256+1];
 			DWORD lpnSize = 256+1;
 			if (GetUserName(lpBuffer, &lpnSize))
 				sLocalPlayerName = lpBuffer;
+#else
+			char * Login = getlogin();
+			if (Login != nullptr)
+				sLocalPlayerName = Login;
+#endif
 		}
 #endif // EX0_DEBUG
 	}
@@ -470,14 +487,15 @@ int main(int argc, char * argv[])
 #ifdef EX0_DEBUG
 		glfwSetWindowPos(oDesktopMode.Width - 650 * 2, oDesktopMode.Height / 2 - 240);
 		if (!(argc >= 2 && NetworkConnect(argv[1], DEFAULT_PORT)) &&
-			!NetworkConnect("cse.yorku.ca", DEFAULT_PORT) &&
+			!NetworkConnect("192.168.0.196", DEFAULT_PORT) &&
+			!NetworkConnect("shurserv.no-ip.org", DEFAULT_PORT) &&
 			!NetworkConnect("shurcool.no-ip.org", DEFAULT_PORT))
 		{
 			Terminate(1);
 		}
 #else
 		glfwSetWindowPos(oDesktopMode.Width / 2 - 320, oDesktopMode.Height / 2 - 240);
-		if (!NetworkConnect("cse.yorku.ca", DEFAULT_PORT))
+		if (!NetworkConnect("shurserv.no-ip.org", DEFAULT_PORT))
 		{
 			Terminate(1);
 		}
@@ -576,6 +594,7 @@ glfwUnlockMutex(oPlayerTick);
 	while (bProgramRunning && (!bWindowModeDEBUG || glfwGetWindowParam(GLFW_OPENED)))
 	{
 		g_pGameSession->MainTimer().UpdateTime();
+		//printf("%f ms per frame.\n", 1000 * g_pGameSession->MainTimer().GetTimePassed());
 
 		pFpsCounter->IncrementCounter();
 		FpsCounter::UpdateCounters(g_pGameSession->MainTimer().GetTime());		// TODO: Use real time for this, not potentially scaled game time...
@@ -699,7 +718,7 @@ glfwUnlockMutex(oPlayerTick);
 		}
 		else
 		{
-			glfwSleep(0.0001);
+			glfwSleep(0.001);
 		}
 	}
 
@@ -710,4 +729,42 @@ glfwUnlockMutex(oPlayerTick);
 
 	printf("Returning %d from main().                       %s\n", nGlobalExitCode, nGlobalExitCode == 0 ? ":) :) :) :) :) :)))" : ">___________________<");
 	return 0;
+}
+
+void LaunchProcessInBackground(std::initializer_list<std::string> Argv)
+{
+	auto Pid = fork();
+
+	if (0 == Pid)
+	{
+		std::vector<char *> argv;
+		for (auto & arg : Argv)
+		{
+			argv.push_back(const_cast<char *>(arg.c_str()));
+		}
+		argv.push_back(nullptr);
+
+		execv(argv[0], &argv[0]);
+
+		// TODO: Add error checking on above execl(), and do exit() in case execution reaches here
+		//exit(1);		// Not needed, just in case I comment out the above
+		throw 0;
+	}
+	else if (-1 == Pid)
+	{
+		perror("Error forking");
+	}
+	else
+	{
+	}
+}
+
+void PlaySound(const std::string Path)
+{
+#ifdef EX0_DEBUG
+	if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT))
+		LaunchProcessInBackground({"/usr/bin/afplay", "--volume", "0.5", "--rate", "0.25", Path});		// HACK: OS X dependency
+	else
+#endif // EX0_DEBUG
+		LaunchProcessInBackground({"/usr/bin/afplay", "--volume", "0.5", Path});		// HACK: OS X dependency
 }

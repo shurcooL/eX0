@@ -71,7 +71,7 @@ void GLFWCALL CTimedEventScheduler::ThreadFunction(void * pArgument)
 			glfwSleep(pScheduler->m_oEvents.top().GetTime() - pScheduler->m_oTimer.GetRealTime());
 		else
 			glfwSleep(0.0);*/
-		glfwSleep(0.0001);
+		glfwSleep(0.001);
 	}
 
 	//printf("Scheduler thread has ended.\n");

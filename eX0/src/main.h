@@ -32,4 +32,7 @@ void Terminate(int nExitCode);
 // Restarts the game
 void RestartGame();
 
+void LaunchProcessInBackground(std::initializer_list<std::string> Argv);
+void PlaySound(const std::string Path);
+
 #endif // __Main_H__

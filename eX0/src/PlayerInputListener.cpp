@@ -194,6 +194,14 @@ bool PlayerInputListener::MutexProcessButton(int nDevice, int nButton, bool bPre
 		case GLFW_MOUSE_BUTTON_LEFT:
 			m_bWeaponFireTEST = (true == bPressed);
 			break;
+#ifdef EX0_DEBUG
+		case GLFW_MOUSE_BUTTON_RIGHT:
+			if (bPressed)
+				LaunchProcessInBackground({"/usr/bin/afplay", "--volume", "0.5", "data/sounds/Slomo_Start.wav"});		// HACK: OS X dependency
+			else
+				LaunchProcessInBackground({"/usr/bin/afplay", "--volume", "0.5", "data/sounds/Slomo_End.wav"});		// HACK: OS X dependency
+			break;
+#endif // EX0_DEBUG
 		default:
 			return false;
 			break;
@@ -205,7 +213,13 @@ bool PlayerInputListener::MutexProcessButton(int nDevice, int nButton, bool bPre
 	{
 		switch (nButton)
 		{
-		case 2:
+		case 7:
+			m_bWeaponFireTEST = (true == bPressed);
+			break;
+		case 6:
+			m_dStealthHalfAxisState = (bPressed ? 1 : 0);		// HACK: Set absolute values instead of adding? Joystick buttons don't work same as keyboard buttons apparently
+			break;
+		case 3:
 			m_bWeaponReloadTEST = (true == bPressed);
 			break;
 		default:
@@ -257,7 +271,6 @@ bool PlayerInputListener::MutexProcessAxis(int nDevice, int nAxis, double dPosit
 	{
 		if (nAxis == 0)			// 1st Axis
 		{
-			//m_dRotationAxisState = dPosition / 10.0;
 			m_dStrafeAxisState = dPosition;
 		}
 		else if (nAxis == 1)	// 2nd Axis
@@ -265,10 +278,6 @@ bool PlayerInputListener::MutexProcessAxis(int nDevice, int nAxis, double dPosit
 			m_dForwardAxisState = dPosition;
 		}
 		else if (nAxis == 2)	// 3rd Axis
-		{
-			m_bWeaponFireTEST = (dPosition <= -0.5);
-		}
-		else if (nAxis == 4)	// 5th Axis
 		{
 			m_dRotationAxisState = dPosition / 10.0;
 		}

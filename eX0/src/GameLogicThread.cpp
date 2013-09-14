@@ -104,7 +104,7 @@ glfwUnlockMutex(oPlayerTick);
 //#endif
 		}
 
-		glfwSleep(0.0001);
+		glfwSleep(0.001);
 		//glfwSleep(0.0678);
 		//glfwSleep(0.234);
 	}

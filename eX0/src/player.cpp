@@ -377,6 +377,13 @@ void CPlayer::GiveHealth(float fValue, int /*nSourcePlayerId*/)
 
 	fHealth += fValue;
 	if (fHealth < 0) fHealth = 0;
+
+	if (fHealth > 0) {
+		PlaySound("data/sounds/hit-1.wav");
+	} else {
+		// Dead sound
+		PlaySound("data/sounds/die-1.wav");
+	}
 }
 
 SequencedState_st CPlayer::PhysicsTickTEST(SequencedState_st oStartingState, SequencedCommand_st oCommand)
@@ -679,8 +686,7 @@ void CPlayer::SetZ(float fValue)
 
 float CPlayer::GetZ()
 {
-	// DEBUG - yet another hack.. replace it with some proper network-syncronyzed view bobbing
-	return fZ + Math::Sin(glfwGetTime() * 10.0f) * GetVelocity() * GetVelocity() / 3.5f * 0.0075f;
+	return fZ + Math::Sin(g_pGameSession->LogicTimer().GetTime() * 10.0f) * GetVelocity() * GetVelocity() / 3.5f * 0.0075f;
 	//return fZ;
 }
 
@@ -742,7 +748,7 @@ void CPlayer::Render()
 	{
 		OglUtilsSetMaskingMode(NO_MASKING_MODE);
 		RenderOffsetCamera(true);
-		gluPartialDisk(oQuadricObj, 6, 8, 12, 1, 30.0, 300.0);
+		gluPartialDisk(oQuadricObj, 6, 8, 10, 1, 30.0, 300.0);
 
 		// Render the weapon
 		oWeapons.Render();
@@ -768,7 +774,7 @@ void CPlayer::Render()
 			State_st oRenderState = GetRenderState();
 			glTranslatef(oRenderState.fX, oRenderState.fY, 0);
 			glRotatef(oRenderState.fZ * Math::RAD_TO_DEG, 0, 0, -1);
-			gluPartialDisk(oQuadricObj, 6, 8, 12, 1, 30.0, 300.0);
+			gluPartialDisk(oQuadricObj, 6, 8, 10, 1, 30.0, 300.0);
 
 			// Render the weapon
 			oWeapons.Render();
@@ -1424,7 +1430,7 @@ void CPlayer::RenderInPast(double dTimeAgo)
 	RenderOffsetCamera(false);
 	glTranslatef(oState.fX, oState.fY, 0);
 	glRotatef(oState.fZ * Math::RAD_TO_DEG, 0, 0, -1);
-	gluPartialDisk(oQuadricObj, 6, 8, 12, 1, 30.0, 300.0);
+	gluPartialDisk(oQuadricObj, 6, 8, 10, 1, 30.0, 300.0);
 	glBegin(GL_QUADS);
 		glVertex2i(-1, 11);
 		glVertex2i(-1, 3);

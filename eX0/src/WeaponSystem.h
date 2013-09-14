@@ -88,6 +88,8 @@ private:
 
 	enum MuzzleFlashState { READY, VISIBLE, COOLDOWN } m_oMuzzleFlashState;
 
+	bool		m_EmptyClicked = false;
+
 	static const WeaponType_st & GetWeaponType(uint8 WeaponTypeId);
 };
 

@@ -291,6 +291,10 @@ bool WeaponSystem::ProcessWpnCommand(WpnCommand_st & oWpnCommand)
 	{
 		m_nAction = IDLE;
 		m_dNextReadyTime = oWpnCommand.dTime;
+
+		// HACK: Controls hardcoded
+		if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+			m_EmptyClicked = false;
 	}
 	else if (FIRE == oWpnCommand.nAction)
 	{
@@ -322,7 +326,9 @@ bool WeaponSystem::ProcessWpnCommand(WpnCommand_st & oWpnCommand)
 					bImportantCommand = true;
 
 					// play shot sound
-					// ...
+					if (1 == GetSelectedWeaponType().id)
+						PlaySound("data/sounds/m4a1-1.wav");
+
 					m_dNextReadyTime = oWpnCommand.dTime + GetSelectedWeaponType().rate_of_fire;
 					--GetSelectedWeapon().ammo;
 
@@ -355,12 +361,14 @@ bool WeaponSystem::ProcessWpnCommand(WpnCommand_st & oWpnCommand)
 				}
 				else
 				{
-					/*if (PlayerGet(iOwnerID)->bEmptyClicked == false) {
+					//PlayerGet(m_OwnerPlayerId)->bEmptyClicked
+					if (m_EmptyClicked == false) {
 						// play dry fire sound
-						// ...
-						PlayerGet(iOwnerID)->bEmptyClicked = true;
-					}*/
-					break;
+						if (1 == GetSelectedWeaponType().id)
+							PlaySound("data/sounds/dryfire_rifle.wav");
+
+						m_EmptyClicked = true;
+					}
 				}
 			}
 			break;
@@ -388,6 +396,9 @@ bool WeaponSystem::ProcessWpnCommand(WpnCommand_st & oWpnCommand)
 
 			// Start reloading
 			m_dNextReadyTime = oWpnCommand.dTime + GetSelectedWeaponType().reload_time;
+
+			// Play reload sound
+			PlaySound("data/sounds/m4a1_reload.wav");
 		}
 #if 0	// VAIO change
 		else
@@ -439,8 +450,8 @@ void WeaponSystem::Render()
 	{
 		glBegin(GL_QUADS);
 			glVertex2d(-1, 3 + GunLength);
-			glVertex2d(-1, 3 - GunLength > 8 ? 1 : 0);
-			glVertex2d(1, 3 - GunLength > 8 ? 1 : 0);
+			glVertex2d(-1, 3 - (GunLength > 8 ? 1 : 0));
+			glVertex2d(1, 3 - (GunLength > 8 ? 1 : 0));
 			glVertex2d(1, 3 + GunLength);
 		glEnd();
 
@@ -536,6 +547,9 @@ void WeaponSystem::GiveClip()
 	/* TODO: Make this network-enabled
 	if (GetSelectedWeapon().clips < GetSelectedWeaponType().max_clips)
 		++GetSelectedWeapon().clips;*/
+
+	// play buy ammo sound
+	PlaySound("data/sounds/buy_ammo.wav");
 }
 
 const WeaponType_st & WeaponSystem::GetWeaponType(uint8 WeaponTypeId)

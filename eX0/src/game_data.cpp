@@ -21,8 +21,10 @@ TextureIDs_t oTextureIDs;
 bool GameDataLoad()
 {
 #ifdef EX0_CLIENT
-	// load all textures
-	GameDataLoadTextures();
+	if (bWindowModeDEBUG) {
+		// load all textures
+		GameDataLoadTextures();
+	}
 #endif // EX0_CLIENT
 
 	// DEBUG - temporarily just open a level right away
@@ -89,7 +91,7 @@ bool GameDataOpenLevel(const char *chFileName)
 #else
 		//printf("%s\n", sMessage.c_str());
 #endif
-		printf("%s\n", sMessage.c_str());
+		printf("%s (errno=%d)\n", sMessage.c_str(), errno);
 		return false;
 	}
 

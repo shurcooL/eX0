@@ -22,9 +22,9 @@
 #endif // EX0_DEBUG
 
 #if defined NDEBUG
-#	define EX0_BUILD_STRING EX0_PRODUCT_STRING" v"EX0_VERSION" (Release Build"EX0_DEBUG_OPTIONS_STRING", built on "__DATE__" at "__TIME__")"
+#	define EX0_BUILD_STRING EX0_PRODUCT_STRING " v" EX0_VERSION " (Release Build" EX0_DEBUG_OPTIONS_STRING ", built on " __DATE__ " at " __TIME__ ")"
 #elif defined _DEBUG
-#	define EX0_BUILD_STRING EX0_PRODUCT_STRING" v"EX0_VERSION" (Debug Build"EX0_DEBUG_OPTIONS_STRING", built on "__DATE__" at "__TIME__")"
+#	define EX0_BUILD_STRING EX0_PRODUCT_STRING " v" EX0_VERSION " (Debug Build" EX0_DEBUG_OPTIONS_STRING ", built on " __DATE__ " at " __TIME__ ")"
 #else
 #	error "Neither NDEBUG nor _DEBUG are defined."
 #endif // DEBUG

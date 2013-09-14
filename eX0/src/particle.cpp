@@ -451,6 +451,7 @@ void CParticle::HitCheck(int nParticle)
 			// Splash dmg
 			if (oParticles[nParticle].iWhatType == 2) {
 				printf("BOOM at x=%f, y=%f and LogicTime=%.20f\n", oParticles[nParticle].oPosition.x, oParticles[nParticle].oPosition.y, oParticles[nParticle].dDieAt);
+				PlaySound("data/sounds/nade_explode-1.wav");
 				for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer)
 				{
 					// a bullet can't hit his owner

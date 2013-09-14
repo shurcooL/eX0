@@ -277,7 +277,7 @@ void RenderPlayers()
 		/*for (int i = 0; i <= 100; ++i)
 			pLocalPlayer->RenderInPast(kfInterpolate * i);*/
 		//pLocalPlayer->RenderInPast(-0.25);
-		pLocalPlayer->RenderInPast(6.25);
+		//pLocalPlayer->RenderInPast(6.25);
 		pLocalPlayer->Render();
 	}
 
@@ -419,7 +419,7 @@ void RenderCreateFOVMask()
 		glVertex2i(0, 0);
 		glVertex2i(1250, 1000);
 	glEnd();
-	gluPartialDisk(oQuadricObj, 0, 8, 12, 1, 30.0, 300.0);
+	gluPartialDisk(oQuadricObj, 0, 8, 10, 1, 30.0, 300.0);
 
 	// Now clip away from the full view what's blocked by the walls
 	OglUtilsSetMaskValue(0);

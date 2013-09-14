@@ -417,7 +417,11 @@ void InputMouseMoved()
 		pLocalPlayer->fAimingDistance = 25.0;*/
 
 	float fRotationAmount = fFilteredMouseMovedX * fMouseSensitivity / 100.0f
+#ifdef EX0_DEBUG
 		* (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ? 0.5f : 1.0f);
+#else
+		;
+#endif // EX0_DEBUG
 		//* 200.0 / pLocalPlayer->fAimingDistance);
 glfwLockMutex(oPlayerTick);
 	// DEBUG: Fix it

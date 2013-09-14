@@ -7,19 +7,19 @@
 
 double TimeScaleTEST()
 {
-#if 0
+#ifdef EX0_DEBUG
 	//return 0.0001;
 	static double LastTime = glfwGetTime();
 	static double ReportedTime = 0;
 	int x, y; glfwGetMousePos(&x, &y);
 	double ThisTime = glfwGetTime();
-	ReportedTime += ((double)y / -480) * (ThisTime - LastTime);
-	//ReportedTime += (glfwGetKey(GLFW_KEY_SPACE) ? 0.01 : 0.5) * (ThisTime - LastTime);
+	//ReportedTime += ((double)y / -480) * (ThisTime - LastTime);
+	ReportedTime += (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT) ? 0.25 : 1) * (ThisTime - LastTime);
 	LastTime = ThisTime;
 	return ReportedTime;
 #else
 	return glfwGetTime();
-#endif
+#endif // EX0_DEBUG
 }
 
 GameTimer::GameTimer()
