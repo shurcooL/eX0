@@ -11,4 +11,3 @@ ln -s /usr/lib/i386-linux-gnu/mesa/libGL.so.1 /usr/lib/i386-linux-gnu/libGL.so
 ln -s /usr/lib/i386-linux-gnu/libGLU.so.1 /usr/lib/i386-linux-gnu/libGLU.so
 ln -s /usr/lib/i386-linux-gnu/libX11.so.6 /usr/lib/i386-linux-gnu/libX11.so
 ln -s /usr/lib/i386-linux-gnu/libXrandr.so.2 /usr/lib/i386-linux-gnu/libXrandr.so
-
