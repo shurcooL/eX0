@@ -7,7 +7,7 @@ CC2	= gcc
 #CC		= clang++
 #CC2		= clang
 
-CFLAGS = -I. -I/usr/X11R6/include \
+CFLAGS = -I./include/ -I/usr/X11R6/include \
 	-DEX0_CLIENT -D_DEBUG \
 	-O0 -g -pthread -Wall \
 	-Wno-unknown-pragmas -Wno-comment \
