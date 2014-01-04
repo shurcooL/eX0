@@ -3,7 +3,7 @@ eX0
 
 eX0 is an unfinished networked multiplayer (and single-player) top-down view 2D tactical shooter indie game.
 
-It was originally envisioned as a realistic recreationg of Counter-Strike in 2D, but since most of the gameplay is not implemented nor finalized, it can end up being quite different (if I ever decide to finish it).
+It was originally envisioned as a realistic recreation of Counter-Strike in 2D, but since most of the gameplay is not implemented nor finalized, it can end up being quite different (if I ever decide to finish it).
 
 Its networking model is mostly based on the Half-Life and Quake networking models, with some tweaks and improvements based on ideas by Glenn Fiedler. Some info can be found in this [blog post](http://shurcool.wordpress.com/2011/07/25/how-to-make-your-networked-game-smooth-as-butter/) including the comments section.
 
