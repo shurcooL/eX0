@@ -19,7 +19,7 @@ Videos
 Screenshots
 -----------
 
-![](http://img547.imageshack.us/img547/9282/eqch.png)
+![Screenshot](https://dl.dropboxusercontent.com/u/8554242/dmitri/projects/eX0/Screenshot.png)
 
 Attribution
 -----------
