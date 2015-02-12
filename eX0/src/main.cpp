@@ -487,8 +487,8 @@ int main(int argc, char * argv[])
 #ifdef EX0_DEBUG
 		glfwSetWindowPos(oDesktopMode.Width - 650 * 2, oDesktopMode.Height / 2 - 240);
 		if (!(argc >= 2 && NetworkConnect(argv[1], DEFAULT_PORT)) &&
-			!NetworkConnect("192.168.0.196", DEFAULT_PORT) &&
-			!NetworkConnect("shurserv.no-ip.org", DEFAULT_PORT) &&
+			!NetworkConnect("localhost", DEFAULT_PORT) &&
+			!NetworkConnect("dmitri.shuralyov.com", DEFAULT_PORT) &&
 			!NetworkConnect("shurcool.no-ip.org", DEFAULT_PORT))
 		{
 			Terminate(1);

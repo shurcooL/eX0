@@ -7,7 +7,7 @@ class CPacket;
 #define NETWORK_PROTOCOL_VERSION	1
 #define NETWORK_PROTOCOL_PASSPHRASE	"somerandompass01"
 
-#define DEFAULT_PORT				25035
+#define DEFAULT_PORT				25045
 
 #define BROADCAST_PING_PERIOD		2.5		// How often to broadcast the Ping packet on the server
 #define PING_SENT_TIMES_HISTORY		5		// How many Ping or Pong sent-times to keep track of
