@@ -2,7 +2,7 @@
 
 int		iCameraType
 #ifdef EX0_DEBUG
-					= 0;
+					= 2;
 #else
 					= 2;
 #endif // EX0_DEBUG
