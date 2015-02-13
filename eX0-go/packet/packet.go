@@ -14,6 +14,8 @@ const (
 	EnteredGameNotificationType  Type = 7
 	LoadLevelType                Type = 20
 	CurrentPlayersInfoType       Type = 21
+	JoinTeamRequestType          Type = 27
+	PlayerJoinedTeamType         Type = 28
 	LocalPlayerInfoType          Type = 30
 
 	PingType         Type = 10
@@ -80,6 +82,21 @@ type State struct {
 	X                         float32
 	Y                         float32
 	Z                         float32
+}
+
+type JoinTeamRequest struct {
+	TcpHeader
+
+	PlayerNumber *uint8 // If > 1 players per connection, player index within the connection.
+	Team         uint8
+}
+
+type PlayerJoinedTeam struct {
+	TcpHeader
+
+	PlayerId uint8
+	Team     uint8
+	State    *State // If Team != 2.
 }
 
 type EnterGamePermission struct {

@@ -288,5 +288,64 @@ func handleConnection(tcp net.Conn) {
 		goon.Dump(r)
 	}
 
-	select {}
+	for {
+		var playerId uint8 = 0 // TODO: Non-hardcoded value.
+		var team uint8
+
+		{
+			var r packet.JoinTeamRequest
+			err := binary.Read(tcp, binary.BigEndian, &r.TcpHeader)
+			if err != nil {
+				panic(err)
+			}
+			// TODO: Handle potential PlayerNumber.
+			err = binary.Read(tcp, binary.BigEndian, &r.Team)
+			if err != nil {
+				panic(err)
+			}
+			goon.Dump(r)
+
+			team = r.Team
+		}
+
+		{
+			var p packet.PlayerJoinedTeam
+			p.Type = packet.PlayerJoinedTeamType
+			p.PlayerId = playerId
+			p.Team = team
+
+			if p.Team != 2 {
+				p.State = &packet.State{
+					LastCommandSequenceNumber: 0, // TODO: This should come from game logic state.
+					X: 25,
+					Y: -220,
+					Z: 6.0,
+				}
+			}
+
+			p.Length = 2
+			if p.State != nil {
+				p.Length += 13
+			}
+
+			err := binary.Write(tcp, binary.BigEndian, &p.TcpHeader)
+			if err != nil {
+				panic(err)
+			}
+			err = binary.Write(tcp, binary.BigEndian, &p.PlayerId)
+			if err != nil {
+				panic(err)
+			}
+			err = binary.Write(tcp, binary.BigEndian, &p.Team)
+			if err != nil {
+				panic(err)
+			}
+			if p.State != nil {
+				err = binary.Write(tcp, binary.BigEndian, p.State)
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
+	}
 }
