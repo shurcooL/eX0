@@ -16,10 +16,12 @@ const (
 	CurrentPlayersInfoType       Type = 21
 	LocalPlayerInfoType          Type = 30
 
-	HandshakeType Type = 100
-	PingType      Type = 10
-	PongType      Type = 11
-	PungType      Type = 12
+	PingType         Type = 10
+	PongType         Type = 11
+	PungType         Type = 12
+	HandshakeType    Type = 100
+	TimeRequestType  Type = 105
+	TimeResponseType Type = 106
 )
 
 //go:generate stringer -type=Type
@@ -101,12 +103,6 @@ type UdpHeader struct {
 	Type Type
 }
 
-type Handshake struct {
-	UdpHeader
-
-	Signature uint64
-}
-
 type Ping struct {
 	UdpHeader
 
@@ -124,4 +120,23 @@ type Pung struct {
 	UdpHeader
 
 	PingData [4]byte
+}
+
+type Handshake struct {
+	UdpHeader
+
+	Signature uint64
+}
+
+type TimeRequest struct {
+	UdpHeader
+
+	SequenceNumber uint8
+}
+
+type TimeResponse struct {
+	UdpHeader
+
+	SequenceNumber uint8
+	Time           float64
 }

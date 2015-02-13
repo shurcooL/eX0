@@ -11,6 +11,7 @@ const (
 	_Type_name_3 = "LoadLevelTypeCurrentPlayersInfoType"
 	_Type_name_4 = "LocalPlayerInfoType"
 	_Type_name_5 = "HandshakeType"
+	_Type_name_6 = "TimeRequestTypeTimeResponseType"
 )
 
 var (
@@ -20,6 +21,7 @@ var (
 	_Type_index_3 = [...]uint8{0, 13, 35}
 	_Type_index_4 = [...]uint8{0, 19}
 	_Type_index_5 = [...]uint8{0, 13}
+	_Type_index_6 = [...]uint8{0, 15, 31}
 )
 
 func (i Type) String() string {
@@ -40,6 +42,9 @@ func (i Type) String() string {
 		return _Type_name_4
 	case i == 100:
 		return _Type_name_5
+	case 105 <= i && i <= 106:
+		i -= 105
+		return _Type_name_6[_Type_index_6[i]:_Type_index_6[i+1]]
 	default:
 		return fmt.Sprintf("Type(%d)", i)
 	}

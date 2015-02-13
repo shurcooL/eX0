@@ -37,6 +37,8 @@ func main() {
 	}
 }
 
+var startedProcess = time.Now()
+
 var state = struct {
 	TotalPlayerCount uint8
 
@@ -62,41 +64,66 @@ func handleUdp(udp *net.UDPConn) {
 		_ = udpAddr
 		var buf = bytes.NewReader(b[:n])
 
-		var r packet.Handshake
-		err = binary.Read(buf, binary.BigEndian, &r.UdpHeader)
+		var udpHeader packet.UdpHeader
+		err = binary.Read(buf, binary.BigEndian, &udpHeader)
 		if err != nil {
 			panic(err)
 		}
-		if r.Type != packet.HandshakeType {
-			continue
-		}
-		err = binary.Read(buf, binary.BigEndian, &r.Signature)
-		if err != nil {
-			panic(err)
-		}
-		goon.Dump(r)
 
-		var tcp net.Conn
-		state.mu.Lock()
-		for tcpConn, c := range state.connections {
-			if c.Signature == r.Signature {
-				c.UdpAddr = udpAddr
-				state.connections[tcpConn] = c
-
-				tcp = tcpConn
-			}
-		}
-		state.mu.Unlock()
-
-		if tcp != nil {
-			var p packet.UdpConnectionEstablished
-			p.Type = packet.UdpConnectionEstablishedType
-
-			p.Length = 0
-
-			err := binary.Write(tcp, binary.BigEndian, &p)
+		switch udpHeader.Type {
+		case packet.HandshakeType:
+			var r packet.Handshake
+			err = binary.Read(buf, binary.BigEndian, &r.Signature)
 			if err != nil {
 				panic(err)
+			}
+			goon.Dump(r)
+
+			var tcp net.Conn
+			state.mu.Lock()
+			for tcpConn, c := range state.connections {
+				if c.Signature == r.Signature {
+					c.UdpAddr = udpAddr
+					state.connections[tcpConn] = c
+
+					tcp = tcpConn
+				}
+			}
+			state.mu.Unlock()
+
+			if tcp != nil {
+				var p packet.UdpConnectionEstablished
+				p.Type = packet.UdpConnectionEstablishedType
+
+				p.Length = 0
+
+				err := binary.Write(tcp, binary.BigEndian, &p)
+				if err != nil {
+					panic(err)
+				}
+			}
+		case packet.TimeRequestType:
+			var r packet.TimeRequest
+			err = binary.Read(buf, binary.BigEndian, &r.SequenceNumber)
+			if err != nil {
+				panic(err)
+			}
+
+			{
+				var p packet.TimeResponse
+				p.Type = packet.TimeResponseType
+				p.SequenceNumber = r.SequenceNumber
+				p.Time = time.Since(startedProcess).Seconds()
+
+				var buf bytes.Buffer
+				err := binary.Write(&buf, binary.BigEndian, &p)
+				if err != nil {
+					panic(err)
+				}
+				_, err = udp.WriteToUDP(buf.Bytes(), udpAddr)
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
@@ -261,5 +288,5 @@ func handleConnection(tcp net.Conn) {
 		goon.Dump(r)
 	}
 
-	time.Sleep(5 * time.Second)
+	select {}
 }
