@@ -18,6 +18,7 @@ const (
 	PlayerJoinedTeamType         Type = 28
 	LocalPlayerInfoType          Type = 30
 
+	ServerUpdateType Type = 2
 	PingType         Type = 10
 	PongType         Type = 11
 	PungType         Type = 12
@@ -78,10 +79,10 @@ type PlayerInfo struct {
 }
 
 type State struct {
-	LastCommandSequenceNumber uint8
-	X                         float32
-	Y                         float32
-	Z                         float32
+	CommandSequenceNumber uint8
+	X                     float32
+	Y                     float32
+	Z                     float32
 }
 
 type JoinTeamRequest struct {
@@ -120,23 +121,36 @@ type UdpHeader struct {
 	Type Type
 }
 
+type ServerUpdatePacket struct {
+	UdpHeader
+
+	CurrentUpdateSequenceNumber uint8
+	Players                     []PlayerUpdate
+}
+
+type PlayerUpdate struct {
+	ActivePlayer uint8
+	State        *State // If ActivePlayer == true.
+}
+
 type Ping struct {
 	UdpHeader
 
-	PingData    [4]byte
-	LastLatency []uint16
+	PingData      uint32
+	LastLatencies []uint16
 }
 
 type Pong struct {
 	UdpHeader
 
-	PingData [4]byte
+	PingData uint32
 }
 
 type Pung struct {
 	UdpHeader
 
-	PingData [4]byte
+	PingData uint32
+	Time     float64
 }
 
 type Handshake struct {

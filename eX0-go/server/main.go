@@ -27,6 +27,8 @@ func main() {
 		panic(err)
 	}
 	go handleUdp(ln2)
+	go sendServerUpdates(ln2)
+	go broadcastPingPacket(ln2)
 
 	for {
 		tcp, err := ln.Accept()
@@ -50,8 +52,9 @@ var state = struct {
 }
 
 type Connection struct {
-	Signature uint64
-	UdpAddr   *net.UDPAddr
+	JoinStatus JoinStatus
+	Signature  uint64
+	UdpAddr    *net.UDPAddr
 }
 
 func handleUdp(udp *net.UDPConn) {
@@ -83,6 +86,7 @@ func handleUdp(udp *net.UDPConn) {
 			state.mu.Lock()
 			for tcpConn, c := range state.connections {
 				if c.Signature == r.Signature {
+					c.JoinStatus = UDP_CONNECTED
 					c.UdpAddr = udpAddr
 					state.connections[tcpConn] = c
 
@@ -125,7 +129,147 @@ func handleUdp(udp *net.UDPConn) {
 					panic(err)
 				}
 			}
+		case packet.PongType:
+			var r packet.Pong
+			err = binary.Read(buf, binary.BigEndian, &r.PingData)
+			if err != nil {
+				panic(err)
+			}
+
+			{
+				var p packet.Pung
+				p.Type = packet.PungType
+				p.PingData = r.PingData
+				p.Time = time.Since(startedProcess).Seconds()
+
+				var buf bytes.Buffer
+				err := binary.Write(&buf, binary.BigEndian, &p)
+				if err != nil {
+					panic(err)
+				}
+				_, err = udp.WriteToUDP(buf.Bytes(), udpAddr)
+				if err != nil {
+					panic(err)
+				}
+			}
 		}
+	}
+}
+
+var lastUpdateSequenceNumber uint8 = 1
+
+func sendServerUpdates(udp *net.UDPConn) {
+	for ; true; time.Sleep(time.Second / 20) {
+		{
+			var p packet.ServerUpdatePacket
+			p.Type = packet.ServerUpdateType
+			p.CurrentUpdateSequenceNumber = lastUpdateSequenceNumber
+			p.Players = make([]packet.PlayerUpdate, state.TotalPlayerCount)
+			p.Players[0] = packet.PlayerUpdate{
+				ActivePlayer: 1,
+				State: &packet.State{
+					CommandSequenceNumber: lastUpdateSequenceNumber, // HACK.
+					X: 25 + float32(lastUpdateSequenceNumber), // HACK.
+					Y: -220,
+					Z: 6.0,
+				},
+			}
+
+			var buf bytes.Buffer
+			err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
+			if err != nil {
+				panic(err)
+			}
+			err = binary.Write(&buf, binary.BigEndian, &p.CurrentUpdateSequenceNumber)
+			if err != nil {
+				panic(err)
+			}
+			for _, playerUpdate := range p.Players {
+				err = binary.Write(&buf, binary.BigEndian, &playerUpdate.ActivePlayer)
+				if err != nil {
+					panic(err)
+				}
+
+				if playerUpdate.ActivePlayer != 0 {
+					err = binary.Write(&buf, binary.BigEndian, playerUpdate.State)
+					if err != nil {
+						panic(err)
+					}
+				}
+			}
+
+			var udpAddr *net.UDPAddr
+			state.mu.Lock()
+			for _, c := range state.connections {
+				if c.JoinStatus < IN_GAME {
+					continue
+				}
+				udpAddr = c.UdpAddr
+			}
+			state.mu.Unlock()
+
+			if udpAddr == nil {
+				continue
+			}
+
+			_, err = udp.WriteToUDP(buf.Bytes(), udpAddr)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		lastUpdateSequenceNumber++
+	}
+}
+
+var lastPingData uint32
+var pingSentTimes = make(map[uint32]time.Time) // TODO: Use.
+
+func broadcastPingPacket(udp *net.UDPConn) {
+	const BROADCAST_PING_PERIOD = 2500 * time.Millisecond // How often to broadcast the Ping packet on the server.
+
+	for ; true; time.Sleep(BROADCAST_PING_PERIOD) {
+		{
+			var p packet.Ping
+			p.Type = packet.PingType
+			p.PingData = lastPingData
+			p.LastLatencies = make([]uint16, state.TotalPlayerCount)
+
+			var buf bytes.Buffer
+			err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
+			if err != nil {
+				panic(err)
+			}
+			err = binary.Write(&buf, binary.BigEndian, &p.PingData)
+			if err != nil {
+				panic(err)
+			}
+			err = binary.Write(&buf, binary.BigEndian, &p.LastLatencies)
+			if err != nil {
+				panic(err)
+			}
+
+			var udpAddr *net.UDPAddr
+			state.mu.Lock()
+			for _, c := range state.connections {
+				if c.JoinStatus < IN_GAME {
+					continue
+				}
+				udpAddr = c.UdpAddr
+			}
+			state.mu.Unlock()
+
+			if udpAddr == nil {
+				continue
+			}
+
+			_, err = udp.WriteToUDP(buf.Bytes(), udpAddr)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		lastPingData++
 	}
 }
 
@@ -242,7 +386,7 @@ func handleConnection(tcp net.Conn) {
 				playerInfo.Team = 2
 			}
 
-			err := binary.Write(tcp, binary.BigEndian, &playerInfo.NameLength)
+			err = binary.Write(tcp, binary.BigEndian, &playerInfo.NameLength)
 			if err != nil {
 				panic(err)
 			}
@@ -286,6 +430,12 @@ func handleConnection(tcp net.Conn) {
 			panic(err)
 		}
 		goon.Dump(r)
+
+		state.mu.Lock()
+		c := state.connections[tcp]
+		c.JoinStatus = IN_GAME
+		state.connections[tcp] = c
+		state.mu.Unlock()
 	}
 
 	for {
@@ -316,7 +466,7 @@ func handleConnection(tcp net.Conn) {
 
 			if p.Team != 2 {
 				p.State = &packet.State{
-					LastCommandSequenceNumber: 0, // TODO: This should come from game logic state.
+					CommandSequenceNumber: 0, // TODO: This should come from game logic state.
 					X: 25,
 					Y: -220,
 					Z: 6.0,

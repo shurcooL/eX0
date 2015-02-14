@@ -217,8 +217,8 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			r.LastLatency = make([]uint16, state.TotalPlayerCount)
-			err = binary.Read(buf, binary.BigEndian, &r.LastLatency)
+			r.LastLatencies = make([]uint16, state.TotalPlayerCount)
+			err = binary.Read(buf, binary.BigEndian, &r.LastLatencies)
 			if err != nil {
 				panic(err)
 			}
