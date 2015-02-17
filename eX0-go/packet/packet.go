@@ -6,6 +6,7 @@ const MAX_UDP_SIZE = 1448
 type Type uint8
 
 const (
+	// TCP packet types.
 	JoinServerRequestType        Type = 1
 	JoinServerAcceptType         Type = 2
 	JoinServerRefuseType         Type = 3
@@ -18,13 +19,15 @@ const (
 	PlayerJoinedTeamType         Type = 28
 	LocalPlayerInfoType          Type = 30
 
-	ServerUpdateType Type = 2
-	PingType         Type = 10
-	PongType         Type = 11
-	PungType         Type = 12
-	HandshakeType    Type = 100
-	TimeRequestType  Type = 105
-	TimeResponseType Type = 106
+	// UDP packet types.
+	ClientCommandType Type = 1
+	ServerUpdateType  Type = 2
+	PingType          Type = 10
+	PongType          Type = 11
+	PungType          Type = 12
+	HandshakeType     Type = 100
+	TimeRequestType   Type = 105
+	TimeResponseType  Type = 106
 )
 
 //go:generate stringer -type=Type
@@ -121,7 +124,22 @@ type UdpHeader struct {
 	Type Type
 }
 
-type ServerUpdatePacket struct {
+type ClientCommand struct {
+	UdpHeader
+
+	CommandSequenceNumber uint8
+	CommandSeriesNumber   uint8
+	MovesCount            uint8
+	Moves                 []Move
+}
+
+type Move struct {
+	MoveDirection uint8
+	Stealth       uint8
+	Z             float32
+}
+
+type ServerUpdate struct {
 	UdpHeader
 
 	CurrentUpdateSequenceNumber uint8

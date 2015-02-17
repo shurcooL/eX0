@@ -152,24 +152,50 @@ func handleUdp(udp *net.UDPConn) {
 					panic(err)
 				}
 			}
+		case packet.ClientCommandType:
+			var r packet.ClientCommand
+			err = binary.Read(buf, binary.BigEndian, &r.CommandSequenceNumber)
+			if err != nil {
+				panic(err)
+			}
+			err = binary.Read(buf, binary.BigEndian, &r.CommandSeriesNumber)
+			if err != nil {
+				panic(err)
+			}
+			err = binary.Read(buf, binary.BigEndian, &r.MovesCount)
+			if err != nil {
+				panic(err)
+			}
+			r.Moves = make([]packet.Move, r.MovesCount)
+			err = binary.Read(buf, binary.BigEndian, &r.Moves)
+			if err != nil {
+				panic(err)
+			}
+			//goon.Dump(r)
+
+			// TODO: Properly process and authenticate new result states.
+			if r.MovesCount > 0 {
+				lastAckedCmdSequenceNumber = r.CommandSequenceNumber + 1
+			}
 		}
 	}
 }
 
+var lastAckedCmdSequenceNumber uint8
 var lastUpdateSequenceNumber uint8 = 1
 
 func sendServerUpdates(udp *net.UDPConn) {
 	for ; true; time.Sleep(time.Second / 20) {
 		{
-			var p packet.ServerUpdatePacket
+			var p packet.ServerUpdate
 			p.Type = packet.ServerUpdateType
 			p.CurrentUpdateSequenceNumber = lastUpdateSequenceNumber
 			p.Players = make([]packet.PlayerUpdate, state.TotalPlayerCount)
 			p.Players[0] = packet.PlayerUpdate{
 				ActivePlayer: 1,
 				State: &packet.State{
-					CommandSequenceNumber: lastUpdateSequenceNumber, // HACK.
-					X: 25 + float32(lastUpdateSequenceNumber), // HACK.
+					CommandSequenceNumber: lastAckedCmdSequenceNumber, // HACK.
+					X: 25,
 					Y: -220,
 					Z: 6.0,
 				},
