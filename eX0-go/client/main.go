@@ -192,6 +192,25 @@ func main() {
 		}
 	}
 
+	time.Sleep(3 * time.Second)
+
+	{
+		var p packet.JoinTeamRequest
+		p.Type = packet.JoinTeamRequestType
+		p.Team = 0
+
+		p.Length = 1
+
+		err := binary.Write(tcp, binary.BigEndian, &p.TcpHeader)
+		if err != nil {
+			panic(err)
+		}
+		err = binary.Write(tcp, binary.BigEndian, &p.Team)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	fmt.Println("done")
 
 	go func() {
