@@ -4,6 +4,8 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
+	"math"
 	"net"
 	"sync"
 	"time"
@@ -12,7 +14,24 @@ import (
 	"github.com/shurcooL/go-goon"
 )
 
+const Tau = 2 * math.Pi
+
+func gameLogic() {
+	for {
+		for time.Since(startedProcess).Seconds() >= state.session.NextTickTime {
+			state.session.NextTickTime += 1.0 / 20
+			state.session.GlobalStateSequenceNumberTEST++
+		}
+
+		time.Sleep(time.Millisecond)
+	}
+}
+
 func main() {
+	state.session.GlobalStateSequenceNumberTEST = 0
+	state.session.NextTickTime = time.Since(startedProcess).Seconds()
+	go gameLogic()
+
 	ln, err := net.Listen("tcp", ":25045")
 	if err != nil {
 		panic(err)
@@ -43,6 +62,11 @@ var startedProcess = time.Now()
 
 var state = struct {
 	TotalPlayerCount uint8
+
+	session struct {
+		GlobalStateSequenceNumberTEST uint8
+		NextTickTime                  float64
+	}
 
 	mu          sync.Mutex
 	connections map[net.Conn]Connection // TcpConn -> Connection.
@@ -174,11 +198,28 @@ func handleUdp(udp *net.UDPConn) {
 			//goon.Dump(r)
 
 			// TODO: Properly process and authenticate new result states.
-			if r.MovesCount > 0 {
-				lastAckedCmdSequenceNumber = r.CommandSequenceNumber + 1
+			if len(r.Moves) > 0 {
+				lastMove := r.Moves[len(r.Moves)-1]
+
+				// TODO: Figure out player id, not hardcode 0.
+				if lastMove.MoveDirection != 255 {
+					direction := float64(lastMove.Z) + Tau*float64(lastMove.MoveDirection)/8
+
+					player0State.X += 10 * float32(math.Sin(direction))
+					player0State.Y += 10 * float32(math.Cos(direction))
+				}
+				player0State.Z = lastMove.Z
+
+				lastAckedCmdSequenceNumber = r.CommandSequenceNumber
 			}
 		}
 	}
+}
+
+var player0State = packet.State{
+	X: 25,
+	Y: -220,
+	Z: 6.0,
 }
 
 var lastAckedCmdSequenceNumber uint8
@@ -195,9 +236,9 @@ func sendServerUpdates(udp *net.UDPConn) {
 				ActivePlayer: 1,
 				State: &packet.State{
 					CommandSequenceNumber: lastAckedCmdSequenceNumber, // HACK.
-					X: 25,
-					Y: -220,
-					Z: 6.0,
+					X: player0State.X,
+					Y: player0State.Y,
+					Z: player0State.Z,
 				},
 			}
 
@@ -484,6 +525,8 @@ func handleConnection(tcp net.Conn) {
 			team = r.Team
 		}
 
+		fmt.Printf("Pl#%v (%q) joined team %v at logic time %v/%v [server].\n", playerId, "TODO: name", team, state.session.NextTickTime, state.session.GlobalStateSequenceNumberTEST)
+
 		{
 			var p packet.PlayerJoinedTeam
 			p.Type = packet.PlayerJoinedTeamType
@@ -492,10 +535,10 @@ func handleConnection(tcp net.Conn) {
 
 			if p.Team != 2 {
 				p.State = &packet.State{
-					CommandSequenceNumber: 0, // TODO: This should come from game logic state.
-					X: 25,
-					Y: -220,
-					Z: 6.0,
+					CommandSequenceNumber: state.session.GlobalStateSequenceNumberTEST - 1,
+					X: player0State.X,
+					Y: player0State.Y,
+					Z: player0State.Z,
 				}
 			}
 
