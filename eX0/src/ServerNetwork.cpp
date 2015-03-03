@@ -244,7 +244,7 @@ glfwUnlockMutex(oPlayerTick);
 
 glfwLockMutex(oPlayerTick);
 			pConnection->GetPlayer(cPlayerNumber)->SetTeam((int)cTeam);
-			printf("Pl#%d ('%s') joined team %d at logic time %f/%d [server].\n", pConnection->GetPlayerID(cPlayerNumber), pConnection->GetPlayer(cPlayerNumber)->GetName().c_str(), cTeam, g_pGameSession->LogicTimer().GetGameTime(), g_pGameSession->GlobalStateSequenceNumberTEST);
+			printf("%.3f: Pl#%d ('%s') joined team %d at logic time %.2f/%d [server].\n", g_pGameSession->LogicTimer().GetTime(), pConnection->GetPlayerID(cPlayerNumber), pConnection->GetPlayer(cPlayerNumber)->GetName().c_str(), cTeam, g_pGameSession->LogicTimer().GetGameTime(), g_pGameSession->GlobalStateSequenceNumberTEST);
 
 			// Create a Player Joined Team packet
 			CPacket oPlayerJoinedTeamPacket(CPacket::BOTH);

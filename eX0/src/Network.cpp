@@ -611,7 +611,7 @@ glfwLockMutex(oPlayerTick);
 			eX0_assert(pServer->GetJoinStatus() >= IN_GAME || cPlayerID != pLocalPlayer->iID, "We should be IN_GAME if we receive a Player Joined Team packet about us.");
 			if (PlayerGet(cPlayerID) == NULL) { printf("ERROR: Got a Player Joined Team packet, but player %d was not connected.\n", cPlayerID); return false; }
 
-			printf("Pl#%d ('%s') joined team %d at logic time %f/%d [client].\n", cPlayerID, PlayerGet(cPlayerID)->GetName().c_str(), cTeam, g_pGameSession->LogicTimer().GetGameTime(), g_pGameSession->GlobalStateSequenceNumberTEST);
+			printf("%.3f: Pl#%d ('%s') joined team %d at logic time %.2f/%d [client].\n", g_pGameSession->LogicTimer().GetTime(), cPlayerID, PlayerGet(cPlayerID)->GetName().c_str(), cTeam, g_pGameSession->LogicTimer().GetGameTime(), g_pGameSession->GlobalStateSequenceNumberTEST);
 
 			if (false == pServer->IsLocal()) {
 				PlayerGet(cPlayerID)->SetTeam(cTeam);

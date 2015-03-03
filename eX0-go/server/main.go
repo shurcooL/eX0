@@ -49,6 +49,8 @@ func main() {
 	go sendServerUpdates(ln2)
 	go broadcastPingPacket(ln2)
 
+	fmt.Println("Started.")
+
 	for {
 		tcp, err := ln.Accept()
 		if err != nil {
@@ -341,13 +343,22 @@ func broadcastPingPacket(udp *net.UDPConn) {
 }
 
 func handleConnection(tcp net.Conn) {
-	defer tcp.Close()
+	err := handleConnection2(tcp)
+	fmt.Println("tcp conn ended with:", err)
 
+	state.mu.Lock()
+	delete(state.connections, tcp)
+	state.mu.Unlock()
+
+	tcp.Close()
+}
+
+func handleConnection2(tcp net.Conn) error {
 	{
 		var r packet.JoinServerRequest
 		err := binary.Read(tcp, binary.BigEndian, &r)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		goon.Dump(r)
 
@@ -363,10 +374,10 @@ func handleConnection(tcp net.Conn) {
 
 				err := binary.Write(tcp, binary.BigEndian, &p)
 				if err != nil {
-					panic(err)
+					return err
 				}
 
-				return
+				return nil
 			}
 		}
 
@@ -385,7 +396,7 @@ func handleConnection(tcp net.Conn) {
 
 		err := binary.Write(tcp, binary.BigEndian, &p)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 
@@ -393,24 +404,24 @@ func handleConnection(tcp net.Conn) {
 		var r packet.LocalPlayerInfo
 		err := binary.Read(tcp, binary.BigEndian, &r.TcpHeader)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		err = binary.Read(tcp, binary.BigEndian, &r.NameLength)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		r.Name = make([]byte, r.NameLength)
 		err = binary.Read(tcp, binary.BigEndian, &r.Name)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		err = binary.Read(tcp, binary.BigEndian, &r.CommandRate)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		err = binary.Read(tcp, binary.BigEndian, &r.UpdateRate)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		goon.Dump(r)
 	}
@@ -424,11 +435,11 @@ func handleConnection(tcp net.Conn) {
 
 		err := binary.Write(tcp, binary.BigEndian, &p.TcpHeader)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		err = binary.Write(tcp, binary.BigEndian, &p.LevelFilename)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 
@@ -441,7 +452,7 @@ func handleConnection(tcp net.Conn) {
 
 		err := binary.Write(tcp, binary.BigEndian, &p.TcpHeader)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		for i := range p.Players {
 			var playerInfo packet.PlayerInfo
@@ -455,23 +466,23 @@ func handleConnection(tcp net.Conn) {
 
 			err = binary.Write(tcp, binary.BigEndian, &playerInfo.NameLength)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			if playerInfo.NameLength != 0 {
 				err = binary.Write(tcp, binary.BigEndian, &playerInfo.Name)
 				if err != nil {
-					panic(err)
+					return err
 				}
 				err = binary.Write(tcp, binary.BigEndian, &playerInfo.Team)
 				if err != nil {
-					panic(err)
+					return err
 				}
 
 				if playerInfo.Team != 2 {
 					err = binary.Write(tcp, binary.BigEndian, playerInfo.State)
 					if err != nil {
-						panic(err)
+						return err
 					}
 				}
 			}
@@ -486,7 +497,7 @@ func handleConnection(tcp net.Conn) {
 
 		err := binary.Write(tcp, binary.BigEndian, &p)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 
@@ -494,7 +505,7 @@ func handleConnection(tcp net.Conn) {
 		var r packet.EnteredGameNotification
 		err := binary.Read(tcp, binary.BigEndian, &r)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		goon.Dump(r)
 
@@ -513,19 +524,20 @@ func handleConnection(tcp net.Conn) {
 			var r packet.JoinTeamRequest
 			err := binary.Read(tcp, binary.BigEndian, &r.TcpHeader)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			// TODO: Handle potential PlayerNumber.
 			err = binary.Read(tcp, binary.BigEndian, &r.Team)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			goon.Dump(r)
 
 			team = r.Team
 		}
 
-		fmt.Printf("Pl#%v (%q) joined team %v at logic time %v/%v [server].\n", playerId, "TODO: name", team, state.session.NextTickTime, state.session.GlobalStateSequenceNumberTEST)
+		logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*20
+		fmt.Printf("%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(startedProcess).Seconds(), playerId, "TODO: name", team, logicTime, state.session.GlobalStateSequenceNumberTEST)
 
 		{
 			var p packet.PlayerJoinedTeam
@@ -549,20 +561,20 @@ func handleConnection(tcp net.Conn) {
 
 			err := binary.Write(tcp, binary.BigEndian, &p.TcpHeader)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			err = binary.Write(tcp, binary.BigEndian, &p.PlayerId)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			err = binary.Write(tcp, binary.BigEndian, &p.Team)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			if p.State != nil {
 				err = binary.Write(tcp, binary.BigEndian, p.State)
 				if err != nil {
-					panic(err)
+					return err
 				}
 			}
 		}
