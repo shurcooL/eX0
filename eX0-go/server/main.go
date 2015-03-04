@@ -5,11 +5,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"math"
 	"net"
 	"sync"
 	"time"
 
+	"github.com/go-gl/mathgl/mgl32"
 	"github.com/shurcooL/eX0/eX0-go/packet"
 	"github.com/shurcooL/go-goon"
 )
@@ -204,13 +206,43 @@ func handleUdp(udp *net.UDPConn) {
 				lastMove := r.Moves[len(r.Moves)-1]
 
 				// TODO: Figure out player id, not hardcode 0.
-				if lastMove.MoveDirection != 255 {
-					direction := float64(lastMove.Z) + Tau*float64(lastMove.MoveDirection)/8
+				{
+					const TOP_SPEED = 3.5
 
-					player0State.X += 10 * float32(math.Sin(direction))
-					player0State.Y += 10 * float32(math.Cos(direction))
+					var TargetVel mgl32.Vec2
+
+					if lastMove.MoveDirection == 255 {
+					} else if lastMove.MoveDirection >= 0 && lastMove.MoveDirection < 8 {
+						direction := float64(lastMove.Z) + Tau*float64(lastMove.MoveDirection)/8
+						speed := TOP_SPEED
+						if lastMove.Stealth != 0 {
+							speed -= 2.25
+						}
+
+						TargetVel[0] = float32(math.Sin(direction) * speed)
+						TargetVel[1] = float32(math.Cos(direction) * speed)
+					} else {
+						log.Printf("WARNING: Invalid nMoveDirection = %v!\n", lastMove.MoveDirection)
+					}
+
+					var CurrentVel = mgl32.Vec2{player0State.VelX, player0State.VelY}
+					var Delta = TargetVel.Sub(CurrentVel)
+					if DeltaLength := float64(Delta.Len()); DeltaLength >= 0.001 {
+						Delta = Delta.Normalize()
+
+						var Move1 = DeltaLength * DeltaLength * 0.03
+						var Move2 = math.Min(0.2, DeltaLength)
+
+						CurrentVel = CurrentVel.Add(Delta.Mul(float32(math.Max(Move1, Move2))))
+					}
+
+					player0State.VelX = CurrentVel[0]
+					player0State.VelY = CurrentVel[1]
+
+					player0State.X += player0State.VelX
+					player0State.Y += player0State.VelY
+					player0State.Z = lastMove.Z
 				}
-				player0State.Z = lastMove.Z
 
 				lastAckedCmdSequenceNumber = r.CommandSequenceNumber
 			}
@@ -218,7 +250,10 @@ func handleUdp(udp *net.UDPConn) {
 	}
 }
 
-var player0State = packet.State{
+var player0State = struct {
+	X, Y, Z    float32
+	VelX, VelY float32
+}{
 	X: 25,
 	Y: -220,
 	Z: 6.0,
