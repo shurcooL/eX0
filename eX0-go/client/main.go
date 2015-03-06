@@ -211,6 +211,34 @@ func main() {
 		}
 	}
 
+	{
+		var r packet.PlayerJoinedTeam
+		err := binary.Read(tcp, binary.BigEndian, &r.TcpHeader)
+		if err != nil {
+			panic(err)
+		}
+		err = binary.Read(tcp, binary.BigEndian, &r.PlayerId)
+		if err != nil {
+			panic(err)
+		}
+		err = binary.Read(tcp, binary.BigEndian, &r.Team)
+		if err != nil {
+			panic(err)
+		}
+		if r.Team != 2 {
+			r.State = new(packet.State)
+			err = binary.Read(tcp, binary.BigEndian, r.State)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		{
+			*r.State = packet.State{CommandSequenceNumber: 123, X: 1.0, Y: 2.0, Z: 3.0} // Override with deterministic value so test passes.
+			goon.Dump(r)
+		}
+	}
+
 	fmt.Println("done")
 
 	go func() {

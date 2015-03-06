@@ -160,5 +160,19 @@ func ExampleConnectToEmptyRealServer() {
 	// 		Type:   (packet.Type)(6),
 	// 	}),
 	// })
+	// (packet.PlayerJoinedTeam)(packet.PlayerJoinedTeam{
+	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 		Length: (uint16)(15),
+	// 		Type:   (packet.Type)(28),
+	// 	}),
+	// 	PlayerId: (uint8)(0),
+	// 	Team:     (uint8)(0),
+	// 	State: (*packet.State)(&packet.State{
+	// 		CommandSequenceNumber: (uint8)(123),
+	// 		X: (float32)(1),
+	// 		Y: (float32)(2),
+	// 		Z: (float32)(3),
+	// 	}),
+	// })
 	// done
 }
