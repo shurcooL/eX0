@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/shurcooL/gogl"
 	glfw "github.com/shurcooL/goglfw"
@@ -11,6 +13,32 @@ var gl *gogl.Context
 var windowSize = [2]int{1024, 1024}
 
 var cameraX, cameraY float64 = 825, 510
+
+var startedProcess = time.Now()
+
+var state = struct {
+	TotalPlayerCount uint8
+
+	session struct {
+		GlobalStateSequenceNumberTEST uint8
+		NextTickTime                  float64
+	}
+}{
+	TotalPlayerCount: 16,
+}
+
+func gameLogic(doInput func()) {
+	for {
+		for time.Since(startedProcess).Seconds() >= state.session.NextTickTime {
+			state.session.NextTickTime += 1.0 / 20
+			state.session.GlobalStateSequenceNumberTEST++
+
+			doInput()
+		}
+
+		time.Sleep(time.Millisecond)
+	}
+}
 
 func main() {
 	err := glfw.Init()
@@ -59,10 +87,12 @@ func main() {
 		panic(err)
 	}
 
+	state.session.GlobalStateSequenceNumberTEST = 0
+	state.session.NextTickTime = time.Since(startedProcess).Seconds()
+	go gameLogic(func() { c.input(window) })
+
 	for !window.ShouldClose() {
 		glfw.PollEvents()
-
-		c.input(window)
 
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
