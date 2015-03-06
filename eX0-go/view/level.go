@@ -38,10 +38,10 @@ func newLevel(name string) (*level, error) {
 type level struct {
 	polygon gist6545684.Polygon
 
-	program         *gogl.Program
-	pMatrixUniform  *gogl.UniformLocation
-	mvMatrixUniform *gogl.UniformLocation
-	vertexPositionBuffer *gogl.Buffer
+	program                 *gogl.Program
+	pMatrixUniform          *gogl.UniformLocation
+	mvMatrixUniform         *gogl.UniformLocation
+	vertexPositionBuffer    *gogl.Buffer
 	vertexPositionAttribute int
 }
 
@@ -62,7 +62,7 @@ void main() {
 //#version 100 // WebGL.
 
 void main() {
-	gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+	gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 }
 `
 )

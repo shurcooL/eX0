@@ -27,6 +27,10 @@ func newCharacter() (*character, error) {
 }
 
 type character struct {
+	pos mgl32.Vec2
+	Vel mgl32.Vec2
+	Z   float32
+
 	vertexCount int
 
 	program                 *gogl.Program
@@ -110,10 +114,10 @@ func (l *character) createVbo() error {
 	var vertices []float32 = drawCircleBorderCustom(mgl32.Vec2{}, mgl32.Vec2{16, 16}, 2, 12, 1, 11)
 	l.vertexCount = len(vertices) / 2
 
-	vertices = append(vertices, -1, -(3 + 10))
-	vertices = append(vertices, -1, -(3 - 1))
-	vertices = append(vertices, 1, -(3 - 1))
-	vertices = append(vertices, 1, -(3 + 10))
+	vertices = append(vertices, -1, (3 + 10))
+	vertices = append(vertices, -1, (3 - 1))
+	vertices = append(vertices, 1, (3 - 1))
+	vertices = append(vertices, 1, (3 + 10))
 
 	gl.BufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
 
@@ -151,8 +155,8 @@ func (l *character) render() {
 func drawCircleBorderCustom(pos mgl32.Vec2, size mgl32.Vec2, borderWidth float32, totalSlices, startSlice, endSlice int32) (vertices []float32) {
 	var x = float64(totalSlices)
 	for i := startSlice; i <= endSlice; i++ {
-		vertices = append(vertices, float32(pos[0]+float32(math.Sin(Tau*float64(i)/x))*size[0]/2), float32(pos[1]-float32(math.Cos(Tau*float64(i)/x))*size[1]/2))
-		vertices = append(vertices, float32(pos[0]+float32(math.Sin(Tau*float64(i)/x))*(size[0]/2-borderWidth)), float32(pos[1]-float32(math.Cos(Tau*float64(i)/x))*(size[1]/2-borderWidth)))
+		vertices = append(vertices, float32(pos[0]+float32(math.Sin(Tau*float64(i)/x))*size[0]/2), float32(pos[1]+float32(math.Cos(Tau*float64(i)/x))*size[1]/2))
+		vertices = append(vertices, float32(pos[0]+float32(math.Sin(Tau*float64(i)/x))*(size[0]/2-borderWidth)), float32(pos[1]+float32(math.Cos(Tau*float64(i)/x))*(size[1]/2-borderWidth)))
 	}
 	return vertices
 }

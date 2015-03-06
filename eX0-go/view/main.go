@@ -29,12 +29,12 @@ func main() {
 
 	gl = window.Context
 
-	gl.ClearColor(0.600, 0.741, 0.565, 1)
+	gl.ClearColor(227/255.0, 189/255.0, 162/255.0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 
 	window.SetScrollCallback(func(_ *glfw.Window, xoff, yoff float64) {
 		cameraX += xoff * 5
-		cameraY += yoff * 5
+		cameraY -= yoff * 5
 	})
 
 	framebufferSizeCallback := func(w *glfw.Window, framebufferSize0, framebufferSize1 int) {
@@ -60,9 +60,13 @@ func main() {
 	}
 
 	for !window.ShouldClose() {
+		glfw.PollEvents()
+
+		c.input(window)
+
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		pMatrix := mgl32.Ortho2D(0, float32(windowSize[0]), float32(windowSize[1]), 0)
+		pMatrix := mgl32.Ortho2D(0, float32(windowSize[0]), 0, float32(windowSize[1]))
 		mvMatrix := mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
 
 		l.setup()
@@ -70,12 +74,15 @@ func main() {
 		gl.UniformMatrix4fv(l.mvMatrixUniform, false, mvMatrix[:])
 		l.render()
 
+		mvMatrix = mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
+		mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(c.pos[0], c.pos[1], 0))
+		mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-c.Z))
+
 		c.setup()
 		gl.UniformMatrix4fv(c.pMatrixUniform, false, pMatrix[:])
 		gl.UniformMatrix4fv(c.mvMatrixUniform, false, mvMatrix[:])
 		c.render()
 
 		window.SwapBuffers()
-		glfw.PollEvents()
 	}
 }
