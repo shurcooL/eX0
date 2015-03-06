@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"log"
 	"math"
 
@@ -62,7 +64,8 @@ func (this *character) input(window *glfw.Window) {
 	move := this.inputCommand(window)
 
 	// Physics update.
-	{
+	switch 1 {
+	case 0:
 		const TOP_SPEED = 3.5
 
 		var TargetVel mgl32.Vec2
@@ -96,5 +99,43 @@ func (this *character) input(window *glfw.Window) {
 
 		this.pos = this.pos.Add(this.Vel)
 		this.Z = move.Z
+	case 1:
+		var p packet.ClientCommand
+		p.Type = packet.ClientCommandType
+		p.CommandSequenceNumber = lastAckedCmdSequenceNumber
+		p.CommandSeriesNumber = 1
+		p.MovesCount = 1 - 1
+		p.Moves = []packet.Move{move}
+
+		var buf bytes.Buffer
+		err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
+		if err != nil {
+			panic(err)
+		}
+		err = binary.Write(&buf, binary.BigEndian, &p.CommandSequenceNumber)
+		if err != nil {
+			panic(err)
+		}
+		err = binary.Write(&buf, binary.BigEndian, &p.CommandSeriesNumber)
+		if err != nil {
+			panic(err)
+		}
+		err = binary.Write(&buf, binary.BigEndian, &p.MovesCount)
+		if err != nil {
+			panic(err)
+		}
+		for _, move := range p.Moves {
+			err = binary.Write(&buf, binary.BigEndian, &move)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		err = binary.Write(udp, binary.BigEndian, buf.Bytes())
+		if err != nil {
+			panic(err)
+		}
+
+		lastAckedCmdSequenceNumber++
 	}
 }

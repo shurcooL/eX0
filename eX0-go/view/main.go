@@ -10,7 +10,7 @@ import (
 
 var gl *gogl.Context
 
-var windowSize = [2]int{1024, 1024}
+var windowSize = [2]int{640, 480}
 
 var cameraX, cameraY float64 = 825, 510
 
@@ -86,6 +86,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	const addr = "localhost:25045"
+
+	connectToServer(addr, c)
 
 	state.session.GlobalStateSequenceNumberTEST = 0
 	state.session.NextTickTime = time.Since(startedProcess).Seconds()
