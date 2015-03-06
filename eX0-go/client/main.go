@@ -224,35 +224,58 @@ func main() {
 			}
 			var buf = bytes.NewReader(b[:n])
 
-			var r packet.Ping
-			err = binary.Read(buf, binary.BigEndian, &r.UdpHeader)
+			var udpHeader packet.UdpHeader
+			err = binary.Read(buf, binary.BigEndian, &udpHeader)
 			if err != nil {
 				panic(err)
 			}
-			if r.Type != packet.PingType {
-				continue
-			}
-			err = binary.Read(buf, binary.BigEndian, &r.PingData)
-			if err != nil {
-				panic(err)
-			}
-			r.LastLatencies = make([]uint16, state.TotalPlayerCount)
-			err = binary.Read(buf, binary.BigEndian, &r.LastLatencies)
-			if err != nil {
-				panic(err)
-			}
-			//goon.Dump(r)
 
-			//time.Sleep(123 * time.Millisecond)
-
-			{
-				var p packet.Pong
-				p.Type = packet.PongType
-				p.PingData = r.PingData
-
-				err := binary.Write(udp, binary.BigEndian, &p)
+			switch udpHeader.Type {
+			case packet.PingType:
+				var r packet.Ping
+				err = binary.Read(buf, binary.BigEndian, &r.PingData)
 				if err != nil {
 					panic(err)
+				}
+				r.LastLatencies = make([]uint16, state.TotalPlayerCount)
+				err = binary.Read(buf, binary.BigEndian, &r.LastLatencies)
+				if err != nil {
+					panic(err)
+				}
+
+				{
+					var p packet.Pong
+					p.Type = packet.PongType
+					p.PingData = r.PingData
+
+					err := binary.Write(udp, binary.BigEndian, &p)
+					if err != nil {
+						panic(err)
+					}
+				}
+			case packet.ServerUpdateType:
+				var r packet.ServerUpdate
+				err = binary.Read(buf, binary.BigEndian, &r.CurrentUpdateSequenceNumber)
+				if err != nil {
+					panic(err)
+				}
+				r.Players = make([]packet.PlayerUpdate, state.TotalPlayerCount)
+				for i := range r.Players {
+					var playerUpdate packet.PlayerUpdate
+					err = binary.Read(buf, binary.BigEndian, &playerUpdate.ActivePlayer)
+					if err != nil {
+						panic(err)
+					}
+
+					if playerUpdate.ActivePlayer != 0 {
+						playerUpdate.State = new(packet.State)
+						err = binary.Read(buf, binary.BigEndian, playerUpdate.State)
+						if err != nil {
+							panic(err)
+						}
+					}
+
+					r.Players[i] = playerUpdate
 				}
 			}
 		}
