@@ -35,7 +35,7 @@ void RenderStaticScene()
 				for (nLoop2 = 0; nLoop2 < (u_int)oTristripLevel.strip[nLoop1].num_vertices; nLoop2++)
 				{
 					//glColor3f(1.0 - (nLoop2 % 2 * 1), (nLoop2 % 2 * 1), 0.0);
-					glTexCoord2f((float)oTristripLevel.strip[nLoop1].vertex[nLoop2].x / 256.0f, (float)oTristripLevel.strip[nLoop1].vertex[nLoop2].y / -256.0f);
+					glTexCoord2f((float)oTristripLevel.strip[nLoop1].vertex[nLoop2].x / 256.0f, (float)oTristripLevel.strip[nLoop1].vertex[nLoop2].y / 256.0f);
 					glVertex2d(oTristripLevel.strip[nLoop1].vertex[nLoop2].x, oTristripLevel.strip[nLoop1].vertex[nLoop2].y);
 				}
 			glEnd();
@@ -53,13 +53,13 @@ void RenderStaticScene()
 			if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			glLineWidth(1.0f);
 			glBegin(GL_TRIANGLES);
-				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v0->g.x / 256.0f, (float)pPolyBooleanLevel->tria[nLoop1].v0->g.y / -256.0f);
+				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v0->g.x / 256.0f, (float)pPolyBooleanLevel->tria[nLoop1].v0->g.y / 256.0f);
 				glVertex2i(pPolyBooleanLevel->tria[nLoop1].v0->g.x, pPolyBooleanLevel->tria[nLoop1].v0->g.y);
 
-				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v1->g.x / 256.0f, (float)pPolyBooleanLevel->tria[nLoop1].v1->g.y / -256.0f);
+				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v1->g.x / 256.0f, (float)pPolyBooleanLevel->tria[nLoop1].v1->g.y / 256.0f);
 				glVertex2i(pPolyBooleanLevel->tria[nLoop1].v1->g.x, pPolyBooleanLevel->tria[nLoop1].v1->g.y);
 
-				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v2->g.x / 256.0f, (float)pPolyBooleanLevel->tria[nLoop1].v2->g.y / -256.0f);
+				glTexCoord2f((float)pPolyBooleanLevel->tria[nLoop1].v2->g.x / 256.0f, (float)pPolyBooleanLevel->tria[nLoop1].v2->g.y / 256.0f);
 				glVertex2i(pPolyBooleanLevel->tria[nLoop1].v2->g.x, pPolyBooleanLevel->tria[nLoop1].v2->g.y);
 			glEnd();
 			if (bWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

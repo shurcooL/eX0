@@ -43,7 +43,6 @@ void LoadPLINE2(FILE * f, PLINE2 **pline)
 	    GRID2 g;
 		if (fscanf(f, " %d  %d", &g.x, &g.y) != 2)
 			error(err_io);
-		g.y *= -1; // DEBUG: Want to invert the y coordinates
 		PLINE2::Incl(pline, g);
     }
 } // LoadPLINE2

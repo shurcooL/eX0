@@ -1047,11 +1047,9 @@ void gpc_read_polygon(FILE *fp, int read_hole_flags, gpc_polygon *p)
 
     MALLOC(p->contour[c].vertex, p->contour[c].num_vertices
            * sizeof(gpc_vertex), "vertex creation", gpc_vertex);
-	for (v= 0; v < p->contour[c].num_vertices; v++) {
+    for (v= 0; v < p->contour[c].num_vertices; v++)
       fscanf(fp, "%lf %lf", &(p->contour[c].vertex[v].x),
                             &(p->contour[c].vertex[v].y));
-	  p->contour[c].vertex[v].y *= -1;
-    }
   }
 }
 
@@ -1528,7 +1526,7 @@ void gpc_polygon_clip(gpc_op op, gpc_polygon *subj, gpc_polygon *clip,
              || (in[SUBJ] ^ e1->bundle[ABOVE][SUBJ] ^ e0->bundle[ABOVE][SUBJ]);
             break;
           }
-	
+
           vclass= tr + (tl << 1) + (br << 2) + (bl << 3);
 
           switch (vclass)
