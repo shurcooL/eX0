@@ -194,6 +194,7 @@ func handleUdp(udp *net.UDPConn) {
 			if err != nil {
 				panic(err)
 			}
+			r.MovesCount += 1 // De-normalize back to 1 (min value).
 			r.Moves = make([]packet.Move, r.MovesCount)
 			err = binary.Read(buf, binary.BigEndian, &r.Moves)
 			if err != nil {
@@ -272,7 +273,7 @@ func sendServerUpdates(udp *net.UDPConn) {
 			p.Players[0] = packet.PlayerUpdate{
 				ActivePlayer: 1,
 				State: &packet.State{
-					CommandSequenceNumber: lastAckedCmdSequenceNumber, // HACK.
+					CommandSequenceNumber: lastAckedCmdSequenceNumber + 1, // HACK.
 					X: player0State.X,
 					Y: player0State.Y,
 					Z: player0State.Z,

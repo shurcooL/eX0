@@ -129,7 +129,7 @@ type ClientCommand struct {
 
 	CommandSequenceNumber uint8
 	CommandSeriesNumber   uint8
-	MovesCount            uint8
+	MovesCount            uint8 // len([]Move) - 1.
 	Moves                 []Move
 }
 
