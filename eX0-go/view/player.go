@@ -104,8 +104,8 @@ func (this *character) input(window *glfw.Window) {
 		p.Type = packet.ClientCommandType
 		p.CommandSequenceNumber = lastAckedCmdSequenceNumber
 		p.CommandSeriesNumber = 1
-		p.MovesCount = 1 - 1
 		p.Moves = []packet.Move{move}
+		p.MovesCount = uint8(len(p.Moves)) - 1
 
 		var buf bytes.Buffer
 		err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
