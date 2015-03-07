@@ -1,6 +1,7 @@
 // Package packet is for TCP and UDP packets used in eX0 networking protocol.
 package packet
 
+const MAX_TCP_SIZE = 1448
 const MAX_UDP_SIZE = 1448
 
 type Type uint8

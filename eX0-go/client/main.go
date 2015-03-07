@@ -23,7 +23,8 @@ var pongSentTimes = make(map[uint32]time.Time) // PingData -> Time.
 const addr = "localhost:25045"
 
 func main() {
-	tcp, err := net.Dial("tcp", addr)
+	var err error
+	tcp, err = net.Dial("tcp", addr)
 	if err != nil {
 		panic(err)
 	}
@@ -43,15 +44,24 @@ func main() {
 
 		p.Length = 26
 
-		err := binary.Write(tcp, binary.BigEndian, &p)
+		var buf bytes.Buffer
+		err := binary.Write(&buf, binary.BigEndian, &p)
+		if err != nil {
+			panic(err)
+		}
+		err = sendTcpPacket(buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	{
+		buf, err := receiveTcpPacket()
+		if err != nil {
+			panic(err)
+		}
 		var r packet.JoinServerAccept
-		err := binary.Read(tcp, binary.BigEndian, &r)
+		err = binary.Read(buf, binary.BigEndian, &r)
 		if err != nil {
 			panic(err)
 		}
@@ -60,7 +70,7 @@ func main() {
 		state.TotalPlayerCount = r.TotalPlayerCount + 1
 	}
 
-	udp, err := net.Dial("udp", addr)
+	udp, err = net.Dial("udp", addr)
 	if err != nil {
 		panic(err)
 	}
@@ -70,15 +80,24 @@ func main() {
 		p.Type = packet.HandshakeType
 		p.Signature = signature
 
-		err := binary.Write(udp, binary.BigEndian, &p)
+		var buf bytes.Buffer
+		err := binary.Write(&buf, binary.BigEndian, &p)
+		if err != nil {
+			panic(err)
+		}
+		err = sendUdpPacket(buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	{
+		buf, err := receiveTcpPacket()
+		if err != nil {
+			panic(err)
+		}
 		var r packet.UdpConnectionEstablished
-		err := binary.Read(tcp, binary.BigEndian, &r)
+		err = binary.Read(buf, binary.BigEndian, &r)
 		if err != nil {
 			panic(err)
 		}
@@ -97,36 +116,45 @@ func main() {
 
 		p.Length = 3 + uint16(len(name))
 
-		err := binary.Write(tcp, binary.BigEndian, &p.TcpHeader)
+		var buf bytes.Buffer
+		err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
 		if err != nil {
 			panic(err)
 		}
-		err = binary.Write(tcp, binary.BigEndian, &p.NameLength)
+		err = binary.Write(&buf, binary.BigEndian, &p.NameLength)
 		if err != nil {
 			panic(err)
 		}
-		err = binary.Write(tcp, binary.BigEndian, &p.Name)
+		err = binary.Write(&buf, binary.BigEndian, &p.Name)
 		if err != nil {
 			panic(err)
 		}
-		err = binary.Write(tcp, binary.BigEndian, &p.CommandRate)
+		err = binary.Write(&buf, binary.BigEndian, &p.CommandRate)
 		if err != nil {
 			panic(err)
 		}
-		err = binary.Write(tcp, binary.BigEndian, &p.UpdateRate)
+		err = binary.Write(&buf, binary.BigEndian, &p.UpdateRate)
+		if err != nil {
+			panic(err)
+		}
+		err = sendTcpPacket(buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	{
+		buf, err := receiveTcpPacket()
+		if err != nil {
+			panic(err)
+		}
 		var r packet.LoadLevel
-		err := binary.Read(tcp, binary.BigEndian, &r.TcpHeader)
+		err = binary.Read(buf, binary.BigEndian, &r.TcpHeader)
 		if err != nil {
 			panic(err)
 		}
 		r.LevelFilename = make([]byte, r.Length)
-		err = binary.Read(tcp, binary.BigEndian, &r.LevelFilename)
+		err = binary.Read(buf, binary.BigEndian, &r.LevelFilename)
 		if err != nil {
 			panic(err)
 		}
@@ -135,34 +163,38 @@ func main() {
 	}
 
 	{
+		buf, err := receiveTcpPacket()
+		if err != nil {
+			panic(err)
+		}
 		var r packet.CurrentPlayersInfo
-		err := binary.Read(tcp, binary.BigEndian, &r.TcpHeader)
+		err = binary.Read(buf, binary.BigEndian, &r.TcpHeader)
 		if err != nil {
 			panic(err)
 		}
 		r.Players = make([]packet.PlayerInfo, state.TotalPlayerCount)
 		for i := range r.Players {
 			var playerInfo packet.PlayerInfo
-			err = binary.Read(tcp, binary.BigEndian, &playerInfo.NameLength)
+			err = binary.Read(buf, binary.BigEndian, &playerInfo.NameLength)
 			if err != nil {
 				panic(err)
 			}
 
 			if playerInfo.NameLength != 0 {
 				playerInfo.Name = make([]byte, playerInfo.NameLength)
-				err = binary.Read(tcp, binary.BigEndian, &playerInfo.Name)
+				err = binary.Read(buf, binary.BigEndian, &playerInfo.Name)
 				if err != nil {
 					panic(err)
 				}
 
-				err = binary.Read(tcp, binary.BigEndian, &playerInfo.Team)
+				err = binary.Read(buf, binary.BigEndian, &playerInfo.Team)
 				if err != nil {
 					panic(err)
 				}
 
 				if playerInfo.Team != 2 {
 					playerInfo.State = new(packet.State)
-					err = binary.Read(tcp, binary.BigEndian, playerInfo.State)
+					err = binary.Read(buf, binary.BigEndian, playerInfo.State)
 					if err != nil {
 						panic(err)
 					}
@@ -175,8 +207,12 @@ func main() {
 	}
 
 	{
+		buf, err := receiveTcpPacket()
+		if err != nil {
+			panic(err)
+		}
 		var r packet.EnterGamePermission
-		err := binary.Read(tcp, binary.BigEndian, &r)
+		err = binary.Read(buf, binary.BigEndian, &r)
 		if err != nil {
 			panic(err)
 		}
@@ -189,7 +225,12 @@ func main() {
 
 		p.Length = 0
 
-		err := binary.Write(tcp, binary.BigEndian, &p)
+		var buf bytes.Buffer
+		err := binary.Write(&buf, binary.BigEndian, &p)
+		if err != nil {
+			panic(err)
+		}
+		err = sendTcpPacket(buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
@@ -204,33 +245,42 @@ func main() {
 
 		p.Length = 1
 
-		err := binary.Write(tcp, binary.BigEndian, &p.TcpHeader)
+		var buf bytes.Buffer
+		err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
 		if err != nil {
 			panic(err)
 		}
-		err = binary.Write(tcp, binary.BigEndian, &p.Team)
+		err = binary.Write(&buf, binary.BigEndian, &p.Team)
+		if err != nil {
+			panic(err)
+		}
+		err = sendTcpPacket(buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	{
+		buf, err := receiveTcpPacket()
+		if err != nil {
+			panic(err)
+		}
 		var r packet.PlayerJoinedTeam
-		err := binary.Read(tcp, binary.BigEndian, &r.TcpHeader)
+		err = binary.Read(buf, binary.BigEndian, &r.TcpHeader)
 		if err != nil {
 			panic(err)
 		}
-		err = binary.Read(tcp, binary.BigEndian, &r.PlayerId)
+		err = binary.Read(buf, binary.BigEndian, &r.PlayerId)
 		if err != nil {
 			panic(err)
 		}
-		err = binary.Read(tcp, binary.BigEndian, &r.Team)
+		err = binary.Read(buf, binary.BigEndian, &r.Team)
 		if err != nil {
 			panic(err)
 		}
 		if r.Team != 2 {
 			r.State = new(packet.State)
-			err = binary.Read(tcp, binary.BigEndian, r.State)
+			err = binary.Read(buf, binary.BigEndian, r.State)
 			if err != nil {
 				panic(err)
 			}
@@ -248,12 +298,10 @@ func main() {
 		defer udp.Close()
 
 		for {
-			var b [packet.MAX_UDP_SIZE]byte
-			n, err := udp.Read(b[:])
+			buf, err := receiveUdpPacket()
 			if err != nil {
 				panic(err)
 			}
-			var buf = bytes.NewReader(b[:n])
 
 			var udpHeader packet.UdpHeader
 			err = binary.Read(buf, binary.BigEndian, &udpHeader)
@@ -281,7 +329,12 @@ func main() {
 
 					pongSentTimes[r.PingData] = time.Now()
 
-					err := binary.Write(udp, binary.BigEndian, &p)
+					var buf bytes.Buffer
+					err := binary.Write(&buf, binary.BigEndian, &p)
+					if err != nil {
+						panic(err)
+					}
+					err = sendUdpPacket(buf.Bytes())
 					if err != nil {
 						panic(err)
 					}
