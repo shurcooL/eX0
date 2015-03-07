@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"net"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 var state struct {
 	TotalPlayerCount uint8
 }
+
+var pongSentTimes = make(map[uint32]time.Time) // PingData -> Time.
 
 //const addr = "dmitri.shuralyov.com:25045"
 const addr = "localhost:25045"
@@ -276,9 +279,34 @@ func main() {
 					p.Type = packet.PongType
 					p.PingData = r.PingData
 
+					pongSentTimes[r.PingData] = time.Now()
+
 					err := binary.Write(udp, binary.BigEndian, &p)
 					if err != nil {
 						panic(err)
+					}
+				}
+			case packet.PungType:
+				localTimeAtPungReceive := time.Now()
+
+				var r packet.Pung
+				err = binary.Read(buf, binary.BigEndian, &r.PingData)
+				if err != nil {
+					panic(err)
+				}
+				err = binary.Read(buf, binary.BigEndian, &r.Time)
+				if err != nil {
+					panic(err)
+				}
+
+				{
+					// Get the time sent of the matching Pong packet.
+					if localTimeAtPongSend, ok := pongSentTimes[r.PingData]; ok {
+						delete(pongSentTimes, r.PingData)
+
+						// Calculate own latency and update it on the scoreboard.
+						latency := localTimeAtPungReceive.Sub(localTimeAtPongSend)
+						log.Printf("Own latency is %.5f ms.\n", latency.Seconds()*1000)
 					}
 				}
 			case packet.ServerUpdateType:
