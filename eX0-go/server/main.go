@@ -30,36 +30,38 @@ func gameLogic() {
 }
 
 func main() {
-	state.session.GlobalStateSequenceNumberTEST = 0
-	state.session.NextTickTime = time.Since(startedProcess).Seconds()
-	go gameLogic()
-
-	ln, err := net.Listen("tcp", ":25045")
-	if err != nil {
-		panic(err)
+	{
+		state.session.GlobalStateSequenceNumberTEST = 0
+		state.session.NextTickTime = time.Since(startedProcess).Seconds()
+		go gameLogic()
 	}
 
-	udpAddr, err := net.ResolveUDPAddr("udp", ":25045")
-	if err != nil {
-		panic(err)
-	}
-	ln2, err := net.ListenUDP("udp", udpAddr)
-	if err != nil {
-		panic(err)
-	}
-	go handleUdp(ln2)
-	go sendServerUpdates(ln2)
-	go broadcastPingPacket(ln2)
-
-	fmt.Println("Started.")
-
-	for {
-		tcp, err := ln.Accept()
+	{
+		ln, err := net.Listen("tcp", ":25045")
 		if err != nil {
 			panic(err)
 		}
-		go handleConnection(tcp)
+		go handleTcp(ln)
 	}
+
+	{
+		udpAddr, err := net.ResolveUDPAddr("udp", ":25045")
+		if err != nil {
+			panic(err)
+		}
+		ln2, err := net.ListenUDP("udp", udpAddr)
+		if err != nil {
+			panic(err)
+		}
+		go handleUdp(ln2)
+
+		go sendServerUpdates(ln2)
+		go broadcastPingPacket(ln2)
+	}
+
+	fmt.Println("Started.")
+
+	select {}
 }
 
 var startedProcess = time.Now()
@@ -83,6 +85,16 @@ type Connection struct {
 	JoinStatus JoinStatus
 	Signature  uint64
 	UdpAddr    *net.UDPAddr
+}
+
+func handleTcp(ln net.Listener) {
+	for {
+		tcp, err := ln.Accept()
+		if err != nil {
+			panic(err)
+		}
+		go handleConnection(tcp)
+	}
 }
 
 func handleUdp(udp *net.UDPConn) {
