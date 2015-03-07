@@ -2,6 +2,7 @@ package main
 
 import "fmt"
 
+// Requires an empty server to be running.
 func ExampleConnectToEmptyRealServer() {
 	defer func() {
 		err := recover()
@@ -10,7 +11,7 @@ func ExampleConnectToEmptyRealServer() {
 		}
 	}()
 
-	main()
+	client()
 
 	// Output:
 	// (packet.JoinServerAccept)(packet.JoinServerAccept{

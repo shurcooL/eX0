@@ -13,24 +13,22 @@ import (
 	"github.com/shurcooL/go-goon"
 )
 
-var state struct {
-	TotalPlayerCount uint8
-}
-
 var pongSentTimes = make(map[uint32]time.Time) // PingData -> Time.
 
 //const addr = "dmitri.shuralyov.com:25045"
 const addr = "localhost:25045"
 
-func main() {
-	var err error
-	tcp, err = net.Dial("tcp", addr)
+func client() {
+	var s = new(Connection)
+
+	tcp, err := net.Dial("tcp", addr)
 	if err != nil {
 		panic(err)
 	}
 	defer tcp.Close()
+	s.tcp = tcp
 
-	var signature = uint64(time.Now().UnixNano())
+	s.Signature = uint64(time.Now().UnixNano())
 
 	{
 		var p = packet.JoinServerRequest{
@@ -39,7 +37,7 @@ func main() {
 			},
 			Version:    1,
 			Passphrase: [16]byte{'s', 'o', 'm', 'e', 'r', 'a', 'n', 'd', 'o', 'm', 'p', 'a', 's', 's', '0', '1'},
-			Signature:  signature,
+			Signature:  s.Signature,
 		}
 
 		p.Length = 26
@@ -49,14 +47,14 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		err = sendTcpPacket(buf.Bytes())
+		err = sendTcpPacket(s, buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	{
-		buf, err := receiveTcpPacket()
+		buf, err := receiveTcpPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -70,29 +68,30 @@ func main() {
 		state.TotalPlayerCount = r.TotalPlayerCount + 1
 	}
 
-	udp, err = net.Dial("udp", addr)
+	udp, err := net.Dial("udp", addr)
 	if err != nil {
 		panic(err)
 	}
+	s.udp = udp
 
 	{
 		var p packet.Handshake
 		p.Type = packet.HandshakeType
-		p.Signature = signature
+		p.Signature = s.Signature
 
 		var buf bytes.Buffer
 		err := binary.Write(&buf, binary.BigEndian, &p)
 		if err != nil {
 			panic(err)
 		}
-		err = sendUdpPacket(buf.Bytes())
+		err = sendUdpPacket(s, buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	{
-		buf, err := receiveTcpPacket()
+		buf, err := receiveTcpPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -137,14 +136,14 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		err = sendTcpPacket(buf.Bytes())
+		err = sendTcpPacket(s, buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	{
-		buf, err := receiveTcpPacket()
+		buf, err := receiveTcpPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -163,7 +162,7 @@ func main() {
 	}
 
 	{
-		buf, err := receiveTcpPacket()
+		buf, err := receiveTcpPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -207,7 +206,7 @@ func main() {
 	}
 
 	{
-		buf, err := receiveTcpPacket()
+		buf, err := receiveTcpPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -230,7 +229,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		err = sendTcpPacket(buf.Bytes())
+		err = sendTcpPacket(s, buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
@@ -254,14 +253,14 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		err = sendTcpPacket(buf.Bytes())
+		err = sendTcpPacket(s, buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	{
-		buf, err := receiveTcpPacket()
+		buf, err := receiveTcpPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -298,7 +297,7 @@ func main() {
 		defer udp.Close()
 
 		for {
-			buf, err := receiveUdpPacket()
+			buf, err := receiveUdpPacket(s)
 			if err != nil {
 				panic(err)
 			}
@@ -334,7 +333,7 @@ func main() {
 					if err != nil {
 						panic(err)
 					}
-					err = sendUdpPacket(buf.Bytes())
+					err = sendUdpPacket(s, buf.Bytes())
 					if err != nil {
 						panic(err)
 					}

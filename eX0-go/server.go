@@ -29,7 +29,7 @@ func gameLogic() {
 	}
 }
 
-func main() {
+func server() {
 	{
 		state.session.GlobalStateSequenceNumberTEST = 0
 		state.session.NextTickTime = time.Since(startedProcess).Seconds()
@@ -79,12 +79,6 @@ var state = struct {
 }{
 	TotalPlayerCount: 16,
 	connections:      make(map[net.Conn]Connection),
-}
-
-type Connection struct {
-	JoinStatus JoinStatus
-	Signature  uint64
-	UdpAddr    *net.UDPAddr
 }
 
 func handleTcp(ln net.Listener) {
