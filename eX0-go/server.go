@@ -145,6 +145,7 @@ func handleUdp(mux *Connection) {
 					connection.UdpAddr = udpAddr
 
 					c = connection
+					break
 				}
 			}
 			state.mu.Unlock()
@@ -341,6 +342,7 @@ func sendServerUpdates() {
 					continue
 				}
 				c = connection
+				break
 			}
 			state.mu.Unlock()
 
@@ -392,6 +394,7 @@ func broadcastPingPacket() {
 					continue
 				}
 				c = connection
+				break
 			}
 			state.mu.Unlock()
 

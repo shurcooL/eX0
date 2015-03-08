@@ -1,4 +1,4 @@
-// +build !chan
+// +build !chan,!tcp
 
 package main
 
