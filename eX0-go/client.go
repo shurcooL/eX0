@@ -291,8 +291,9 @@ func connectToServer(s *Connection) {
 		}
 
 		{
-			*r.State = packet.State{CommandSequenceNumber: 123, X: 1.0, Y: 2.0, Z: 3.0} // Override with deterministic value so test passes.
-			goon.Dump(r)
+			r2 := r
+			r2.State = &packet.State{CommandSequenceNumber: 123, X: 1.0, Y: 2.0, Z: 3.0} // Override with deterministic value so test passes.
+			goon.Dump(r2)
 		}
 	}
 

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net"
+	"sync"
 	"time"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -12,7 +14,7 @@ var gl *gogl.Context
 
 var windowSize = [2]int{640, 480}
 
-var cameraX, cameraY float64 = 825, 510
+var cameraX, cameraY float64 = 362, 340
 
 var startedProcess = time.Now()
 
@@ -23,6 +25,9 @@ var state = struct {
 		GlobalStateSequenceNumberTEST uint8
 		NextTickTime                  float64
 	}
+
+	mu          sync.Mutex
+	connections []*Connection
 }{
 	TotalPlayerCount: 16,
 }
@@ -89,7 +94,24 @@ func main() {
 
 	const addr = "localhost:25045"
 
-	connectToServer(addr, c)
+	//connectToServer(addr, c)
+	{
+		server = new(Connection)
+
+		tcp, err := net.Dial("tcp", addr)
+		if err != nil {
+			panic(err)
+		}
+		server.tcp = tcp
+
+		udp, err := net.Dial("udp", addr)
+		if err != nil {
+			panic(err)
+		}
+		server.udp = udp.(*net.UDPConn)
+
+		connectToServer(server, c)
+	}
 
 	state.session.GlobalStateSequenceNumberTEST = 0
 	state.session.NextTickTime = time.Since(startedProcess).Seconds()

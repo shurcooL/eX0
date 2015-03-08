@@ -131,7 +131,7 @@ func (this *character) input(window *glfw.Window) {
 			}
 		}
 
-		err = binary.Write(udp, binary.BigEndian, buf.Bytes())
+		err = sendUdpPacket(server, buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
