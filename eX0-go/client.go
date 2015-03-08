@@ -25,9 +25,18 @@ func client() {
 	if err != nil {
 		panic(err)
 	}
-	defer tcp.Close()
 	s.tcp = tcp
 
+	udp, err := net.Dial("udp", addr)
+	if err != nil {
+		panic(err)
+	}
+	s.udp = udp.(*net.UDPConn)
+
+	connectToServer(s)
+}
+
+func connectToServer(s *Connection) {
 	s.Signature = uint64(time.Now().UnixNano())
 
 	{
@@ -68,11 +77,7 @@ func client() {
 		state.TotalPlayerCount = r.TotalPlayerCount + 1
 	}
 
-	udp, err := net.Dial("udp", addr)
-	if err != nil {
-		panic(err)
-	}
-	s.udp = udp.(*net.UDPConn)
+	// Upgrade connection to UDP at this point.
 
 	{
 		var p packet.Handshake
@@ -294,8 +299,6 @@ func client() {
 	fmt.Println("done")
 
 	go func() {
-		defer udp.Close()
-
 		for {
 			buf, err := receiveUdpPacket(s)
 			if err != nil {

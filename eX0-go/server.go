@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -103,6 +104,10 @@ func listenAndHandleUdp() {
 	}
 	mux := &Connection{udp: ln}
 
+	handleUdp(mux)
+}
+
+func handleUdp(mux *Connection) {
 	for {
 		buf, c, udpAddr, err := receiveUdpPacketFrom(mux)
 		if err != nil {
@@ -126,7 +131,11 @@ func listenAndHandleUdp() {
 			if err != nil {
 				panic(err)
 			}
-			goon.Dump(r)
+			{
+				r2 := r
+				r2.Signature = 123
+				goon.Dump(r2)
+			}
 
 			state.mu.Lock()
 			for _, connection := range state.connections {
@@ -428,7 +437,11 @@ func handleTcpConnection2(client *Connection) error {
 		if err != nil {
 			return err
 		}
-		goon.Dump(r)
+		{
+			r2 := r
+			r2.Signature = 123
+			goon.Dump(r2)
+		}
 
 		if r.Version != 1 ||
 			r.Passphrase != [16]byte{'s', 'o', 'm', 'e', 'r', 'a', 'n', 'd', 'o', 'm', 'p', 'a', 's', 's', '0', '1'} {
@@ -641,7 +654,7 @@ func handleTcpConnection2(client *Connection) error {
 		}
 
 		logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*20
-		fmt.Printf("%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(startedProcess).Seconds(), playerId, "TODO: name", team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+		fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(startedProcess).Seconds(), playerId, "TODO: name", team, logicTime, state.session.GlobalStateSequenceNumberTEST)
 
 		{
 			var p packet.PlayerJoinedTeam

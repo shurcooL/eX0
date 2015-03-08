@@ -1,3 +1,5 @@
+// +build !chan
+
 package main
 
 import (
@@ -20,6 +22,12 @@ type Connection struct {
 
 	// Common.
 	Signature uint64
+
+	// Unused.
+	sendTcp chan []byte
+	recvTcp chan []byte
+	sendUdp chan []byte
+	recvUdp chan []byte
 }
 
 func sendTcpPacket(c *Connection, b []byte) error {
