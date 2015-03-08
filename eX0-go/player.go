@@ -131,7 +131,7 @@ func (this *character) input(window *glfw.Window) {
 			}
 		}
 
-		err = sendUdpPacket(server, buf.Bytes())
+		err = sendUdpPacket(clientToServerConn, buf.Bytes())
 		if err != nil {
 			panic(err)
 		}

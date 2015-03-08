@@ -2,7 +2,6 @@ package main
 
 import (
 	"net"
-	"sync"
 	"time"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -16,36 +15,9 @@ var windowSize = [2]int{640, 480}
 
 var cameraX, cameraY float64 = 362, 340
 
-var startedProcess = time.Now()
+var clientToServerConn *Connection
 
-var state = struct {
-	TotalPlayerCount uint8
-
-	session struct {
-		GlobalStateSequenceNumberTEST uint8
-		NextTickTime                  float64
-	}
-
-	mu          sync.Mutex
-	connections []*Connection
-}{
-	TotalPlayerCount: 16,
-}
-
-func gameLogic(doInput func()) {
-	for {
-		for time.Since(startedProcess).Seconds() >= state.session.NextTickTime {
-			state.session.NextTickTime += 1.0 / 20
-			state.session.GlobalStateSequenceNumberTEST++
-
-			doInput()
-		}
-
-		time.Sleep(time.Millisecond)
-	}
-}
-
-func main() {
+func view() {
 	err := glfw.Init()
 	if err != nil {
 		panic(err)
@@ -82,7 +54,7 @@ func main() {
 	}
 	window.SetFramebufferSizeCallback(framebufferSizeCallback)
 
-	l, err := newLevel("../../eX0/levels/test3.wwl")
+	l, err := newLevel("../eX0/levels/test3.wwl")
 	if err != nil {
 		panic(err)
 	}
@@ -94,28 +66,29 @@ func main() {
 
 	const addr = "localhost:25045"
 
-	//connectToServer(addr, c)
 	{
-		server = new(Connection)
+		clientToServerConn = new(Connection)
 
 		tcp, err := net.Dial("tcp", addr)
 		if err != nil {
 			panic(err)
 		}
-		server.tcp = tcp
+		clientToServerConn.tcp = tcp
 
 		udp, err := net.Dial("udp", addr)
 		if err != nil {
 			panic(err)
 		}
-		server.udp = udp.(*net.UDPConn)
+		clientToServerConn.udp = udp.(*net.UDPConn)
 
-		connectToServer(server, c)
+		connectToServer(clientToServerConn, c)
 	}
 
-	state.session.GlobalStateSequenceNumberTEST = 0
-	state.session.NextTickTime = time.Since(startedProcess).Seconds()
-	go gameLogic(func() { c.input(window) })
+	{
+		state.session.GlobalStateSequenceNumberTEST = 0
+		state.session.NextTickTime = time.Since(startedProcess).Seconds()
+		go gameLogic(func() { c.input(window) })
+	}
 
 	for !window.ShouldClose() {
 		glfw.PollEvents()

@@ -19,11 +19,15 @@ import (
 
 const Tau = 2 * math.Pi
 
-func gameLogic() {
+func gameLogic(doInput func()) {
 	for {
 		for time.Since(startedProcess).Seconds() >= state.session.NextTickTime {
 			state.session.NextTickTime += 1.0 / 20
 			state.session.GlobalStateSequenceNumberTEST++
+
+			if doInput != nil {
+				doInput()
+			}
 		}
 
 		time.Sleep(time.Millisecond)
@@ -34,7 +38,7 @@ func server() {
 	{
 		state.session.GlobalStateSequenceNumberTEST = 0
 		state.session.NextTickTime = time.Since(startedProcess).Seconds()
-		go gameLogic()
+		go gameLogic(nil)
 	}
 
 	{

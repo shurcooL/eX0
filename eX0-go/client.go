@@ -33,10 +33,10 @@ func client() {
 	}
 	s.udp = udp.(*net.UDPConn)
 
-	connectToServer(s)
+	connectToServer(s, nil)
 }
 
-func connectToServer(s *Connection) {
+func connectToServer(s *Connection, character *character) {
 	s.Signature = uint64(time.Now().UnixNano())
 
 	{
@@ -295,6 +295,10 @@ func connectToServer(s *Connection) {
 			r2.State = &packet.State{CommandSequenceNumber: 123, X: 1.0, Y: 2.0, Z: 3.0} // Override with deterministic value so test passes.
 			goon.Dump(r2)
 		}
+
+		if character != nil {
+			lastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
+		}
 	}
 
 	fmt.Println("done")
@@ -389,10 +393,19 @@ func connectToServer(s *Connection) {
 
 					r.Players[i] = playerUpdate
 				}
+
+				if character != nil {
+					if playerUpdate := r.Players[0]; playerUpdate.ActivePlayer != 0 {
+						character.pos[0] = playerUpdate.State.X
+						character.pos[1] = playerUpdate.State.Y
+						character.Z = playerUpdate.State.Z
+					}
+				}
 			}
 		}
 	}()
 
-	//select {}
-	time.Sleep(10 * time.Second)
+	if character == nil {
+		time.Sleep(10 * time.Second)
+	}
 }

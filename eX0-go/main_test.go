@@ -49,7 +49,7 @@ func ExampleFullConnection() {
 		go broadcastPingPacket()
 		fmt.Println("Started.")
 
-		connectToServer(clientToServerConn)
+		connectToServer(clientToServerConn, nil)
 	case 2:
 		// Virtual TCP and UDP via physical TCP. Requires `go test -tags=tcp`.
 
@@ -94,7 +94,7 @@ func ExampleFullConnection() {
 		go broadcastPingPacket()
 		fmt.Println("Started.")
 
-		connectToServer(clientToServerConn)
+		connectToServer(clientToServerConn, nil)
 	}
 
 	// Output:

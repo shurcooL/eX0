@@ -9,8 +9,6 @@ import (
 	"github.com/shurcooL/gogl"
 )
 
-const Tau = 2 * math.Pi
-
 func newCharacter() (*character, error) {
 	l := new(character)
 
