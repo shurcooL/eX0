@@ -11,11 +11,10 @@ import (
 )
 
 type Connection struct {
-	// Server.
 	tcp net.Conn
-	udp net.Conn
+	udp *net.UDPConn
 
-	// Client.
+	// Connection to client.
 	JoinStatus JoinStatus
 	UdpAddr    *net.UDPAddr
 
@@ -52,8 +51,13 @@ func receiveTcpPacket(c *Connection) (io.Reader, error) {
 }
 
 func sendUdpPacket(c *Connection, b []byte) error {
-	_, err := c.udp.Write(b)
-	return err
+	if c.UdpAddr != nil {
+		_, err := c.udp.WriteToUDP(b, c.UdpAddr)
+		return err
+	} else {
+		_, err := c.udp.Write(b)
+		return err
+	}
 }
 
 func receiveUdpPacket(c *Connection) (io.Reader, error) {
@@ -63,4 +67,28 @@ func receiveUdpPacket(c *Connection) (io.Reader, error) {
 		return nil, err
 	}
 	return bytes.NewReader(b[:n]), nil
+}
+
+func receiveUdpPacketFrom(mux *Connection) (io.Reader, *Connection, *net.UDPAddr, error) {
+	var b [packet.MAX_UDP_SIZE]byte
+	n, udpAddr, err := mux.udp.ReadFromUDP(b[:])
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	var from *Connection
+	state.mu.Lock()
+	for _, connection := range state.connections {
+		if connection.UdpAddr != nil &&
+			connection.UdpAddr.IP.Equal(udpAddr.IP) &&
+			connection.UdpAddr.Port == udpAddr.Port &&
+			connection.UdpAddr.Zone == udpAddr.Zone {
+
+			from = connection
+			break
+		}
+	}
+	state.mu.Unlock()
+
+	return bytes.NewReader(b[:n]), from, udpAddr, nil
 }

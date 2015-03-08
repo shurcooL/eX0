@@ -37,27 +37,15 @@ func server() {
 	}
 
 	{
-		ln, err := net.Listen("tcp", ":25045")
-		if err != nil {
-			panic(err)
-		}
-		go handleTcp(ln)
+		go listenAndHandleTcp()
 	}
 
 	{
-		udpAddr, err := net.ResolveUDPAddr("udp", ":25045")
-		if err != nil {
-			panic(err)
-		}
-		ln2, err := net.ListenUDP("udp", udpAddr)
-		if err != nil {
-			panic(err)
-		}
-		go handleUdp(ln2)
-
-		go sendServerUpdates(ln2)
-		go broadcastPingPacket(ln2)
+		go listenAndHandleUdp()
 	}
+
+	go sendServerUpdates()
+	go broadcastPingPacket()
 
 	fmt.Println("Started.")
 
@@ -75,36 +63,60 @@ var state = struct {
 	}
 
 	mu          sync.Mutex
-	connections map[net.Conn]Connection // TcpConn -> Connection.
+	connections []*Connection
 }{
 	TotalPlayerCount: 16,
-	connections:      make(map[net.Conn]Connection),
 }
 
-func handleTcp(ln net.Listener) {
+func listenAndHandleTcp() {
+	ln, err := net.Listen("tcp", ":25045")
+	if err != nil {
+		panic(err)
+	}
+
 	for {
 		tcp, err := ln.Accept()
 		if err != nil {
 			panic(err)
 		}
-		go handleConnection(tcp)
+
+		client := &Connection{
+			tcp:        tcp,
+			JoinStatus: TCP_CONNECTED,
+		}
+		state.mu.Lock()
+		state.connections = append(state.connections, client)
+		state.mu.Unlock()
+
+		go handleTcpConnection(client)
 	}
 }
 
-func handleUdp(udp *net.UDPConn) {
+func listenAndHandleUdp() {
+	udpAddr, err := net.ResolveUDPAddr("udp", ":25045")
+	if err != nil {
+		panic(err)
+	}
+	ln, err := net.ListenUDP("udp", udpAddr)
+	if err != nil {
+		panic(err)
+	}
+	mux := &Connection{udp: ln}
+
 	for {
-		var b [packet.MAX_UDP_SIZE]byte
-		n, udpAddr, err := udp.ReadFromUDP(b[:])
+		buf, c, udpAddr, err := receiveUdpPacketFrom(mux)
 		if err != nil {
 			panic(err)
 		}
-		_ = udpAddr
-		var buf = bytes.NewReader(b[:n])
 
 		var udpHeader packet.UdpHeader
 		err = binary.Read(buf, binary.BigEndian, &udpHeader)
 		if err != nil {
 			panic(err)
+		}
+
+		if c == nil && udpHeader.Type != packet.HandshakeType {
+			continue
 		}
 
 		switch udpHeader.Type {
@@ -116,26 +128,30 @@ func handleUdp(udp *net.UDPConn) {
 			}
 			goon.Dump(r)
 
-			var tcp net.Conn
 			state.mu.Lock()
-			for tcpConn, c := range state.connections {
-				if c.Signature == r.Signature {
-					c.JoinStatus = UDP_CONNECTED
-					c.UdpAddr = udpAddr
-					state.connections[tcpConn] = c
+			for _, connection := range state.connections {
+				if connection.Signature == r.Signature {
+					connection.JoinStatus = UDP_CONNECTED
+					connection.udp = mux.udp
+					connection.UdpAddr = udpAddr
 
-					tcp = tcpConn
+					c = connection
 				}
 			}
 			state.mu.Unlock()
 
-			if tcp != nil {
+			if c != nil {
 				var p packet.UdpConnectionEstablished
 				p.Type = packet.UdpConnectionEstablishedType
 
 				p.Length = 0
 
-				err := binary.Write(tcp, binary.BigEndian, &p)
+				var buf bytes.Buffer
+				err := binary.Write(&buf, binary.BigEndian, &p)
+				if err != nil {
+					panic(err)
+				}
+				err = sendTcpPacket(c, buf.Bytes())
 				if err != nil {
 					panic(err)
 				}
@@ -158,7 +174,7 @@ func handleUdp(udp *net.UDPConn) {
 				if err != nil {
 					panic(err)
 				}
-				_, err = udp.WriteToUDP(buf.Bytes(), udpAddr)
+				err = sendUdpPacket(c, buf.Bytes())
 				if err != nil {
 					panic(err)
 				}
@@ -181,7 +197,7 @@ func handleUdp(udp *net.UDPConn) {
 				if err != nil {
 					panic(err)
 				}
-				_, err = udp.WriteToUDP(buf.Bytes(), udpAddr)
+				err = sendUdpPacket(c, buf.Bytes())
 				if err != nil {
 					panic(err)
 				}
@@ -269,7 +285,7 @@ var player0State = struct {
 var lastAckedCmdSequenceNumber uint8
 var lastUpdateSequenceNumber uint8 = 1
 
-func sendServerUpdates(udp *net.UDPConn) {
+func sendServerUpdates() {
 	for ; true; time.Sleep(time.Second / 20) {
 		{
 			var p packet.ServerUpdate
@@ -309,21 +325,21 @@ func sendServerUpdates(udp *net.UDPConn) {
 				}
 			}
 
-			var udpAddr *net.UDPAddr
+			var c *Connection
 			state.mu.Lock()
-			for _, c := range state.connections {
-				if c.JoinStatus < IN_GAME {
+			for _, connection := range state.connections {
+				if connection.JoinStatus < IN_GAME {
 					continue
 				}
-				udpAddr = c.UdpAddr
+				c = connection
 			}
 			state.mu.Unlock()
 
-			if udpAddr == nil {
+			if c == nil {
 				continue
 			}
 
-			_, err = udp.WriteToUDP(buf.Bytes(), udpAddr)
+			err = sendUdpPacket(c, buf.Bytes())
 			if err != nil {
 				panic(err)
 			}
@@ -336,7 +352,7 @@ func sendServerUpdates(udp *net.UDPConn) {
 var lastPingData uint32
 var pingSentTimes = make(map[uint32]time.Time) // TODO: Use.
 
-func broadcastPingPacket(udp *net.UDPConn) {
+func broadcastPingPacket() {
 	const BROADCAST_PING_PERIOD = 2500 * time.Millisecond // How often to broadcast the Ping packet on the server.
 
 	for ; true; time.Sleep(BROADCAST_PING_PERIOD) {
@@ -360,21 +376,21 @@ func broadcastPingPacket(udp *net.UDPConn) {
 				panic(err)
 			}
 
-			var udpAddr *net.UDPAddr
+			var c *Connection
 			state.mu.Lock()
-			for _, c := range state.connections {
-				if c.JoinStatus < IN_GAME {
+			for _, connection := range state.connections {
+				if connection.JoinStatus < IN_GAME {
 					continue
 				}
-				udpAddr = c.UdpAddr
+				c = connection
 			}
 			state.mu.Unlock()
 
-			if udpAddr == nil {
+			if c == nil {
 				continue
 			}
 
-			_, err = udp.WriteToUDP(buf.Bytes(), udpAddr)
+			err = sendUdpPacket(c, buf.Bytes())
 			if err != nil {
 				panic(err)
 			}
@@ -384,21 +400,31 @@ func broadcastPingPacket(udp *net.UDPConn) {
 	}
 }
 
-func handleConnection(tcp net.Conn) {
-	err := handleConnection2(tcp)
+func handleTcpConnection(client *Connection) {
+	err := handleTcpConnection2(client)
 	fmt.Println("tcp conn ended with:", err)
 
 	state.mu.Lock()
-	delete(state.connections, tcp)
+	for i, connection := range state.connections {
+		if connection == client {
+			// Delete without preserving order.
+			state.connections[i], state.connections[len(state.connections)-1], state.connections = state.connections[len(state.connections)-1], nil, state.connections[:len(state.connections)-1]
+			break
+		}
+	}
 	state.mu.Unlock()
 
-	tcp.Close()
+	client.tcp.Close()
 }
 
-func handleConnection2(tcp net.Conn) error {
+func handleTcpConnection2(client *Connection) error {
 	{
+		buf, err := receiveTcpPacket(client)
+		if err != nil {
+			return err
+		}
 		var r packet.JoinServerRequest
-		err := binary.Read(tcp, binary.BigEndian, &r)
+		err = binary.Read(buf, binary.BigEndian, &r)
 		if err != nil {
 			return err
 		}
@@ -414,7 +440,12 @@ func handleConnection2(tcp net.Conn) error {
 
 				p.Length = 1
 
-				err := binary.Write(tcp, binary.BigEndian, &p)
+				var buf bytes.Buffer
+				err := binary.Write(&buf, binary.BigEndian, &p)
+				if err != nil {
+					return err
+				}
+				err = sendTcpPacket(client, buf.Bytes())
 				if err != nil {
 					return err
 				}
@@ -424,7 +455,8 @@ func handleConnection2(tcp net.Conn) error {
 		}
 
 		state.mu.Lock()
-		state.connections[tcp] = Connection{Signature: r.Signature}
+		client.Signature = r.Signature
+		client.JoinStatus = ACCEPTED
 		state.mu.Unlock()
 	}
 
@@ -436,32 +468,41 @@ func handleConnection2(tcp net.Conn) error {
 
 		p.Length = 2
 
-		err := binary.Write(tcp, binary.BigEndian, &p)
+		var buf bytes.Buffer
+		err := binary.Write(&buf, binary.BigEndian, &p)
+		if err != nil {
+			return err
+		}
+		err = sendTcpPacket(client, buf.Bytes())
 		if err != nil {
 			return err
 		}
 	}
 
 	{
-		var r packet.LocalPlayerInfo
-		err := binary.Read(tcp, binary.BigEndian, &r.TcpHeader)
+		buf, err := receiveTcpPacket(client)
 		if err != nil {
 			return err
 		}
-		err = binary.Read(tcp, binary.BigEndian, &r.NameLength)
+		var r packet.LocalPlayerInfo
+		err = binary.Read(buf, binary.BigEndian, &r.TcpHeader)
+		if err != nil {
+			return err
+		}
+		err = binary.Read(buf, binary.BigEndian, &r.NameLength)
 		if err != nil {
 			return err
 		}
 		r.Name = make([]byte, r.NameLength)
-		err = binary.Read(tcp, binary.BigEndian, &r.Name)
+		err = binary.Read(buf, binary.BigEndian, &r.Name)
 		if err != nil {
 			return err
 		}
-		err = binary.Read(tcp, binary.BigEndian, &r.CommandRate)
+		err = binary.Read(buf, binary.BigEndian, &r.CommandRate)
 		if err != nil {
 			return err
 		}
-		err = binary.Read(tcp, binary.BigEndian, &r.UpdateRate)
+		err = binary.Read(buf, binary.BigEndian, &r.UpdateRate)
 		if err != nil {
 			return err
 		}
@@ -475,11 +516,16 @@ func handleConnection2(tcp net.Conn) error {
 
 		p.Length = uint16(len(p.LevelFilename))
 
-		err := binary.Write(tcp, binary.BigEndian, &p.TcpHeader)
+		var buf bytes.Buffer
+		err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
 		if err != nil {
 			return err
 		}
-		err = binary.Write(tcp, binary.BigEndian, &p.LevelFilename)
+		err = binary.Write(&buf, binary.BigEndian, &p.LevelFilename)
+		if err != nil {
+			return err
+		}
+		err = sendTcpPacket(client, buf.Bytes())
 		if err != nil {
 			return err
 		}
@@ -492,7 +538,8 @@ func handleConnection2(tcp net.Conn) error {
 
 		p.Length = 16 + uint16(len("shurcooL")) + 1
 
-		err := binary.Write(tcp, binary.BigEndian, &p.TcpHeader)
+		var buf bytes.Buffer
+		err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
 		if err != nil {
 			return err
 		}
@@ -506,28 +553,32 @@ func handleConnection2(tcp net.Conn) error {
 				playerInfo.Team = 2
 			}
 
-			err = binary.Write(tcp, binary.BigEndian, &playerInfo.NameLength)
+			err = binary.Write(&buf, binary.BigEndian, &playerInfo.NameLength)
 			if err != nil {
 				return err
 			}
 
 			if playerInfo.NameLength != 0 {
-				err = binary.Write(tcp, binary.BigEndian, &playerInfo.Name)
+				err = binary.Write(&buf, binary.BigEndian, &playerInfo.Name)
 				if err != nil {
 					return err
 				}
-				err = binary.Write(tcp, binary.BigEndian, &playerInfo.Team)
+				err = binary.Write(&buf, binary.BigEndian, &playerInfo.Team)
 				if err != nil {
 					return err
 				}
 
 				if playerInfo.Team != 2 {
-					err = binary.Write(tcp, binary.BigEndian, playerInfo.State)
+					err = binary.Write(&buf, binary.BigEndian, playerInfo.State)
 					if err != nil {
 						return err
 					}
 				}
 			}
+		}
+		err = sendTcpPacket(client, buf.Bytes())
+		if err != nil {
+			return err
 		}
 	}
 
@@ -537,24 +588,31 @@ func handleConnection2(tcp net.Conn) error {
 
 		p.Length = 0
 
-		err := binary.Write(tcp, binary.BigEndian, &p)
+		var buf bytes.Buffer
+		err := binary.Write(&buf, binary.BigEndian, &p)
+		if err != nil {
+			return err
+		}
+		err = sendTcpPacket(client, buf.Bytes())
 		if err != nil {
 			return err
 		}
 	}
 
 	{
+		buf, err := receiveTcpPacket(client)
+		if err != nil {
+			return err
+		}
 		var r packet.EnteredGameNotification
-		err := binary.Read(tcp, binary.BigEndian, &r)
+		err = binary.Read(buf, binary.BigEndian, &r)
 		if err != nil {
 			return err
 		}
 		goon.Dump(r)
 
 		state.mu.Lock()
-		c := state.connections[tcp]
-		c.JoinStatus = IN_GAME
-		state.connections[tcp] = c
+		client.JoinStatus = IN_GAME
 		state.mu.Unlock()
 	}
 
@@ -563,13 +621,17 @@ func handleConnection2(tcp net.Conn) error {
 		var team uint8
 
 		{
+			buf, err := receiveTcpPacket(client)
+			if err != nil {
+				return err
+			}
 			var r packet.JoinTeamRequest
-			err := binary.Read(tcp, binary.BigEndian, &r.TcpHeader)
+			err = binary.Read(buf, binary.BigEndian, &r.TcpHeader)
 			if err != nil {
 				return err
 			}
 			// TODO: Handle potential PlayerNumber.
-			err = binary.Read(tcp, binary.BigEndian, &r.Team)
+			err = binary.Read(buf, binary.BigEndian, &r.Team)
 			if err != nil {
 				return err
 			}
@@ -601,23 +663,28 @@ func handleConnection2(tcp net.Conn) error {
 				p.Length += 13
 			}
 
-			err := binary.Write(tcp, binary.BigEndian, &p.TcpHeader)
+			var buf bytes.Buffer
+			err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
 			if err != nil {
 				return err
 			}
-			err = binary.Write(tcp, binary.BigEndian, &p.PlayerId)
+			err = binary.Write(&buf, binary.BigEndian, &p.PlayerId)
 			if err != nil {
 				return err
 			}
-			err = binary.Write(tcp, binary.BigEndian, &p.Team)
+			err = binary.Write(&buf, binary.BigEndian, &p.Team)
 			if err != nil {
 				return err
 			}
 			if p.State != nil {
-				err = binary.Write(tcp, binary.BigEndian, p.State)
+				err = binary.Write(&buf, binary.BigEndian, p.State)
 				if err != nil {
 					return err
 				}
+			}
+			err = sendTcpPacket(client, buf.Bytes())
+			if err != nil {
+				return err
 			}
 		}
 	}

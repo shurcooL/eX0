@@ -72,7 +72,7 @@ func client() {
 	if err != nil {
 		panic(err)
 	}
-	s.udp = udp
+	s.udp = udp.(*net.UDPConn)
 
 	{
 		var p packet.Handshake
