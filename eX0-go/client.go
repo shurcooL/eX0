@@ -18,22 +18,26 @@ var pongSentTimes = make(map[uint32]time.Time) // PingData -> Time.
 //const addr = "dmitri.shuralyov.com:25045"
 const addr = "localhost:25045"
 
-func client() {
-	var s = new(Connection)
+var clientToServerConn *Connection
+
+func client(character *character) {
+	clientToServerConn = newConnection() // HACK: tcp-specific.
 
 	tcp, err := net.Dial("tcp", addr)
 	if err != nil {
 		panic(err)
 	}
-	s.tcp = tcp
+	clientToServerConn.tcp = tcp
+	close(clientToServerConn.start) // HACK: tcp-specific.
 
-	udp, err := net.Dial("udp", addr)
+	// HACK: tcp-specific.
+	/*udp, err := net.Dial("udp", addr)
 	if err != nil {
 		panic(err)
 	}
-	s.udp = udp.(*net.UDPConn)
+	clientToServerConn.udp = udp.(*net.UDPConn)*/
 
-	connectToServer(s, nil)
+	connectToServer(clientToServerConn, character)
 }
 
 func connectToServer(s *Connection, character *character) {

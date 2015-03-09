@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net"
 	"time"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -14,8 +13,6 @@ var gl *gogl.Context
 var windowSize = [2]int{640, 480}
 
 var cameraX, cameraY float64 = 362, 340
-
-var clientToServerConn *Connection
 
 func view() {
 	err := glfw.Init()
@@ -64,25 +61,7 @@ func view() {
 		panic(err)
 	}
 
-	const addr = "localhost:25045"
-
-	{
-		clientToServerConn = new(Connection)
-
-		tcp, err := net.Dial("tcp", addr)
-		if err != nil {
-			panic(err)
-		}
-		clientToServerConn.tcp = tcp
-
-		udp, err := net.Dial("udp", addr)
-		if err != nil {
-			panic(err)
-		}
-		clientToServerConn.udp = udp.(*net.UDPConn)
-
-		connectToServer(clientToServerConn, c)
-	}
+	client(c)
 
 	{
 		state.session.GlobalStateSequenceNumberTEST = 0

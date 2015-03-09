@@ -46,7 +46,8 @@ func server() {
 	}
 
 	{
-		go listenAndHandleUdp()
+		// HACK: tcp-specific.
+		//go listenAndHandleUdp()
 	}
 
 	go sendServerUpdates()
@@ -85,15 +86,21 @@ func listenAndHandleTcp() {
 			panic(err)
 		}
 
-		client := &Connection{
+		// HACK: tcp-specific.
+		client := newConnection()
+		client.tcp = tcp
+		client.JoinStatus = TCP_CONNECTED
+		close(client.start) // HACK: tcp-specific.
+		/*client := &Connection{
 			tcp:        tcp,
 			JoinStatus: TCP_CONNECTED,
-		}
+		}*/
 		state.mu.Lock()
 		state.connections = append(state.connections, client)
 		state.mu.Unlock()
 
 		go handleTcpConnection(client)
+		go handleUdp(client) // HACK: tcp-specific.
 	}
 }
 

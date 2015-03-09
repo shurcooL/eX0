@@ -11,7 +11,7 @@ func main() {
 
 	switch {
 	case len(flag.Args()) == 1 && flag.Args()[0] == "client":
-		client()
+		client(nil)
 	case len(flag.Args()) == 1 && flag.Args()[0] == "server":
 		server()
 	case len(flag.Args()) == 1 && flag.Args()[0] == "view":
