@@ -14,9 +14,9 @@ import (
 
 func newConnection() *Connection {
 	c := &Connection{
-		sendTcp: make(chan []byte, 128),
+		sendTcp: make(chan []byte),
 		recvTcp: make(chan []byte, 128),
-		sendUdp: make(chan []byte, 128),
+		sendUdp: make(chan []byte),
 		recvUdp: make(chan []byte, 128),
 
 		start: make(chan struct{}),
