@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"net"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/shurcooL/eX0/eX0-go/packet"
 	"github.com/shurcooL/go-goon"
+	"golang.org/x/net/websocket"
 )
 
 const Tau = 2 * math.Pi
@@ -42,7 +44,11 @@ func server() {
 	}
 
 	{
-		go listenAndHandleTcp()
+		//go listenAndHandleTcp()
+	}
+
+	{
+		go listenAndHandleWebSocket()
 	}
 
 	{
@@ -101,6 +107,51 @@ func listenAndHandleTcp() {
 
 		go handleTcpConnection(client)
 		go handleUdp(client) // HACK: tcp-specific.
+	}
+}
+
+type dumper struct {
+	net.Conn
+}
+
+func (d *dumper) Write(p []byte) (n int, err error) {
+	fmt.Printf("%+v\n", p)
+	fmt.Printf("%q\n", p)
+	return d.Conn.Write(p)
+}
+
+func listenAndHandleWebSocket() {
+	h := websocket.Handler(func(conn *websocket.Conn) {
+		// Why is this exported field undocumented?
+		//
+		// It seems it needs to be set to websocket.BinaryFrame so that
+		// the Write method sends bytes as binary rather than text frames.
+		conn.PayloadType = websocket.BinaryFrame
+
+		/*n, err := io.Copy(dumper{}, conn)
+		fmt.Println("copyied n, err:", n, err)
+		return*/
+
+		// HACK: tcp-specific.
+		client := newConnection()
+		client.tcp = &dumper{conn}
+		client.JoinStatus = TCP_CONNECTED
+		close(client.start) // HACK: tcp-specific.
+		/*client := &Connection{
+			tcp:        tcp,
+			JoinStatus: TCP_CONNECTED,
+		}*/
+		state.mu.Lock()
+		state.connections = append(state.connections, client)
+		state.mu.Unlock()
+
+		go handleUdp(client) // HACK: tcp-specific.
+		handleTcpConnection(client)
+		// Do not return until handleTcpConnection does, else WebSocket gets closed.
+	})
+	err := http.ListenAndServe(":25046", h)
+	if err != nil {
+		panic(err)
 	}
 }
 

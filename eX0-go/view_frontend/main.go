@@ -77,7 +77,8 @@ func main() {
 	}
 	window.SetFramebufferSizeCallback(framebufferSizeCallback)
 
-	l, err := newLevel("../../eX0/levels/test3.wwl")
+	//l, err := newLevel("../../eX0/levels/test3.wwl")
+	l, err := newLevel("test3.wwl")
 	if err != nil {
 		panic(err)
 	}
@@ -87,9 +88,9 @@ func main() {
 		panic(err)
 	}
 
-	const addr = "localhost:25045"
-
-	connectToServer(addr, c)
+	/*const addr = "localhost:25045"
+	-
+	connectToServer(addr, c)*/
 
 	state.session.GlobalStateSequenceNumberTEST = 0
 	state.session.NextTickTime = time.Since(startedProcess).Seconds()

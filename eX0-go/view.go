@@ -51,7 +51,7 @@ func view() {
 	}
 	window.SetFramebufferSizeCallback(framebufferSizeCallback)
 
-	l, err := newLevel("../eX0/levels/test3.wwl")
+	l, err := newLevel("test3.wwl")
 	if err != nil {
 		panic(err)
 	}

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
 	"log"
 	"math"
 
@@ -64,7 +62,7 @@ func (this *character) input(window *glfw.Window) {
 	move := this.inputCommand(window)
 
 	// Physics update.
-	switch 1 {
+	switch 0 {
 	case 0:
 		const TOP_SPEED = 3.5
 
@@ -99,7 +97,7 @@ func (this *character) input(window *glfw.Window) {
 
 		this.pos = this.pos.Add(this.Vel)
 		this.Z = move.Z
-	case 1:
+		/*case 1:
 		var p packet.ClientCommand
 		p.Type = packet.ClientCommandType
 		p.CommandSequenceNumber = lastAckedCmdSequenceNumber
@@ -136,6 +134,6 @@ func (this *character) input(window *glfw.Window) {
 			panic(err)
 		}
 
-		lastAckedCmdSequenceNumber++
+		lastAckedCmdSequenceNumber++*/
 	}
 }

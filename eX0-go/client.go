@@ -6,8 +6,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
-	"net"
 	"time"
+
+	"github.com/gopherjs/websocket"
+	//"golang.org/x/net/websocket"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
 	"github.com/shurcooL/go-goon"
@@ -23,7 +25,9 @@ var clientToServerConn *Connection
 func client(character *character) {
 	clientToServerConn = newConnection() // HACK: tcp-specific.
 
-	tcp, err := net.Dial("tcp", addr)
+	//tcp, err := net.Dial("tcp", addr)
+	tcp, err := websocket.Dial("ws://localhost:25046") // WebSocket connection.
+	//tcp, err := websocket.Dial("ws://localhost:25046", "", "http://localhost/") // WebSocket connection (desktop).
 	if err != nil {
 		panic(err)
 	}
@@ -41,7 +45,8 @@ func client(character *character) {
 }
 
 func connectToServer(s *Connection, character *character) {
-	s.Signature = uint64(time.Now().UnixNano())
+	//s.Signature = uint64(time.Now().UnixNano())
+	s.Signature = uint64(123) // TODO: Debugging, for consistency.
 
 	{
 		var p = packet.JoinServerRequest{
@@ -295,9 +300,10 @@ func connectToServer(s *Connection, character *character) {
 		}
 
 		{
-			r2 := r
-			r2.State = &packet.State{CommandSequenceNumber: 123, X: 1.0, Y: 2.0, Z: 3.0} // Override with deterministic value so test passes.
-			goon.Dump(r2)
+			//r2 := r
+			//r2.State = &packet.State{CommandSequenceNumber: 123, X: 1.0, Y: 2.0, Z: 3.0} // Override with deterministic value so test passes.
+			//goon.Dump(r2)
+			goon.Dump(r)
 		}
 
 		if character != nil {

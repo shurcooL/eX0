@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"log"
 	"net"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
@@ -44,11 +45,14 @@ func newConnection() *Connection {
 	}(c)
 	// Read.
 	go func(c *Connection) {
+		log.Println("waiting 2 read")
 		<-c.start
+		log.Println("starging to read")
 		for {
 			var udpSize uint16
 			err := binary.Read(c.tcp, binary.LittleEndian, &udpSize)
 			if err != nil {
+				log.Println("read from tcp:", err)
 				close(c.recvTcp)
 				close(c.recvUdp)
 				return
