@@ -45,8 +45,7 @@ func client(character *character) {
 }
 
 func connectToServer(s *Connection, character *character) {
-	//s.Signature = uint64(time.Now().UnixNano())
-	s.Signature = uint64(123) // TODO: Debugging, for consistency.
+	s.Signature = uint64(time.Now().UnixNano())
 
 	{
 		var p = packet.JoinServerRequest{
@@ -300,10 +299,9 @@ func connectToServer(s *Connection, character *character) {
 		}
 
 		{
-			//r2 := r
-			//r2.State = &packet.State{CommandSequenceNumber: 123, X: 1.0, Y: 2.0, Z: 3.0} // Override with deterministic value so test passes.
-			//goon.Dump(r2)
-			goon.Dump(r)
+			r2 := r
+			r2.State = &packet.State{CommandSequenceNumber: 123, X: 1.0, Y: 2.0, Z: 3.0} // Override with deterministic value so test passes.
+			goon.Dump(r2)
 		}
 
 		if character != nil {

@@ -44,16 +44,15 @@ func server() {
 	}
 
 	{
-		//go listenAndHandleTcp()
+		go listenAndHandleTcp()
+	}
+
+	{
+		go listenAndHandleUdp()
 	}
 
 	{
 		go listenAndHandleWebSocket()
-	}
-
-	{
-		// HACK: tcp-specific.
-		//go listenAndHandleUdp()
 	}
 
 	go sendServerUpdates()
@@ -110,16 +109,6 @@ func listenAndHandleTcp() {
 	}
 }
 
-type dumper struct {
-	net.Conn
-}
-
-func (d *dumper) Write(p []byte) (n int, err error) {
-	fmt.Printf("%+v\n", p)
-	fmt.Printf("%q\n", p)
-	return d.Conn.Write(p)
-}
-
 func listenAndHandleWebSocket() {
 	h := websocket.Handler(func(conn *websocket.Conn) {
 		// Why is this exported field undocumented?
@@ -128,13 +117,9 @@ func listenAndHandleWebSocket() {
 		// the Write method sends bytes as binary rather than text frames.
 		conn.PayloadType = websocket.BinaryFrame
 
-		/*n, err := io.Copy(dumper{}, conn)
-		fmt.Println("copyied n, err:", n, err)
-		return*/
-
 		// HACK: tcp-specific.
 		client := newConnection()
-		client.tcp = &dumper{conn}
+		client.tcp = conn
 		client.JoinStatus = TCP_CONNECTED
 		close(client.start) // HACK: tcp-specific.
 		/*client := &Connection{
