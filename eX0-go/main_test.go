@@ -1,9 +1,6 @@
 package main
 
-import (
-	"fmt"
-	"net"
-)
+import "fmt"
 
 func ExampleFullConnection() {
 	defer func() {
@@ -13,89 +10,7 @@ func ExampleFullConnection() {
 		}
 	}()
 
-	switch 2 {
-	case 0:
-		// Normal TCP + UDP.
-		go server()
-		client()
-	case 1:
-		// TCP and UDP via local channels. Requires `go test -tags=chan`.
-		clientToServerTcp := make(chan []byte)
-		serverToClientTcp := make(chan []byte)
-		clientToServerUdp := make(chan []byte)
-		serverToClientUdp := make(chan []byte)
-
-		var clientToServerConn = &Connection{
-			sendTcp: clientToServerTcp,
-			recvTcp: serverToClientTcp,
-			sendUdp: clientToServerUdp,
-			recvUdp: serverToClientUdp,
-		}
-
-		var serverToClientConn = &Connection{
-			sendTcp: serverToClientTcp,
-			recvTcp: clientToServerTcp,
-			sendUdp: serverToClientUdp,
-			recvUdp: clientToServerUdp,
-		}
-
-		state.mu.Lock()
-		state.connections = append(state.connections, serverToClientConn)
-		state.mu.Unlock()
-
-		go handleTcpConnection(serverToClientConn)
-		go handleUdp(serverToClientConn)
-		go sendServerUpdates()
-		go broadcastPingPacket()
-		fmt.Println("Started.")
-
-		connectToServer(clientToServerConn, nil)
-	case 2:
-		// Virtual TCP and UDP via physical TCP. Requires `go test -tags=tcp`.
-
-		c := make(chan *Connection)
-		go func(c chan *Connection) {
-			var serverToClientConn = newConnection()
-			ln, err := net.Listen("tcp", "localhost:25045")
-			if err != nil {
-				panic(err)
-			}
-			tcp, err := ln.Accept()
-			if err != nil {
-				panic(err)
-			}
-			serverToClientConn.tcp = tcp
-			close(serverToClientConn.start)
-			c <- serverToClientConn
-		}(c)
-
-		s := make(chan *Connection)
-		go func(s chan *Connection) {
-			var clientToServerConn = newConnection()
-			tcp, err := net.Dial("tcp", "localhost:25045")
-			if err != nil {
-				panic(err)
-			}
-			clientToServerConn.tcp = tcp
-			close(clientToServerConn.start)
-			s <- clientToServerConn
-		}(s)
-
-		var clientToServerConn = <-s
-		var serverToClientConn = <-c
-
-		state.mu.Lock()
-		state.connections = append(state.connections, serverToClientConn)
-		state.mu.Unlock()
-
-		go handleTcpConnection(serverToClientConn)
-		go handleUdp(serverToClientConn)
-		go sendServerUpdates()
-		go broadcastPingPacket()
-		fmt.Println("Started.")
-
-		connectToServer(clientToServerConn, nil)
-	}
+	testFullConnection()
 
 	// Output:
 	// Started.
