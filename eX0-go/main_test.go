@@ -252,7 +252,7 @@ func disabledExampleConnectToEmptyRealServer() {
 		}
 	}()
 
-	client()
+	client(nil)
 
 	// Output:
 	// (packet.JoinServerAccept)(packet.JoinServerAccept{
