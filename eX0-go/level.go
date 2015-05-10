@@ -1,12 +1,15 @@
 package main
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 
 	"github.com/shurcooL/go/gists/gist6545684"
-	"github.com/shurcooL/gogl"
 	glfw "github.com/shurcooL/goglfw"
+	"golang.org/x/mobile/f32"
+	"golang.org/x/mobile/gl"
+	"golang.org/x/mobile/gl/glutil"
 )
 
 func newLevel(name string) (*level, error) {
@@ -38,11 +41,11 @@ func newLevel(name string) (*level, error) {
 type level struct {
 	polygon gist6545684.Polygon
 
-	program                 *gogl.Program
-	pMatrixUniform          *gogl.UniformLocation
-	mvMatrixUniform         *gogl.UniformLocation
-	vertexPositionBuffer    *gogl.Buffer
-	vertexPositionAttribute int
+	program                 gl.Program
+	pMatrixUniform          gl.Uniform
+	mvMatrixUniform         gl.Uniform
+	vertexPositionBuffer    gl.Buffer
+	vertexPositionAttribute gl.Attrib
 }
 
 const (
@@ -68,35 +71,14 @@ void main() {
 )
 
 func (l *level) initShaders() error {
-	vertexShader := gl.CreateShader(gl.VERTEX_SHADER)
-	gl.ShaderSource(vertexShader, levelVertexSource)
-	gl.CompileShader(vertexShader)
-	defer gl.DeleteShader(vertexShader)
-
-	if !gl.GetShaderParameterb(vertexShader, gl.COMPILE_STATUS) {
-		return errors.New("COMPILE_STATUS: " + gl.GetShaderInfoLog(vertexShader))
-	}
-
-	fragmentShader := gl.CreateShader(gl.FRAGMENT_SHADER)
-	gl.ShaderSource(fragmentShader, levelFragmentSource)
-	gl.CompileShader(fragmentShader)
-	defer gl.DeleteShader(fragmentShader)
-
-	if !gl.GetShaderParameterb(fragmentShader, gl.COMPILE_STATUS) {
-		return errors.New("COMPILE_STATUS: " + gl.GetShaderInfoLog(fragmentShader))
-	}
-
-	l.program = gl.CreateProgram()
-	gl.AttachShader(l.program, vertexShader)
-	gl.AttachShader(l.program, fragmentShader)
-
-	gl.LinkProgram(l.program)
-	if !gl.GetProgramParameterb(l.program, gl.LINK_STATUS) {
-		return errors.New("LINK_STATUS: " + gl.GetProgramInfoLog(l.program))
+	var err error
+	l.program, err = glutil.CreateProgram(characterVertexSource, characterFragmentSource)
+	if err != nil {
+		return err
 	}
 
 	gl.ValidateProgram(l.program)
-	if !gl.GetProgramParameterb(l.program, gl.VALIDATE_STATUS) {
+	if gl.GetProgrami(l.program, gl.VALIDATE_STATUS) != gl.TRUE {
 		return errors.New("VALIDATE_STATUS: " + gl.GetProgramInfoLog(l.program))
 	}
 
@@ -121,7 +103,7 @@ func (l *level) createVbo() error {
 			vertices = append(vertices, float32(vertex[0]), float32(vertex[1]))
 		}
 	}
-	gl.BufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
+	gl.BufferData(gl.ARRAY_BUFFER, f32.Bytes(binary.LittleEndian, vertices...), gl.STATIC_DRAW)
 
 	l.vertexPositionAttribute = gl.GetAttribLocation(l.program, "aVertexPosition")
 	gl.EnableVertexAttribArray(l.vertexPositionAttribute)
