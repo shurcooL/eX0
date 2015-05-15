@@ -8,6 +8,18 @@ import (
 	"net"
 )
 
+func newConnection() *Connection {
+	return &Connection{}
+}
+
+func (clientToServerConn *Connection) dialServer() {
+	chanListener <- clientToServerConn
+	<-chanListenerReply
+}
+
+func (_ *Connection) dialedClient() {
+}
+
 type Connection struct {
 	sendTcp chan []byte
 	recvTcp chan []byte

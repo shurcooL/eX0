@@ -38,6 +38,7 @@ func gameLogic(doInput func()) {
 		}
 
 		time.Sleep(time.Millisecond)
+		//runtime.Gosched()
 	}
 }
 

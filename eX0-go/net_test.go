@@ -6,7 +6,7 @@ import "time"
 
 func testFullConnection() {
 	// Normal TCP + UDP.
-	go server()
+	go server(true)
 	time.Sleep(time.Millisecond) // HACK: Wait for server to start listening.
-	client()
+	client(nil)
 }

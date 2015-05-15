@@ -12,6 +12,27 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
+func newConnection() *Connection {
+	return &Connection{}
+}
+
+func (clientToServerConn *Connection) dialServer() {
+	tcp, err := net.Dial("tcp", addr)
+	if err != nil {
+		panic(err)
+	}
+	clientToServerConn.tcp = tcp
+
+	udp, err := net.Dial("udp", addr)
+	if err != nil {
+		panic(err)
+	}
+	clientToServerConn.udp = udp.(*net.UDPConn)
+}
+
+func (_ *Connection) dialedClient() {
+}
+
 type Connection struct {
 	tcp net.Conn
 	udp *net.UDPConn

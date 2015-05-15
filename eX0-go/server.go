@@ -33,11 +33,13 @@ func gameLogic(doInput func()) {
 		}
 
 		time.Sleep(time.Millisecond)
+		//runtime.Gosched()
 	}
 }
 
-func server() {
-	{
+// runGameLogic controls whether server runs a gameLogic thread. This is usually true, unless view runs its own.
+func server(runGameLogic bool) {
+	if runGameLogic {
 		state.session.GlobalStateSequenceNumberTEST = 0
 		state.session.NextTickTime = time.Since(startedProcess).Seconds()
 		go gameLogic(nil)
@@ -53,6 +55,10 @@ func server() {
 
 	{
 		go listenAndHandleWebSocket()
+	}
+
+	{
+		go listenAndHandleChan()
 	}
 
 	go sendServerUpdates()
@@ -91,21 +97,16 @@ func listenAndHandleTcp() {
 			panic(err)
 		}
 
-		// HACK: tcp-specific.
 		client := newConnection()
 		client.tcp = tcp
 		client.JoinStatus = TCP_CONNECTED
-		close(client.start) // HACK: tcp-specific.
-		/*client := &Connection{
-			tcp:        tcp,
-			JoinStatus: TCP_CONNECTED,
-		}*/
+		client.dialedClient()
 		state.mu.Lock()
 		state.connections = append(state.connections, client)
 		state.mu.Unlock()
 
 		go handleTcpConnection(client)
-		go handleUdp(client) // HACK: tcp-specific.
+		//go handleUdp(client) // HACK: tcp-specific.
 	}
 }
 
@@ -117,15 +118,10 @@ func listenAndHandleWebSocket() {
 		// the Write method sends bytes as binary rather than text frames.
 		conn.PayloadType = websocket.BinaryFrame
 
-		// HACK: tcp-specific.
 		client := newConnection()
 		client.tcp = conn
 		client.JoinStatus = TCP_CONNECTED
-		close(client.start) // HACK: tcp-specific.
-		/*client := &Connection{
-			tcp:        tcp,
-			JoinStatus: TCP_CONNECTED,
-		}*/
+		client.dialedClient()
 		state.mu.Lock()
 		state.connections = append(state.connections, client)
 		state.mu.Unlock()
@@ -137,6 +133,40 @@ func listenAndHandleWebSocket() {
 	err := http.ListenAndServe(":25046", h)
 	if err != nil {
 		panic(err)
+	}
+}
+
+var chanListener = make(chan *Connection)
+var chanListenerReply = make(chan struct{})
+
+func listenAndHandleChan() {
+	for clientToServerConn := range chanListener {
+
+		clientToServerTcp := make(chan []byte, 128)
+		serverToClientTcp := make(chan []byte, 128)
+		clientToServerUdp := make(chan []byte, 128)
+		serverToClientUdp := make(chan []byte, 128)
+
+		clientToServerConn.sendTcp = clientToServerTcp
+		clientToServerConn.recvTcp = serverToClientTcp
+		clientToServerConn.sendUdp = clientToServerUdp
+		clientToServerConn.recvUdp = serverToClientUdp
+
+		var serverToClientConn = newConnection()
+		serverToClientConn.sendTcp = serverToClientTcp
+		serverToClientConn.recvTcp = clientToServerTcp
+		serverToClientConn.sendUdp = serverToClientUdp
+		serverToClientConn.recvUdp = clientToServerUdp
+		serverToClientConn.JoinStatus = TCP_CONNECTED
+
+		state.mu.Lock()
+		state.connections = append(state.connections, serverToClientConn)
+		state.mu.Unlock()
+
+		go handleTcpConnection(serverToClientConn)
+		go handleUdp(serverToClientConn)
+
+		chanListenerReply <- struct{}{}
 	}
 }
 

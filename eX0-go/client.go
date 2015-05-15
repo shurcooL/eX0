@@ -9,7 +9,6 @@ import (
 	"time"
 
 	//"github.com/gopherjs/websocket"
-	"golang.org/x/net/websocket"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
 	"github.com/shurcooL/go-goon"
@@ -23,23 +22,9 @@ const addr = "localhost:25045"
 var clientToServerConn *Connection
 
 func client(character *character) {
-	clientToServerConn = newConnection() // HACK: tcp-specific.
+	clientToServerConn = newConnection()
 
-	//tcp, err := net.Dial("tcp", addr)
-	//tcp, err := websocket.Dial("ws://localhost:25046") // WebSocket connection.
-	tcp, err := websocket.Dial("ws://localhost:25046", "", "http://localhost/") // WebSocket connection (desktop).
-	if err != nil {
-		panic(err)
-	}
-	clientToServerConn.tcp = tcp
-	close(clientToServerConn.start) // HACK: tcp-specific.
-
-	// HACK: tcp-specific.
-	/*udp, err := net.Dial("udp", addr)
-	if err != nil {
-		panic(err)
-	}
-	clientToServerConn.udp = udp.(*net.UDPConn)*/
+	clientToServerConn.dialServer()
 
 	connectToServer(clientToServerConn, character)
 }

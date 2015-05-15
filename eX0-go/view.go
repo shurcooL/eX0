@@ -21,7 +21,7 @@ func view() {
 
 	glfw.WindowHint(glfw.Samples, 8) // Anti-aliasing.
 
-	window, err := glfw.CreateWindow(windowSize[0], windowSize[1], "", nil, nil)
+	window, err := glfw.CreateWindow(windowSize[0], windowSize[1], "eX0-go", nil, nil)
 	if err != nil {
 		panic(err)
 	}
