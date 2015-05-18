@@ -4,18 +4,16 @@ import (
 	"time"
 
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/shurcooL/gogl"
-	glfw "github.com/shurcooL/goglfw"
+	"github.com/goxjs/gl"
+	"github.com/goxjs/glfw"
 )
-
-var gl *gogl.Context
 
 var windowSize = [2]int{640, 480}
 
 var cameraX, cameraY float64 = 362, 340
 
 func view() {
-	err := glfw.Init()
+	err := glfw.Init(gl.ContextSwitcher)
 	if err != nil {
 		panic(err)
 	}
@@ -28,8 +26,6 @@ func view() {
 		panic(err)
 	}
 	window.MakeContextCurrent()
-
-	gl = window.Context
 
 	gl.ClearColor(227/255.0, 189/255.0, 162/255.0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
@@ -78,8 +74,8 @@ func view() {
 		mvMatrix := mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
 
 		l.setup()
-		gl.UniformMatrix4fv(l.pMatrixUniform, false, pMatrix[:])
-		gl.UniformMatrix4fv(l.mvMatrixUniform, false, mvMatrix[:])
+		gl.UniformMatrix4fv(l.pMatrixUniform, pMatrix[:])
+		gl.UniformMatrix4fv(l.mvMatrixUniform, mvMatrix[:])
 		l.render()
 
 		mvMatrix = mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
@@ -87,8 +83,8 @@ func view() {
 		mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-c.Z))
 
 		c.setup()
-		gl.UniformMatrix4fv(c.pMatrixUniform, false, pMatrix[:])
-		gl.UniformMatrix4fv(c.mvMatrixUniform, false, mvMatrix[:])
+		gl.UniformMatrix4fv(c.pMatrixUniform, pMatrix[:])
+		gl.UniformMatrix4fv(c.mvMatrixUniform, mvMatrix[:])
 		c.render()
 
 		window.SwapBuffers()
