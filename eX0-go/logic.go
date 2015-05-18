@@ -1,28 +1,9 @@
-// +build js
-
 package main
 
 import (
 	"math"
 	"time"
 )
-
-func main() {
-	view()
-}
-
-var startedProcess = time.Now()
-
-var state = struct {
-	TotalPlayerCount uint8
-
-	session struct {
-		GlobalStateSequenceNumberTEST uint8
-		NextTickTime                  float64
-	}
-}{
-	TotalPlayerCount: 16,
-}
 
 const Tau = 2 * math.Pi
 
@@ -41,5 +22,3 @@ func gameLogic(doInput func()) {
 		//runtime.Gosched()
 	}
 }
-
-var lastAckedCmdSequenceNumber uint8

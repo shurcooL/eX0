@@ -4,7 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 )
+
+var startedProcess = time.Now()
 
 func main() {
 	flag.Parse()

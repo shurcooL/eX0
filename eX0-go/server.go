@@ -19,24 +19,6 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-const Tau = 2 * math.Pi
-
-func gameLogic(doInput func()) {
-	for {
-		for time.Since(startedProcess).Seconds() >= state.session.NextTickTime {
-			state.session.NextTickTime += 1.0 / 20
-			state.session.GlobalStateSequenceNumberTEST++
-
-			if doInput != nil {
-				doInput()
-			}
-		}
-
-		time.Sleep(time.Millisecond)
-		//runtime.Gosched()
-	}
-}
-
 // runGameLogic controls whether server runs a gameLogic thread. This is usually true, unless view runs its own.
 func server(runGameLogic bool) {
 	if runGameLogic {
@@ -68,8 +50,6 @@ func server(runGameLogic bool) {
 
 	select {}
 }
-
-var startedProcess = time.Now()
 
 var state = struct {
 	TotalPlayerCount uint8
