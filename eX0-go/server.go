@@ -114,7 +114,7 @@ func listenAndHandleWebSocket() {
 	h := websocket.Handler(func(conn *websocket.Conn) {
 		// Why is this exported field undocumented?
 		//
-		// It seems it needs to be set to websocket.BinaryFrame so that
+		// It needs to be set to websocket.BinaryFrame so that
 		// the Write method sends bytes as binary rather than text frames.
 		conn.PayloadType = websocket.BinaryFrame
 
