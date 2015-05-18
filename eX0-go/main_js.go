@@ -7,7 +7,7 @@ import "time"
 var startedProcess = time.Now()
 
 func main() {
-	view()
+	view(true)
 }
 
 // TODO: Move things below into right places (dedup them).
@@ -21,6 +21,15 @@ var state = struct {
 	}
 }{
 	TotalPlayerCount: 16,
+}
+
+var player0State = struct {
+	X, Y, Z    float32
+	VelX, VelY float32
+}{
+	X: 25,
+	Y: -220,
+	Z: 6.0,
 }
 
 var lastAckedCmdSequenceNumber uint8

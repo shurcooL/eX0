@@ -12,7 +12,7 @@ var windowSize = [2]int{640, 480}
 
 var cameraX, cameraY float64 = 362, 340
 
-func view() {
+func view(runClientAndGameLogic bool) {
 	err := glfw.Init(gl.ContextSwitcher)
 	if err != nil {
 		panic(err)
@@ -57,12 +57,14 @@ func view() {
 		panic(err)
 	}
 
-	client(c)
+	if runClientAndGameLogic {
+		client(c)
 
-	{
-		state.session.GlobalStateSequenceNumberTEST = 0
-		state.session.NextTickTime = time.Since(startedProcess).Seconds()
-		go gameLogic(func() { c.input(window) })
+		{
+			state.session.GlobalStateSequenceNumberTEST = 0
+			state.session.NextTickTime = time.Since(startedProcess).Seconds()
+			go gameLogic(func() { c.input(window) })
+		}
 	}
 
 	for !window.ShouldClose() {
@@ -79,8 +81,8 @@ func view() {
 		l.render()
 
 		mvMatrix = mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
-		mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(c.pos[0], c.pos[1], 0))
-		mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-c.Z))
+		mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(player0State.X, player0State.Y, 0))
+		mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-player0State.Z))
 
 		c.setup()
 		gl.UniformMatrix4fv(c.pMatrixUniform, pMatrix[:])

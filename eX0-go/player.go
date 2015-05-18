@@ -3,8 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"log"
-	"math"
 
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/goxjs/glfw"
@@ -14,7 +12,7 @@ import (
 func (this *character) inputCommand(window *glfw.Window) packet.Move {
 	var move = packet.Move{
 		MoveDirection: 255,
-		Z:             this.Z,
+		Z:             player0State.Z,
 	}
 
 	var direction [2]int8
@@ -65,7 +63,8 @@ func (this *character) input(window *glfw.Window) {
 
 	// Physics update.
 	switch 1 {
-	case 0:
+	//case 0:
+	/*
 		const TOP_SPEED = 3.5
 
 		var TargetVel mgl32.Vec2
@@ -99,6 +98,7 @@ func (this *character) input(window *glfw.Window) {
 
 		this.pos = this.pos.Add(this.Vel)
 		this.Z = move.Z
+	*/
 	case 1:
 		var p packet.ClientCommand
 		p.Type = packet.ClientCommandType

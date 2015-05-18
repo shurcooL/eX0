@@ -12,16 +12,19 @@ var startedProcess = time.Now()
 func main() {
 	flag.Parse()
 
-	switch {
-	case len(flag.Args()) == 1 && flag.Args()[0] == "client":
+	switch args := flag.Args(); {
+	case len(args) == 1 && args[0] == "client":
 		client(nil)
-	case len(flag.Args()) == 1 && flag.Args()[0] == "server":
+	case len(args) == 1 && args[0] == "server":
 		server(true)
-	case len(flag.Args()) == 1 && flag.Args()[0] == "view":
-		view()
-	case len(flag.Args()) == 1 && flag.Args()[0] == "both":
+	case len(args) == 1 && args[0] == "server-view":
+		go server(true)
+		view(false)
+	case len(args) == 1 && args[0] == "client-view":
+		view(true)
+	case len(args) == 1 && (args[0] == "client-server-view" || args[0] == "server-client-view"):
 		go server(false)
-		view()
+		view(true)
 	default:
 		fmt.Fprintln(os.Stderr, "invalid usage")
 		os.Exit(2)

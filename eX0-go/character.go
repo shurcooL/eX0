@@ -13,25 +13,21 @@ import (
 )
 
 func newCharacter() (*character, error) {
-	l := new(character)
+	c := new(character)
 
-	err := l.initShaders()
+	err := c.initShaders()
 	if err != nil {
 		return nil, err
 	}
-	err = l.createVbo()
+	err = c.createVbo()
 	if err != nil {
 		return nil, err
 	}
 
-	return l, nil
+	return c, nil
 }
 
 type character struct {
-	pos mgl32.Vec2
-	Vel mgl32.Vec2
-	Z   float32
-
 	vertexCount int
 
 	program                 gl.Program

@@ -389,9 +389,9 @@ func connectToServer(s *Connection, character *character) {
 
 				if character != nil {
 					if playerUpdate := r.Players[0]; playerUpdate.ActivePlayer != 0 {
-						character.pos[0] = playerUpdate.State.X
-						character.pos[1] = playerUpdate.State.Y
-						character.Z = playerUpdate.State.Z
+						player0State.X = playerUpdate.State.X
+						player0State.Y = playerUpdate.State.Y
+						player0State.Z = playerUpdate.State.Z
 					}
 				}
 			}
