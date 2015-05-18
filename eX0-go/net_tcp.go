@@ -9,7 +9,7 @@ import (
 	"io"
 	"net"
 
-	"golang.org/x/net/websocket"
+	"github.com/goxjs/websocket"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
@@ -103,8 +103,7 @@ func newConnection() *Connection {
 
 func (clientToServerConn *Connection) dialServer() {
 	//tcp, err := net.Dial("tcp", addr)
-	//tcp, err := websocket.Dial("ws://localhost:25046") // WebSocket connection.
-	tcp, err := websocket.Dial("ws://localhost:25046", "", "http://localhost/") // WebSocket connection (desktop).
+	tcp, err := websocket.Dial("ws://localhost:25046", "http://localhost/") // WebSocket connection.
 	if err != nil {
 		panic(err)
 	}
