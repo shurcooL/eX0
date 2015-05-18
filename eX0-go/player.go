@@ -7,8 +7,8 @@ import (
 	"math"
 
 	"github.com/go-gl/mathgl/mgl32"
+	"github.com/goxjs/glfw"
 	"github.com/shurcooL/eX0/eX0-go/packet"
-	glfw "github.com/shurcooL/goglfw"
 )
 
 func (this *character) inputCommand(window *glfw.Window) packet.Move {

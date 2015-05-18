@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/go-gl/mathgl/mgl32"
-	glfw "github.com/shurcooL/goglfw"
-	"golang.org/x/mobile/gl"
+	"github.com/goxjs/gl"
+	"github.com/goxjs/glfw"
 )
 
 var windowSize = [2]int{640, 480}

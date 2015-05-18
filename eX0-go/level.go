@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/goxjs/gl"
+	"github.com/goxjs/gl/glutil"
+	"github.com/goxjs/glfw"
 	"github.com/shurcooL/go/gists/gist6545684"
-	glfw "github.com/shurcooL/goglfw"
 	"golang.org/x/mobile/f32"
-	"golang.org/x/mobile/gl"
-	"golang.org/x/mobile/gl/glutil"
 )
 
 func newLevel(name string) (*level, error) {
