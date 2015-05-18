@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 func ExampleFullConnection() {
 	defer func() {
@@ -252,7 +255,8 @@ func disabledExampleConnectToEmptyRealServer() {
 		}
 	}()
 
-	client(nil)
+	client(false)
+	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 
 	// Output:
 	// (packet.JoinServerAccept)(packet.JoinServerAccept{

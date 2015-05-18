@@ -4,9 +4,10 @@ package main
 
 import "time"
 
+// Normal TCP + UDP.
 func testFullConnection() {
-	// Normal TCP + UDP.
 	go server(true)
 	time.Sleep(time.Millisecond) // HACK: Wait for server to start listening.
-	client(nil)
+	client(false)
+	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 }

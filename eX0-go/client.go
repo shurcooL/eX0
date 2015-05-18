@@ -21,15 +21,15 @@ const addr = "localhost:25045"
 
 var clientToServerConn *Connection
 
-func client(character *character) {
+func client(characterExists bool) {
 	clientToServerConn = newConnection()
 
 	clientToServerConn.dialServer()
 
-	connectToServer(clientToServerConn, character)
+	connectToServer(clientToServerConn, characterExists)
 }
 
-func connectToServer(s *Connection, character *character) {
+func connectToServer(s *Connection, characterExists bool) {
 	s.Signature = uint64(time.Now().UnixNano())
 
 	{
@@ -289,7 +289,7 @@ func connectToServer(s *Connection, character *character) {
 			goon.Dump(r2)
 		}
 
-		if character != nil {
+		if characterExists {
 			lastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
 		}
 	}
@@ -387,7 +387,7 @@ func connectToServer(s *Connection, character *character) {
 					r.Players[i] = playerUpdate
 				}
 
-				if character != nil {
+				if characterExists {
 					if playerUpdate := r.Players[0]; playerUpdate.ActivePlayer != 0 {
 						player0State.X = playerUpdate.State.X
 						player0State.Y = playerUpdate.State.Y
@@ -397,8 +397,4 @@ func connectToServer(s *Connection, character *character) {
 			}
 		}
 	}()
-
-	if character == nil {
-		time.Sleep(10 * time.Second)
-	}
 }

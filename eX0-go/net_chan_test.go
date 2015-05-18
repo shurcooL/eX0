@@ -2,11 +2,13 @@
 
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
+// TCP and UDP via local channels. Requires `go test -tags=chan`.
 func testFullConnection() {
-	// TCP and UDP via local channels. Requires `go test -tags=chan`.
-
 	clientToServerTcp := make(chan []byte)
 	serverToClientTcp := make(chan []byte)
 	clientToServerUdp := make(chan []byte)
@@ -36,5 +38,6 @@ func testFullConnection() {
 	go broadcastPingPacket()
 	fmt.Println("Started.")
 
-	connectToServer(clientToServerConn, nil)
+	connectToServer(clientToServerConn, false)
+	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 }

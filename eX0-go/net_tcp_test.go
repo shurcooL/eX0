@@ -5,11 +5,11 @@ package main
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
+// Virtual TCP and UDP via physical TCP. Requires `go test -tags=tcp`.
 func testFullConnection() {
-	// Virtual TCP and UDP via physical TCP. Requires `go test -tags=tcp`.
-
 	c := make(chan *Connection)
 	go func(c chan *Connection) {
 		var serverToClientConn = newConnection()
@@ -51,5 +51,6 @@ func testFullConnection() {
 	go broadcastPingPacket()
 	fmt.Println("Started.")
 
-	connectToServer(clientToServerConn, nil)
+	connectToServer(clientToServerConn, false)
+	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 }

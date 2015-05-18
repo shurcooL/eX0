@@ -14,7 +14,8 @@ func main() {
 
 	switch args := flag.Args(); {
 	case len(args) == 1 && args[0] == "client":
-		client(nil)
+		client(false)
+		time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 	case len(args) == 1 && args[0] == "server":
 		server(true)
 	case len(args) == 1 && args[0] == "server-view":
