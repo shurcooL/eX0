@@ -17,14 +17,16 @@ func main() {
 		client(false)
 		time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 	case len(args) == 1 && args[0] == "server":
-		server(true)
+		server(true, nil)
 	case len(args) == 1 && args[0] == "server-view":
-		go server(true)
+		go server(true, nil)
 		view(false)
 	case len(args) == 1 && args[0] == "client-view":
 		view(true)
 	case len(args) == 1 && (args[0] == "client-server-view" || args[0] == "server-client-view"):
-		go server(false)
+		var started = make(chan struct{})
+		go server(false, started)
+		<-started
 		view(true)
 	default:
 		fmt.Fprintln(os.Stderr, "invalid usage")

@@ -9,6 +9,7 @@ const Tau = 2 * math.Pi
 
 func gameLogic(doInput func()) {
 	for {
+		state.mu.Lock()
 		for time.Since(startedProcess).Seconds() >= state.session.NextTickTime {
 			state.session.NextTickTime += 1.0 / 20
 			state.session.GlobalStateSequenceNumberTEST++
@@ -17,6 +18,7 @@ func gameLogic(doInput func()) {
 				doInput()
 			}
 		}
+		state.mu.Unlock()
 
 		time.Sleep(time.Millisecond)
 		//runtime.Gosched()

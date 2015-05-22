@@ -67,7 +67,9 @@ func connectToServer(s *Connection, characterExists bool) {
 		}
 		goon.Dump(r)
 
+		state.mu.Lock()
 		state.TotalPlayerCount = r.TotalPlayerCount + 1
+		state.mu.Unlock()
 	}
 
 	// Upgrade connection to UDP at this point.

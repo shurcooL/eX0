@@ -20,7 +20,7 @@ import (
 )
 
 // runGameLogic controls whether server runs a gameLogic thread. This is usually true, unless view runs its own.
-func server(runGameLogic bool) {
+func server(runGameLogic bool, started chan struct{}) {
 	if runGameLogic {
 		state.session.GlobalStateSequenceNumberTEST = 0
 		state.session.NextTickTime = time.Since(startedProcess).Seconds()
@@ -47,11 +47,16 @@ func server(runGameLogic bool) {
 	go broadcastPingPacket()
 
 	fmt.Println("Started.")
+	if started != nil {
+		close(started)
+	}
 
 	select {}
 }
 
 var state = struct {
+	mu sync.Mutex
+
 	TotalPlayerCount uint8
 
 	session struct {
@@ -59,7 +64,6 @@ var state = struct {
 		NextTickTime                  float64
 	}
 
-	mu          sync.Mutex
 	connections []*Connection
 }{
 	TotalPlayerCount: 16,
@@ -358,7 +362,9 @@ func sendServerUpdates() {
 			var p packet.ServerUpdate
 			p.Type = packet.ServerUpdateType
 			p.CurrentUpdateSequenceNumber = lastUpdateSequenceNumber
+			state.mu.Lock()
 			p.Players = make([]packet.PlayerUpdate, state.TotalPlayerCount)
+			state.mu.Unlock()
 			p.Players[0] = packet.PlayerUpdate{
 				ActivePlayer: 1,
 				State: &packet.State{
@@ -713,8 +719,10 @@ func handleTcpConnection2(client *Connection) error {
 			team = r.Team
 		}
 
+		state.mu.Lock()
 		logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*20
 		fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(startedProcess).Seconds(), playerId, "TODO: name", team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+		state.mu.Unlock()
 
 		{
 			var p packet.PlayerJoinedTeam
@@ -722,6 +730,7 @@ func handleTcpConnection2(client *Connection) error {
 			p.PlayerId = playerId
 			p.Team = team
 
+			state.mu.Lock()
 			if p.Team != 2 {
 				p.State = &packet.State{
 					CommandSequenceNumber: state.session.GlobalStateSequenceNumberTEST - 1,
@@ -730,6 +739,7 @@ func handleTcpConnection2(client *Connection) error {
 					Z: player0State.Z,
 				}
 			}
+			state.mu.Unlock()
 
 			p.Length = 2
 			if p.State != nil {
