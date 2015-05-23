@@ -41,9 +41,9 @@ func testFullConnection() {
 	var clientToServerConn = <-s
 	var serverToClientConn = <-c
 
-	state.mu.Lock()
+	state.Lock()
 	state.connections = append(state.connections, serverToClientConn)
-	state.mu.Unlock()
+	state.Unlock()
 
 	go handleTcpConnection(serverToClientConn)
 	go handleUdp(serverToClientConn)

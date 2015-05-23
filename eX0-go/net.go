@@ -106,7 +106,7 @@ func receiveUdpPacketFrom(mux *Connection) (io.Reader, *Connection, *net.UDPAddr
 	}
 
 	var from *Connection
-	state.mu.Lock()
+	state.Lock()
 	for _, connection := range state.connections {
 		if connection.UdpAddr != nil &&
 			connection.UdpAddr.IP.Equal(udpAddr.IP) &&
@@ -117,7 +117,7 @@ func receiveUdpPacketFrom(mux *Connection) (io.Reader, *Connection, *net.UDPAddr
 			break
 		}
 	}
-	state.mu.Unlock()
+	state.Unlock()
 
 	return bytes.NewReader(b[:n]), from, udpAddr, nil
 }

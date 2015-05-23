@@ -55,7 +55,7 @@ func server(runGameLogic bool, started chan struct{}) {
 }
 
 var state = struct {
-	mu sync.Mutex
+	sync.Mutex
 
 	TotalPlayerCount uint8
 
@@ -85,9 +85,9 @@ func listenAndHandleTcp() {
 		client.tcp = tcp
 		client.JoinStatus = TCP_CONNECTED
 		client.dialedClient()
-		state.mu.Lock()
+		state.Lock()
 		state.connections = append(state.connections, client)
-		state.mu.Unlock()
+		state.Unlock()
 
 		go handleTcpConnection(client)
 		//go handleUdp(client) // HACK: tcp-specific.
@@ -106,9 +106,9 @@ func listenAndHandleWebSocket() {
 		client.tcp = conn
 		client.JoinStatus = TCP_CONNECTED
 		client.dialedClient()
-		state.mu.Lock()
+		state.Lock()
 		state.connections = append(state.connections, client)
-		state.mu.Unlock()
+		state.Unlock()
 
 		go handleUdp(client) // HACK: tcp-specific.
 		handleTcpConnection(client)
@@ -143,9 +143,9 @@ func listenAndHandleChan() {
 		serverToClientConn.recvUdp = clientToServerUdp
 		serverToClientConn.JoinStatus = TCP_CONNECTED
 
-		state.mu.Lock()
+		state.Lock()
 		state.connections = append(state.connections, serverToClientConn)
-		state.mu.Unlock()
+		state.Unlock()
 
 		go handleTcpConnection(serverToClientConn)
 		go handleUdp(serverToClientConn)
@@ -198,7 +198,7 @@ func handleUdp(mux *Connection) {
 				goon.Dump(r2)
 			}
 
-			state.mu.Lock()
+			state.Lock()
 			for _, connection := range state.connections {
 				if connection.Signature == r.Signature {
 					connection.JoinStatus = UDP_CONNECTED
@@ -209,7 +209,7 @@ func handleUdp(mux *Connection) {
 					break
 				}
 			}
-			state.mu.Unlock()
+			state.Unlock()
 
 			if c != nil {
 				var p packet.UdpConnectionEstablished
@@ -362,9 +362,9 @@ func sendServerUpdates() {
 			var p packet.ServerUpdate
 			p.Type = packet.ServerUpdateType
 			p.CurrentUpdateSequenceNumber = lastUpdateSequenceNumber
-			state.mu.Lock()
+			state.Lock()
 			p.Players = make([]packet.PlayerUpdate, state.TotalPlayerCount)
-			state.mu.Unlock()
+			state.Unlock()
 			p.Players[0] = packet.PlayerUpdate{
 				ActivePlayer: 1,
 				State: &packet.State{
@@ -399,7 +399,7 @@ func sendServerUpdates() {
 			}
 
 			var c *Connection
-			state.mu.Lock()
+			state.Lock()
 			for _, connection := range state.connections {
 				if connection.JoinStatus < IN_GAME {
 					continue
@@ -407,7 +407,7 @@ func sendServerUpdates() {
 				c = connection
 				break
 			}
-			state.mu.Unlock()
+			state.Unlock()
 
 			if c == nil {
 				continue
@@ -451,7 +451,7 @@ func broadcastPingPacket() {
 			}
 
 			var c *Connection
-			state.mu.Lock()
+			state.Lock()
 			for _, connection := range state.connections {
 				if connection.JoinStatus < IN_GAME {
 					continue
@@ -459,7 +459,7 @@ func broadcastPingPacket() {
 				c = connection
 				break
 			}
-			state.mu.Unlock()
+			state.Unlock()
 
 			if c == nil {
 				continue
@@ -479,7 +479,7 @@ func handleTcpConnection(client *Connection) {
 	err := handleTcpConnection2(client)
 	fmt.Println("tcp conn ended with:", err)
 
-	state.mu.Lock()
+	state.Lock()
 	for i, connection := range state.connections {
 		if connection == client {
 			// Delete without preserving order.
@@ -487,7 +487,7 @@ func handleTcpConnection(client *Connection) {
 			break
 		}
 	}
-	state.mu.Unlock()
+	state.Unlock()
 
 	client.tcp.Close()
 }
@@ -533,10 +533,10 @@ func handleTcpConnection2(client *Connection) error {
 			}
 		}
 
-		state.mu.Lock()
+		state.Lock()
 		client.Signature = r.Signature
 		client.JoinStatus = ACCEPTED
-		state.mu.Unlock()
+		state.Unlock()
 	}
 
 	{
@@ -690,9 +690,9 @@ func handleTcpConnection2(client *Connection) error {
 		}
 		goon.Dump(r)
 
-		state.mu.Lock()
+		state.Lock()
 		client.JoinStatus = IN_GAME
-		state.mu.Unlock()
+		state.Unlock()
 	}
 
 	for {
@@ -719,10 +719,10 @@ func handleTcpConnection2(client *Connection) error {
 			team = r.Team
 		}
 
-		state.mu.Lock()
+		state.Lock()
 		logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*20
 		fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(startedProcess).Seconds(), playerId, "TODO: name", team, logicTime, state.session.GlobalStateSequenceNumberTEST)
-		state.mu.Unlock()
+		state.Unlock()
 
 		{
 			var p packet.PlayerJoinedTeam
@@ -730,7 +730,7 @@ func handleTcpConnection2(client *Connection) error {
 			p.PlayerId = playerId
 			p.Team = team
 
-			state.mu.Lock()
+			state.Lock()
 			if p.Team != 2 {
 				p.State = &packet.State{
 					CommandSequenceNumber: state.session.GlobalStateSequenceNumberTEST - 1,
@@ -739,7 +739,7 @@ func handleTcpConnection2(client *Connection) error {
 					Z: player0State.Z,
 				}
 			}
-			state.mu.Unlock()
+			state.Unlock()
 
 			p.Length = 2
 			if p.State != nil {
