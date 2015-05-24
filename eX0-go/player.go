@@ -102,7 +102,7 @@ func (this *character) input(window *glfw.Window) {
 	case 1:
 		var p packet.ClientCommand
 		p.Type = packet.ClientCommandType
-		p.CommandSequenceNumber = lastAckedCmdSequenceNumber
+		p.CommandSequenceNumber = clientLastAckedCmdSequenceNumber
 		p.CommandSeriesNumber = 1
 		p.Moves = []packet.Move{move}
 		p.MovesCount = uint8(len(p.Moves)) - 1
@@ -136,6 +136,7 @@ func (this *character) input(window *glfw.Window) {
 			panic(err)
 		}
 
-		lastAckedCmdSequenceNumber++
+		// TODO: This should be happening when receiving packet.ServerUpdate, etc.
+		clientLastAckedCmdSequenceNumber++
 	}
 }

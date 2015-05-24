@@ -338,7 +338,8 @@ func handleUdp(mux *Connection) {
 					player0State.Z = lastMove.Z
 				}
 
-				lastAckedCmdSequenceNumber = r.CommandSequenceNumber
+				// It takes State #0 and Command #0 to produce State #1.
+				serverLastAckedCmdSequenceNumber = r.CommandSequenceNumber + 1
 			}
 		}
 	}
@@ -353,7 +354,7 @@ var player0State = struct {
 	Z: 6.0,
 }
 
-var lastAckedCmdSequenceNumber uint8
+var serverLastAckedCmdSequenceNumber uint8
 var lastUpdateSequenceNumber uint8 = 1
 
 func sendServerUpdates() {
@@ -368,7 +369,7 @@ func sendServerUpdates() {
 			p.Players[0] = packet.PlayerUpdate{
 				ActivePlayer: 1,
 				State: &packet.State{
-					CommandSequenceNumber: lastAckedCmdSequenceNumber + 1, // HACK.
+					CommandSequenceNumber: serverLastAckedCmdSequenceNumber,
 					X: player0State.X,
 					Y: player0State.Y,
 					Z: player0State.Z,

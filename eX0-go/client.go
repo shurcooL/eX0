@@ -21,6 +21,8 @@ const addr = "localhost:25045"
 
 var clientToServerConn *Connection
 
+var clientLastAckedCmdSequenceNumber uint8
+
 func client(characterExists bool) {
 	clientToServerConn = newConnection()
 
@@ -291,9 +293,7 @@ func connectToServer(s *Connection, characterExists bool) {
 			goon.Dump(r2)
 		}
 
-		if characterExists {
-			lastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
-		}
+		clientLastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
 	}
 
 	fmt.Println("done")

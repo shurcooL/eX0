@@ -2,7 +2,10 @@
 
 package main
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 var startedProcess = time.Now()
 
@@ -13,6 +16,8 @@ func main() {
 // TODO: Move things below into right places (dedup them).
 
 var state = struct {
+	sync.Mutex
+
 	TotalPlayerCount uint8
 
 	session struct {
@@ -31,5 +36,3 @@ var player0State = struct {
 	Y: -220,
 	Z: 6.0,
 }
-
-var lastAckedCmdSequenceNumber uint8
