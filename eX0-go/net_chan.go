@@ -25,10 +25,8 @@ func (clientToServerConn *Connection) dialServer() {
 func (_ *Connection) dialedClient() {
 }
 
-func (c *Connection) maybeHandleUdpDirectly() {
-	// chan-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
-	go handleUdp(c)
-}
+// chan-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
+const shouldHandleUdpDirectly = true
 
 type Connection struct {
 	sendTcp chan []byte

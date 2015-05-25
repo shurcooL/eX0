@@ -127,10 +127,8 @@ func (c *Connection) dialedClient() {
 	close(c.start)
 }
 
-func (c *Connection) maybeHandleUdpDirectly() {
-	// tcp-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
-	go handleUdp(c)
-}
+// tcp-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
+const shouldHandleUdpDirectly = true
 
 type Connection struct {
 	tcp net.Conn

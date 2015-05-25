@@ -89,7 +89,9 @@ func listenAndHandleTcp() {
 		state.connections = append(state.connections, client)
 		state.Unlock()
 
-		client.maybeHandleUdpDirectly()
+		if shouldHandleUdpDirectly {
+			go handleUdp(client)
+		}
 		go handleTcpConnection(client)
 	}
 }
@@ -110,7 +112,9 @@ func listenAndHandleWebSocket() {
 		state.connections = append(state.connections, client)
 		state.Unlock()
 
-		client.maybeHandleUdpDirectly()
+		if shouldHandleUdpDirectly {
+			go handleUdp(client)
+		}
 		handleTcpConnection(client)
 		// Do not return until handleTcpConnection does, else WebSocket gets closed.
 	})
@@ -138,7 +142,9 @@ func listenAndHandleChan() {
 		state.connections = append(state.connections, serverToClientConn)
 		state.Unlock()
 
-		serverToClientConn.maybeHandleUdpDirectly()
+		if shouldHandleUdpDirectly {
+			go handleUdp(serverToClientConn)
+		}
 		go handleTcpConnection(serverToClientConn)
 
 		chanListenerReply <- struct{}{}
