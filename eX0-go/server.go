@@ -126,21 +126,12 @@ var chanListenerReply = make(chan struct{})
 func listenAndHandleChan() {
 	for clientToServerConn := range chanListener {
 
-		clientToServerTcp := make(chan []byte, 128)
-		serverToClientTcp := make(chan []byte, 128)
-		clientToServerUdp := make(chan []byte, 128)
-		serverToClientUdp := make(chan []byte, 128)
-
-		clientToServerConn.sendTcp = clientToServerTcp
-		clientToServerConn.recvTcp = serverToClientTcp
-		clientToServerConn.sendUdp = clientToServerUdp
-		clientToServerConn.recvUdp = serverToClientUdp
-
-		var serverToClientConn = newConnection()
-		serverToClientConn.sendTcp = serverToClientTcp
-		serverToClientConn.recvTcp = clientToServerTcp
-		serverToClientConn.sendUdp = serverToClientUdp
-		serverToClientConn.recvUdp = clientToServerUdp
+		serverToClientConn := newConnection()
+		// Join server <-> client channel ends together.
+		serverToClientConn.sendTcp = clientToServerConn.recvTcp
+		serverToClientConn.recvTcp = clientToServerConn.sendTcp
+		serverToClientConn.sendUdp = clientToServerConn.recvUdp
+		serverToClientConn.recvUdp = clientToServerConn.sendUdp
 		serverToClientConn.JoinStatus = TCP_CONNECTED
 
 		state.Lock()

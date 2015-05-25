@@ -9,7 +9,12 @@ import (
 )
 
 func newConnection() *Connection {
-	return &Connection{}
+	return &Connection{
+		sendTcp: make(chan []byte, 128),
+		recvTcp: make(chan []byte, 128),
+		sendUdp: make(chan []byte, 128),
+		recvUdp: make(chan []byte, 128),
+	}
 }
 
 func (clientToServerConn *Connection) dialServer() {
