@@ -52,6 +52,6 @@ func testFullConnection() {
 	fmt.Println("Started server.")
 	components.server = &server{}
 
-	connectToServer(clientToServerConn, false)
+	connectToServer(clientToServerConn)
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 }

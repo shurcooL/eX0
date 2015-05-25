@@ -255,7 +255,7 @@ func disabledExampleConnectToEmptyRealServer() {
 		}
 	}()
 
-	client(false)
+	client()
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 
 	// Output:

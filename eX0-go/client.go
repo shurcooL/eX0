@@ -23,15 +23,15 @@ var clientToServerConn *Connection
 
 var clientLastAckedCmdSequenceNumber uint8
 
-func client(characterExists bool) {
+func client() {
 	clientToServerConn = newConnection()
 
 	clientToServerConn.dialServer()
 
-	connectToServer(clientToServerConn, characterExists)
+	connectToServer(clientToServerConn)
 }
 
-func connectToServer(s *Connection, characterExists bool) {
+func connectToServer(s *Connection) {
 	s.Signature = uint64(time.Now().UnixNano())
 
 	{
@@ -389,7 +389,7 @@ func connectToServer(s *Connection, characterExists bool) {
 					r.Players[i] = playerUpdate
 				}
 
-				if characterExists {
+				if components.server == nil {
 					if playerUpdate := r.Players[0]; playerUpdate.ActivePlayer != 0 {
 						player0StateMu.Lock()
 						player0State.X = playerUpdate.State.X

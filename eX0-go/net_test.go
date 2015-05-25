@@ -7,6 +7,6 @@ import "time"
 // Normal TCP + UDP.
 func testFullConnection() {
 	components.server = startServer(true) // Wait for server to start listening.
-	client(false)
+	client()
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 }

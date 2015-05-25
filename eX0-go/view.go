@@ -58,7 +58,7 @@ func view(runClientAndGameLogic bool) {
 	}
 
 	if runClientAndGameLogic {
-		client(true)
+		client()
 
 		{
 			state.session.GlobalStateSequenceNumberTEST = 0
