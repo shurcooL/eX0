@@ -9,7 +9,7 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
-func (this *character) inputCommand(window *glfw.Window) packet.Move {
+func inputCommand(window *glfw.Window) packet.Move {
 	player0StateMu.Lock()
 	var move = packet.Move{
 		MoveDirection: 255,
@@ -60,48 +60,12 @@ func (this *character) inputCommand(window *glfw.Window) packet.Move {
 	return move
 }
 
-func (this *character) input(window *glfw.Window) {
-	move := this.inputCommand(window)
+func input(window *glfw.Window) {
+	move := inputCommand(window)
 
-	// Physics update.
-	switch 1 {
-	//case 0:
-	/*
-		const TOP_SPEED = 3.5
-
-		var TargetVel mgl32.Vec2
-
-		if move.MoveDirection == 255 {
-		} else if move.MoveDirection >= 0 && move.MoveDirection < 8 {
-			direction := float64(move.Z) + Tau*float64(move.MoveDirection)/8
-			speed := TOP_SPEED
-			if move.Stealth != 0 {
-				speed -= 2.25
-			}
-
-			TargetVel[0] = float32(math.Sin(direction) * speed)
-			TargetVel[1] = float32(math.Cos(direction) * speed)
-		} else {
-			log.Printf("WARNING: Invalid nMoveDirection = %v!\n", move.MoveDirection)
-		}
-
-		var CurrentVel = this.Vel
-		var Delta = TargetVel.Sub(CurrentVel)
-		if DeltaLength := float64(Delta.Len()); DeltaLength >= 0.001 {
-			Delta = Delta.Normalize()
-
-			var Move1 = DeltaLength * DeltaLength * 0.03
-			var Move2 = math.Min(0.2, DeltaLength)
-
-			CurrentVel = CurrentVel.Add(Delta.Mul(float32(math.Max(Move1, Move2))))
-		}
-
-		this.Vel = CurrentVel
-
-		this.pos = this.pos.Add(this.Vel)
-		this.Z = move.Z
-	*/
-	case 1:
+	// TODO: This should be done via Local/Network State Auther. This currently hardcodes network state auther.
+	// Send a ClientCommand packet to server.
+	{
 		var p packet.ClientCommand
 		p.Type = packet.ClientCommandType
 		p.CommandSequenceNumber = clientLastAckedCmdSequenceNumber

@@ -63,7 +63,7 @@ func view(runClientAndGameLogic bool) {
 		{
 			state.session.GlobalStateSequenceNumberTEST = 0
 			state.session.NextTickTime = time.Since(startedProcess).Seconds()
-			go gameLogic(func() { c.input(window) })
+			go gameLogic(func() { input(window) })
 		}
 	}
 
