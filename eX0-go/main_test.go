@@ -13,7 +13,10 @@ func ExampleFullConnection() {
 		}
 	}()
 
-	testFullConnection()
+	components.logic = startLogic()
+	components.server = startServer() // Wait for server to start listening.
+	client()
+	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 
 	// Output:
 	// Started server.
@@ -243,7 +246,7 @@ func ExampleFullConnection() {
 	// 		Z: (float32)(3),
 	// 	}),
 	// })
-	// done
+	// Client connected and joined team.
 }
 
 // Requires an empty server to be running.
@@ -420,5 +423,5 @@ func disabledExampleConnectToEmptyRealServer() {
 	// 		Z: (float32)(3),
 	// 	}),
 	// })
-	// done
+	// Client connected and joined team.
 }

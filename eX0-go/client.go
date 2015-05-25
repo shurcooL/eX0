@@ -295,7 +295,7 @@ func connectToServer(s *Connection) {
 		clientLastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
 	}
 
-	fmt.Println("done")
+	fmt.Println("Client connected and joined team.")
 
 	go func() {
 		for {

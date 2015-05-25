@@ -8,6 +8,8 @@ import (
 	"net"
 )
 
+// TCP and UDP via local channels. Requires `-tags=chan`.
+
 func newConnection() *Connection {
 	return &Connection{
 		sendTcp: make(chan []byte, 128),

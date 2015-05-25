@@ -14,6 +14,9 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
+// Virtual TCP and UDP via physical TCP. Requires `-tags=tcp`.
+// dialServer can be controlled to use raw TCP or WebSocket.
+
 func newConnection() *Connection {
 	c := &Connection{
 		sendTcp: make(chan []byte),

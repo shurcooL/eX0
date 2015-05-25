@@ -12,6 +12,8 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
+// Normal TCP + UDP.
+
 func newConnection() *Connection {
 	return &Connection{}
 }
