@@ -33,6 +33,11 @@ func (clientToServerConn *Connection) dialServer() {
 func (_ *Connection) dialedClient() {
 }
 
+func (c *Connection) maybeHandleUdpDirectly() {
+	// Normal TCP + UDP. No need to handle UDP directly, since it will come in via the UDP mux.
+	// Do nothing.
+}
+
 type Connection struct {
 	tcp net.Conn
 	udp *net.UDPConn

@@ -102,8 +102,20 @@ func newConnection() *Connection {
 }
 
 func (clientToServerConn *Connection) dialServer() {
-	//tcp, err := net.Dial("tcp", addr)
-	tcp, err := websocket.Dial("ws://localhost:25046", "http://localhost/") // WebSocket connection.
+	var (
+		tcp net.Conn
+		err error
+	)
+	switch 1 {
+	case 0:
+		// TCP connection.
+		tcp, err = net.Dial("tcp", "localhost:25045")
+	case 1:
+		// WebSocket connection.
+		tcp, err = websocket.Dial("ws://localhost:25046", "http://localhost/")
+	default:
+		panic("invalid choice")
+	}
 	if err != nil {
 		panic(err)
 	}
@@ -113,6 +125,11 @@ func (clientToServerConn *Connection) dialServer() {
 
 func (c *Connection) dialedClient() {
 	close(c.start)
+}
+
+func (c *Connection) maybeHandleUdpDirectly() {
+	// tcp-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
+	go handleUdp(c)
 }
 
 type Connection struct {

@@ -2,43 +2,11 @@
 
 package main
 
-import (
-	"fmt"
-	"time"
-)
+import "time"
 
 // TCP and UDP via local channels. Requires `go test -tags=chan`.
 func testFullConnection() {
-	clientToServerTcp := make(chan []byte)
-	serverToClientTcp := make(chan []byte)
-	clientToServerUdp := make(chan []byte)
-	serverToClientUdp := make(chan []byte)
-
-	var clientToServerConn = &Connection{
-		sendTcp: clientToServerTcp,
-		recvTcp: serverToClientTcp,
-		sendUdp: clientToServerUdp,
-		recvUdp: serverToClientUdp,
-	}
-
-	var serverToClientConn = &Connection{
-		sendTcp: serverToClientTcp,
-		recvTcp: clientToServerTcp,
-		sendUdp: serverToClientUdp,
-		recvUdp: clientToServerUdp,
-	}
-
-	state.Lock()
-	state.connections = append(state.connections, serverToClientConn)
-	state.Unlock()
-
-	go handleTcpConnection(serverToClientConn)
-	go handleUdp(serverToClientConn)
-	go sendServerUpdates()
-	go broadcastPingPacket()
-	fmt.Println("Started server.")
-	components.server = &server{}
-
-	connectToServer(clientToServerConn)
+	components.server = startServer(true) // Wait for server to start listening.
+	client()
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 }
