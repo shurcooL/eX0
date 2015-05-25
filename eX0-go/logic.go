@@ -7,6 +7,16 @@ import (
 
 const Tau = 2 * math.Pi
 
+type logic struct{}
+
+func startLogic() *logic {
+	state.session.GlobalStateSequenceNumberTEST = 0
+	state.session.NextTickTime = time.Since(startedProcess).Seconds()
+	go gameLogic(nil)
+
+	return &logic{}
+}
+
 func gameLogic(doInput func()) {
 	for {
 		state.Lock()

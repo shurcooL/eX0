@@ -1,6 +1,6 @@
 # eX0-go [![Build Status](https://travis-ci.org/shurcooL/eX0.svg?branch=master)](https://travis-ci.org/shurcooL/eX0)
 
-This is a work in progress Go implementation of eX0.
+eX0-go is a work in progress Go implementation of eX0.
 
 The client runs as a native desktop app and in browser.
 

@@ -60,6 +60,7 @@ func view(runClientAndGameLogic bool) {
 	if runClientAndGameLogic {
 		client()
 
+		// TODO: Use components.logic = startLogic().
 		{
 			state.session.GlobalStateSequenceNumberTEST = 0
 			state.session.NextTickTime = time.Since(startedProcess).Seconds()

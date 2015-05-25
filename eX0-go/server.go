@@ -1,4 +1,3 @@
-// eX0 server test.
 package main
 
 import (
@@ -21,14 +20,7 @@ import (
 
 type server struct{}
 
-// runGameLogic controls whether server runs a gameLogic thread. This is usually true, unless view runs its own.
-func startServer(runGameLogic bool) *server {
-	if runGameLogic {
-		state.session.GlobalStateSequenceNumberTEST = 0
-		state.session.NextTickTime = time.Since(startedProcess).Seconds()
-		go gameLogic(nil)
-	}
-
+func startServer() *server {
 	{
 		go listenAndHandleTcp()
 	}

@@ -1,4 +1,3 @@
-// eX0 client test.
 package main
 
 import (
