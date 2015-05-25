@@ -391,9 +391,11 @@ func connectToServer(s *Connection, characterExists bool) {
 
 				if characterExists {
 					if playerUpdate := r.Players[0]; playerUpdate.ActivePlayer != 0 {
+						player0StateMu.Lock()
 						player0State.X = playerUpdate.State.X
 						player0State.Y = playerUpdate.State.Y
 						player0State.Z = playerUpdate.State.Z
+						player0StateMu.Unlock()
 					}
 				}
 			}

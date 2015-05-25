@@ -19,8 +19,10 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+type server struct{}
+
 // runGameLogic controls whether server runs a gameLogic thread. This is usually true, unless view runs its own.
-func server(runGameLogic bool, started chan struct{}) {
+func startServer(runGameLogic bool) *server {
 	if runGameLogic {
 		state.session.GlobalStateSequenceNumberTEST = 0
 		state.session.NextTickTime = time.Since(startedProcess).Seconds()
@@ -46,12 +48,10 @@ func server(runGameLogic bool, started chan struct{}) {
 	go sendServerUpdates()
 	go broadcastPingPacket()
 
-	fmt.Println("Started.")
-	if started != nil {
-		close(started)
-	}
+	time.Sleep(time.Millisecond) // HACK: Give some time for listeners to start.
+	fmt.Println("Started server.")
 
-	select {}
+	return &server{}
 }
 
 var state = struct {
@@ -330,21 +330,26 @@ func handleUdp(mux *Connection) {
 						CurrentVel = CurrentVel.Add(Delta.Mul(float32(math.Max(Move1, Move2))))
 					}
 
+					player0StateMu.Lock()
 					player0State.VelX = CurrentVel[0]
 					player0State.VelY = CurrentVel[1]
 
 					player0State.X += player0State.VelX
 					player0State.Y += player0State.VelY
 					player0State.Z = lastMove.Z
+					player0StateMu.Unlock()
 				}
 
 				// It takes State #0 and Command #0 to produce State #1.
+				player0StateMu.Lock()
 				serverLastAckedCmdSequenceNumber = r.CommandSequenceNumber + 1
+				player0StateMu.Unlock()
 			}
 		}
 	}
 }
 
+var player0StateMu sync.Mutex // Also protects serverLastAckedCmdSequenceNumber.
 var player0State = struct {
 	X, Y, Z    float32
 	VelX, VelY float32
@@ -366,6 +371,7 @@ func sendServerUpdates() {
 			state.Lock()
 			p.Players = make([]packet.PlayerUpdate, state.TotalPlayerCount)
 			state.Unlock()
+			player0StateMu.Lock()
 			p.Players[0] = packet.PlayerUpdate{
 				ActivePlayer: 1,
 				State: &packet.State{
@@ -375,6 +381,7 @@ func sendServerUpdates() {
 					Z: player0State.Z,
 				},
 			}
+			player0StateMu.Unlock()
 
 			var buf bytes.Buffer
 			err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)

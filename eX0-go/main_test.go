@@ -16,7 +16,7 @@ func ExampleFullConnection() {
 	testFullConnection()
 
 	// Output:
-	// Started.
+	// Started server.
 	// (packet.JoinServerRequest)(packet.JoinServerRequest{
 	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
 	// 		Length: (uint16)(26),

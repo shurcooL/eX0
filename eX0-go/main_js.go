@@ -9,6 +9,12 @@ import (
 
 var startedProcess = time.Now()
 
+var components struct {
+	server *server
+}
+
+type server struct{}
+
 func main() {
 	view(true)
 }
@@ -28,6 +34,7 @@ var state = struct {
 	TotalPlayerCount: 16,
 }
 
+var player0StateMu sync.Mutex
 var player0State = struct {
 	X, Y, Z    float32
 	VelX, VelY float32

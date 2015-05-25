@@ -49,7 +49,8 @@ func testFullConnection() {
 	go handleUdp(serverToClientConn)
 	go sendServerUpdates()
 	go broadcastPingPacket()
-	fmt.Println("Started.")
+	fmt.Println("Started server.")
+	components.server = &server{}
 
 	connectToServer(clientToServerConn, false)
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.

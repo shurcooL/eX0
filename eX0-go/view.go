@@ -81,8 +81,10 @@ func view(runClientAndGameLogic bool) {
 		l.render()
 
 		mvMatrix = mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
+		player0StateMu.Lock()
 		mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(player0State.X, player0State.Y, 0))
 		mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-player0State.Z))
+		player0StateMu.Unlock()
 
 		c.setup()
 		gl.UniformMatrix4fv(c.pMatrixUniform, pMatrix[:])
