@@ -16,6 +16,7 @@ var startedProcess = time.Now()
 var components struct {
 	logic  *logic
 	server *server
+	client *client
 }
 
 func main() {
@@ -23,7 +24,7 @@ func main() {
 
 	switch args := flag.Args(); {
 	case len(args) == 1 && args[0] == "client":
-		client()
+		components.client = startClient()
 		time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 	case len(args) == 1 && args[0] == "server":
 		components.logic = startLogic()

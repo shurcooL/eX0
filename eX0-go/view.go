@@ -58,7 +58,7 @@ func view(runClientAndGameLogic bool) {
 	}
 
 	if runClientAndGameLogic {
-		client()
+		components.client = startClient()
 
 		// TODO: Use components.logic = startLogic().
 		{

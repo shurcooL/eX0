@@ -15,7 +15,7 @@ func ExampleFullConnection() {
 
 	components.logic = startLogic()
 	components.server = startServer() // Wait for server to start listening.
-	client()
+	components.client = startClient()
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 
 	// Output:
@@ -258,7 +258,7 @@ func disabledExampleConnectToEmptyRealServer() {
 		}
 	}()
 
-	client()
+	components.client = startClient()
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 
 	// Output:

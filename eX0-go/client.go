@@ -22,12 +22,16 @@ var clientToServerConn *Connection
 
 var clientLastAckedCmdSequenceNumber uint8
 
-func client() {
+type client struct{}
+
+func startClient() *client {
 	clientToServerConn = newConnection()
 
 	clientToServerConn.dialServer()
 
 	connectToServer(clientToServerConn)
+
+	return &client{}
 }
 
 func connectToServer(s *Connection) {
