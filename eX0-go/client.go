@@ -13,8 +13,8 @@ import (
 
 var pongSentTimes = make(map[uint32]time.Time) // PingData -> Time.
 
-//const addr = "dmitri.shuralyov.com:25045"
-const addr = "localhost:25045"
+//const host = "dmitri.shuralyov.com"
+const host = "localhost"
 
 var clientToServerConn *Connection
 

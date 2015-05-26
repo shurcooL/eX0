@@ -112,10 +112,10 @@ func (clientToServerConn *Connection) dialServer() {
 	switch 1 {
 	case 0:
 		// TCP connection.
-		tcp, err = net.Dial("tcp", "localhost:25045")
+		tcp, err = net.Dial("tcp", host+":25045")
 	case 1:
 		// WebSocket connection.
-		tcp, err = websocket.Dial("ws://localhost:25046", "http://localhost/")
+		tcp, err = websocket.Dial("ws://"+host+":25046", "http://localhost/")
 	default:
 		panic("invalid choice")
 	}

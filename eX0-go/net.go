@@ -19,13 +19,13 @@ func newConnection() *Connection {
 }
 
 func (clientToServerConn *Connection) dialServer() {
-	tcp, err := net.Dial("tcp", addr)
+	tcp, err := net.Dial("tcp", host+":25045")
 	if err != nil {
 		panic(err)
 	}
 	clientToServerConn.tcp = tcp
 
-	udp, err := net.Dial("udp", addr)
+	udp, err := net.Dial("udp", host+":25045")
 	if err != nil {
 		panic(err)
 	}

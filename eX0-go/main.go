@@ -1,3 +1,5 @@
+// +build !js
+
 // eX0-go is a work in progress Go implementation of eX0.
 //
 // The client runs as a native desktop app and in browser.
