@@ -10,12 +10,12 @@ import (
 )
 
 func inputCommand(window *glfw.Window) packet.Move {
-	player0StateMu.Lock()
+	playersStateMu.Lock()
 	var move = packet.Move{
 		MoveDirection: 255,
-		Z:             player0State.Z,
+		Z:             playersState[int(components_client_id)].Z,
 	}
-	player0StateMu.Unlock()
+	playersStateMu.Unlock()
 
 	var direction [2]int8
 	if (window.GetKey(glfw.KeyA) != glfw.Release) && !(window.GetKey(glfw.KeyD) != glfw.Release) {

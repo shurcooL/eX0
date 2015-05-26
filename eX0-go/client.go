@@ -7,8 +7,6 @@ import (
 	"log"
 	"time"
 
-	//"github.com/gopherjs/websocket"
-
 	"github.com/shurcooL/eX0/eX0-go/packet"
 	"github.com/shurcooL/go-goon"
 )
@@ -22,7 +20,12 @@ var clientToServerConn *Connection
 
 var clientLastAckedCmdSequenceNumber uint8
 
-type client struct{}
+type client struct {
+	// TODO:
+	//id int // Own player ID.
+}
+
+var components_client_id uint8
 
 func startClient() *client {
 	clientToServerConn = newConnection()
@@ -296,6 +299,16 @@ func connectToServer(s *Connection) {
 			goon.Dump(r2)
 		}
 
+		components_client_id = r.PlayerId
+
+		playersStateMu.Lock()
+		playersState[int(components_client_id)] = playerState{
+			X: r.State.X,
+			Y: r.State.Y,
+			Z: r.State.Z,
+		}
+		playersStateMu.Unlock()
+
 		clientLastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
 	}
 
@@ -393,13 +406,17 @@ func connectToServer(s *Connection) {
 				}
 
 				if components.server == nil {
-					if playerUpdate := r.PlayerUpdates[0]; playerUpdate.ActivePlayer != 0 {
-						player0StateMu.Lock()
-						player0State.X = playerUpdate.State.X
-						player0State.Y = playerUpdate.State.Y
-						player0State.Z = playerUpdate.State.Z
-						player0StateMu.Unlock()
+					playersStateMu.Lock()
+					for i, pu := range r.PlayerUpdates {
+						if pu.ActivePlayer != 0 {
+							playersState[i] = playerState{
+								X: pu.State.X,
+								Y: pu.State.Y,
+								Z: pu.State.Z,
+							}
+						}
 					}
+					playersStateMu.Unlock()
 				}
 			}
 		}

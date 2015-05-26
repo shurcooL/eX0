@@ -81,16 +81,18 @@ func view(runClientAndGameLogic bool) {
 		gl.UniformMatrix4fv(l.mvMatrixUniform, mvMatrix[:])
 		l.render()
 
-		mvMatrix = mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
-		player0StateMu.Lock()
-		mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(player0State.X, player0State.Y, 0))
-		mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-player0State.Z))
-		player0StateMu.Unlock()
+		playersStateMu.Lock()
+		for _, ps := range playersState {
+			mvMatrix = mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
+			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(ps.X, ps.Y, 0))
+			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-ps.Z))
 
-		c.setup()
-		gl.UniformMatrix4fv(c.pMatrixUniform, pMatrix[:])
-		gl.UniformMatrix4fv(c.mvMatrixUniform, mvMatrix[:])
-		c.render()
+			c.setup()
+			gl.UniformMatrix4fv(c.pMatrixUniform, pMatrix[:])
+			gl.UniformMatrix4fv(c.mvMatrixUniform, mvMatrix[:])
+			c.render()
+		}
+		playersStateMu.Unlock()
 
 		window.SwapBuffers()
 	}

@@ -288,7 +288,18 @@ func handleUdp(mux *Connection) {
 			if len(r.Moves) > 0 {
 				lastMove := r.Moves[len(r.Moves)-1]
 
-				// TODO: Figure out player id, not hardcode 0.
+				var playerId int
+				// TODO: Figure out player id correctly.
+				// HACK: This might work for now, just assume player id maps 1-to-1 to connection order.
+				state.Lock()
+				for i, connection := range state.connections {
+					if c == connection {
+						playerId = i
+						break
+					}
+				}
+				state.Unlock()
+
 				{
 					const TOP_SPEED = 3.5
 
@@ -308,7 +319,7 @@ func handleUdp(mux *Connection) {
 						log.Printf("WARNING: Invalid nMoveDirection = %v!\n", lastMove.MoveDirection)
 					}
 
-					var CurrentVel = mgl32.Vec2{player0State.VelX, player0State.VelY}
+					var CurrentVel = mgl32.Vec2{playersState[playerId].VelX, playersState[playerId].VelY}
 					var Delta = TargetVel.Sub(CurrentVel)
 					if DeltaLength := float64(Delta.Len()); DeltaLength >= 0.001 {
 						Delta = Delta.Normalize()
@@ -319,33 +330,40 @@ func handleUdp(mux *Connection) {
 						CurrentVel = CurrentVel.Add(Delta.Mul(float32(math.Max(Move1, Move2))))
 					}
 
-					player0StateMu.Lock()
-					player0State.VelX = CurrentVel[0]
-					player0State.VelY = CurrentVel[1]
+					playersStateMu.Lock()
+					playersState[playerId] = playerState{
+						VelX: CurrentVel[0],
+						VelY: CurrentVel[1],
 
-					player0State.X += player0State.VelX
-					player0State.Y += player0State.VelY
-					player0State.Z = lastMove.Z
-					player0StateMu.Unlock()
+						X: playersState[playerId].X + CurrentVel[0],
+						Y: playersState[playerId].Y + CurrentVel[1],
+						Z: lastMove.Z,
+					}
+					playersStateMu.Unlock()
 				}
 
 				// It takes State #0 and Command #0 to produce State #1.
-				player0StateMu.Lock()
+				playersStateMu.Lock()
 				serverLastAckedCmdSequenceNumber = r.CommandSequenceNumber + 1
-				player0StateMu.Unlock()
+				playersStateMu.Unlock()
 			}
 		}
 	}
 }
 
-var player0StateMu sync.Mutex // Also protects serverLastAckedCmdSequenceNumber.
-var player0State = struct {
-	X, Y, Z    float32
-	VelX, VelY float32
-}{
+var playersStateMu sync.Mutex // Also protects serverLastAckedCmdSequenceNumber.
+var playersState = map[int]playerState{}
+
+// TODO: Get rid of this.
+var player0Spawn = playerState{
 	X: 25,
 	Y: -220,
 	Z: 6.0,
+}
+
+type playerState struct {
+	X, Y, Z    float32
+	VelX, VelY float32
 }
 
 var serverLastAckedCmdSequenceNumber uint8
@@ -353,63 +371,63 @@ var lastUpdateSequenceNumber uint8 = 1
 
 func sendServerUpdates() {
 	for ; true; time.Sleep(time.Second / 20) {
-		{
-			var p packet.ServerUpdate
-			p.Type = packet.ServerUpdateType
-			p.CurrentUpdateSequenceNumber = lastUpdateSequenceNumber
-			state.Lock()
-			p.PlayerUpdates = make([]packet.PlayerUpdate, state.TotalPlayerCount)
-			state.Unlock()
-			player0StateMu.Lock()
-			p.PlayerUpdates[0] = packet.PlayerUpdate{
+		// Prepare a ServerUpdate packet.
+		var p packet.ServerUpdate
+		p.Type = packet.ServerUpdateType
+		p.CurrentUpdateSequenceNumber = lastUpdateSequenceNumber
+		state.Lock()
+		p.PlayerUpdates = make([]packet.PlayerUpdate, state.TotalPlayerCount)
+		state.Unlock()
+		playersStateMu.Lock()
+		for i, ps := range playersState {
+			p.PlayerUpdates[i] = packet.PlayerUpdate{
 				ActivePlayer: 1,
 				State: &packet.State{
 					CommandSequenceNumber: serverLastAckedCmdSequenceNumber,
-					X: player0State.X,
-					Y: player0State.Y,
-					Z: player0State.Z,
+					X: ps.X,
+					Y: ps.Y,
+					Z: ps.Z,
 				},
 			}
-			player0StateMu.Unlock()
+		}
+		playersStateMu.Unlock()
 
-			var buf bytes.Buffer
-			err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
+		var buf bytes.Buffer
+		err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
+		if err != nil {
+			panic(err)
+		}
+		err = binary.Write(&buf, binary.BigEndian, &p.CurrentUpdateSequenceNumber)
+		if err != nil {
+			panic(err)
+		}
+		for _, playerUpdate := range p.PlayerUpdates {
+			err = binary.Write(&buf, binary.BigEndian, &playerUpdate.ActivePlayer)
 			if err != nil {
 				panic(err)
 			}
-			err = binary.Write(&buf, binary.BigEndian, &p.CurrentUpdateSequenceNumber)
-			if err != nil {
-				panic(err)
-			}
-			for _, playerUpdate := range p.PlayerUpdates {
-				err = binary.Write(&buf, binary.BigEndian, &playerUpdate.ActivePlayer)
+
+			if playerUpdate.ActivePlayer != 0 {
+				err = binary.Write(&buf, binary.BigEndian, playerUpdate.State)
 				if err != nil {
 					panic(err)
 				}
-
-				if playerUpdate.ActivePlayer != 0 {
-					err = binary.Write(&buf, binary.BigEndian, playerUpdate.State)
-					if err != nil {
-						panic(err)
-					}
-				}
 			}
+		}
 
-			var c *Connection
-			state.Lock()
-			for _, connection := range state.connections {
-				if connection.JoinStatus < IN_GAME {
-					continue
-				}
-				c = connection
-				break
-			}
-			state.Unlock()
-
-			if c == nil {
+		// Get a list of all connections to broadcast to.
+		var cs []*Connection
+		state.Lock()
+		for _, c := range state.connections {
+			if c.JoinStatus < IN_GAME {
 				continue
 			}
+			cs = append(cs, c)
+		}
+		state.Unlock()
 
+		// Broadcast the packet.
+		for _, c := range cs {
 			err = sendUdpPacket(c, buf.Bytes())
 			if err != nil {
 				panic(err)
@@ -427,41 +445,39 @@ func broadcastPingPacket() {
 	const BROADCAST_PING_PERIOD = 2500 * time.Millisecond // How often to broadcast the Ping packet on the server.
 
 	for ; true; time.Sleep(BROADCAST_PING_PERIOD) {
-		{
-			var p packet.Ping
-			p.Type = packet.PingType
-			p.PingData = lastPingData
-			p.LastLatencies = make([]uint16, state.TotalPlayerCount)
+		// Prepare a Ping packet.
+		var p packet.Ping
+		p.Type = packet.PingType
+		p.PingData = lastPingData
+		p.LastLatencies = make([]uint16, state.TotalPlayerCount)
 
-			var buf bytes.Buffer
-			err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
-			if err != nil {
-				panic(err)
-			}
-			err = binary.Write(&buf, binary.BigEndian, &p.PingData)
-			if err != nil {
-				panic(err)
-			}
-			err = binary.Write(&buf, binary.BigEndian, &p.LastLatencies)
-			if err != nil {
-				panic(err)
-			}
+		var buf bytes.Buffer
+		err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
+		if err != nil {
+			panic(err)
+		}
+		err = binary.Write(&buf, binary.BigEndian, &p.PingData)
+		if err != nil {
+			panic(err)
+		}
+		err = binary.Write(&buf, binary.BigEndian, &p.LastLatencies)
+		if err != nil {
+			panic(err)
+		}
 
-			var c *Connection
-			state.Lock()
-			for _, connection := range state.connections {
-				if connection.JoinStatus < IN_GAME {
-					continue
-				}
-				c = connection
-				break
-			}
-			state.Unlock()
-
-			if c == nil {
+		// Get a list of all connections to broadcast to.
+		var cs []*Connection
+		state.Lock()
+		for _, c := range state.connections {
+			if c.JoinStatus < IN_GAME {
 				continue
 			}
+			cs = append(cs, c)
+		}
+		state.Unlock()
 
+		// Broadcast the packet.
+		for _, c := range cs {
 			err = sendUdpPacket(c, buf.Bytes())
 			if err != nil {
 				panic(err)
@@ -693,7 +709,12 @@ func handleTcpConnection2(client *Connection) error {
 	}
 
 	for {
-		var playerId uint8 = 0 // TODO: Non-hardcoded value.
+		var playerId uint8 = func() uint8 {
+			playersStateMu.Lock()
+			defer playersStateMu.Unlock()
+			// TODO: Do this properly.
+			return uint8(len(playersState))
+		}()
 		var team uint8
 
 		{
@@ -727,13 +748,20 @@ func handleTcpConnection2(client *Connection) error {
 			p.PlayerId = playerId
 			p.Team = team
 
+			// TODO: Proper spawn location calculation.
+			ps := player0Spawn
+			ps.X += float32(playerId * 20)
+			playersStateMu.Lock()
+			playersState[int(playerId)] = ps
+			playersStateMu.Unlock()
+
 			state.Lock()
 			if p.Team != 2 {
 				p.State = &packet.State{
 					CommandSequenceNumber: state.session.GlobalStateSequenceNumberTEST - 1,
-					X: player0State.X,
-					Y: player0State.Y,
-					Z: player0State.Z,
+					X: ps.X,
+					Y: ps.Y,
+					Z: ps.Z,
 				}
 			}
 			state.Unlock()

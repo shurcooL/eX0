@@ -7,19 +7,21 @@ import (
 	"time"
 )
 
-var startedProcess = time.Now()
-
-var components struct {
-	server *server
-}
-
-type server struct{}
-
 func main() {
 	view(true)
 }
 
 // TODO: Move things below into right places (dedup them).
+
+var startedProcess = time.Now()
+
+var components struct {
+	logic  *logic
+	server *server
+	client *client
+}
+
+type server struct{}
 
 var state = struct {
 	sync.Mutex
@@ -34,12 +36,17 @@ var state = struct {
 	TotalPlayerCount: 16,
 }
 
-var player0StateMu sync.Mutex
-var player0State = struct {
-	X, Y, Z    float32
-	VelX, VelY float32
-}{
+var playersStateMu sync.Mutex // Also protects serverLastAckedCmdSequenceNumber.
+var playersState = map[int]playerState{}
+
+// TODO: Get rid of this.
+var player0Spawn = playerState{
 	X: 25,
 	Y: -220,
 	Z: 6.0,
+}
+
+type playerState struct {
+	X, Y, Z    float32
+	VelX, VelY float32
 }
