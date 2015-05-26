@@ -144,7 +144,7 @@ type ServerUpdate struct {
 	UdpHeader
 
 	CurrentUpdateSequenceNumber uint8
-	Players                     []PlayerUpdate
+	PlayerUpdates               []PlayerUpdate
 }
 
 type PlayerUpdate struct {

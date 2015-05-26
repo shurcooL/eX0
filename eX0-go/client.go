@@ -373,8 +373,8 @@ func connectToServer(s *Connection) {
 				if err != nil {
 					panic(err)
 				}
-				r.Players = make([]packet.PlayerUpdate, state.TotalPlayerCount)
-				for i := range r.Players {
+				r.PlayerUpdates = make([]packet.PlayerUpdate, state.TotalPlayerCount)
+				for i := range r.PlayerUpdates {
 					var playerUpdate packet.PlayerUpdate
 					err = binary.Read(buf, binary.BigEndian, &playerUpdate.ActivePlayer)
 					if err != nil {
@@ -389,11 +389,11 @@ func connectToServer(s *Connection) {
 						}
 					}
 
-					r.Players[i] = playerUpdate
+					r.PlayerUpdates[i] = playerUpdate
 				}
 
 				if components.server == nil {
-					if playerUpdate := r.Players[0]; playerUpdate.ActivePlayer != 0 {
+					if playerUpdate := r.PlayerUpdates[0]; playerUpdate.ActivePlayer != 0 {
 						player0StateMu.Lock()
 						player0State.X = playerUpdate.State.X
 						player0State.Y = playerUpdate.State.Y

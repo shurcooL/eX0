@@ -358,10 +358,10 @@ func sendServerUpdates() {
 			p.Type = packet.ServerUpdateType
 			p.CurrentUpdateSequenceNumber = lastUpdateSequenceNumber
 			state.Lock()
-			p.Players = make([]packet.PlayerUpdate, state.TotalPlayerCount)
+			p.PlayerUpdates = make([]packet.PlayerUpdate, state.TotalPlayerCount)
 			state.Unlock()
 			player0StateMu.Lock()
-			p.Players[0] = packet.PlayerUpdate{
+			p.PlayerUpdates[0] = packet.PlayerUpdate{
 				ActivePlayer: 1,
 				State: &packet.State{
 					CommandSequenceNumber: serverLastAckedCmdSequenceNumber,
@@ -381,7 +381,7 @@ func sendServerUpdates() {
 			if err != nil {
 				panic(err)
 			}
-			for _, playerUpdate := range p.Players {
+			for _, playerUpdate := range p.PlayerUpdates {
 				err = binary.Write(&buf, binary.BigEndian, &playerUpdate.ActivePlayer)
 				if err != nil {
 					panic(err)
