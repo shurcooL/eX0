@@ -163,6 +163,10 @@ func handleUdp(mux *Connection) {
 	for {
 		buf, c, udpAddr, err := receiveUdpPacketFrom(mux)
 		if err != nil {
+			if shouldHandleUdpDirectly { // HACK: This isn't a real mux but rather the client directly, so return.
+				fmt.Println("udp conn ended with:", err)
+				return
+			}
 			panic(err)
 		}
 
