@@ -23,9 +23,9 @@ func inputCommand(window *glfw.Window) packet.Move {
 	} else if (window.GetKey(glfw.KeyD) != glfw.Release) && !(window.GetKey(glfw.KeyA) != glfw.Release) {
 		direction[0] = +1
 	}
-	if (window.GetKey(glfw.KeyW) != glfw.Release) && !(window.GetKey(glfw.KeyS) != glfw.Release) {
+	if (window.GetKey(glfw.KeyW) != glfw.Release || window.GetKey(glfw.KeyUp) != glfw.Release) && !(window.GetKey(glfw.KeyS) != glfw.Release || window.GetKey(glfw.KeyDown) != glfw.Release) {
 		direction[1] = -1
-	} else if (window.GetKey(glfw.KeyS) != glfw.Release) && !(window.GetKey(glfw.KeyW) != glfw.Release) {
+	} else if (window.GetKey(glfw.KeyS) != glfw.Release || window.GetKey(glfw.KeyDown) != glfw.Release) && !(window.GetKey(glfw.KeyW) != glfw.Release || window.GetKey(glfw.KeyUp) != glfw.Release) {
 		direction[1] = +1
 	}
 	switch {
