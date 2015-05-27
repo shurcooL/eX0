@@ -291,16 +291,14 @@ func handleUdp(mux *Connection) {
 				lastMove := r.Moves[len(r.Moves)-1]
 
 				var playerId int
-				// TODO: Figure out player id correctly.
-				// HACK: This might work for now, just assume player id maps 1-to-1 to connection order.
-				state.Lock()
-				for i, connection := range state.connections {
-					if c == connection {
-						playerId = i
+				playersStateMu.Lock()
+				for id, ps := range playersState {
+					if ps.conn == c {
+						playerId = id
 						break
 					}
 				}
-				state.Unlock()
+				playersStateMu.Unlock()
 
 				{
 					const TOP_SPEED = 3.5
@@ -340,6 +338,8 @@ func handleUdp(mux *Connection) {
 						X: playersState[playerId].X + CurrentVel[0],
 						Y: playersState[playerId].Y + CurrentVel[1],
 						Z: lastMove.Z,
+
+						conn: playersState[playerId].conn,
 					}
 					playersStateMu.Unlock()
 				}
@@ -353,8 +353,8 @@ func handleUdp(mux *Connection) {
 	}
 }
 
-var playersStateMu sync.Mutex // Also protects serverLastAckedCmdSequenceNumber.
-var playersState = map[int]playerState{}
+var playersStateMu sync.Mutex            // Also protects serverLastAckedCmdSequenceNumber.
+var playersState = map[int]playerState{} // Player Id -> Player State.
 
 // TODO: Get rid of this.
 var player0Spawn = playerState{
@@ -366,6 +366,9 @@ var player0Spawn = playerState{
 type playerState struct {
 	X, Y, Z    float32
 	VelX, VelY float32
+
+	// TODO: Move this to a better place.
+	conn *Connection
 }
 
 var serverLastAckedCmdSequenceNumber uint8
@@ -504,6 +507,15 @@ func handleTcpConnection(client *Connection) {
 	}
 	state.Unlock()
 
+	playersStateMu.Lock()
+	for id, ps := range playersState {
+		if ps.conn == client {
+			delete(playersState, id)
+			break
+		}
+	}
+	playersStateMu.Unlock()
+
 	client.tcp.Close()
 }
 
@@ -601,6 +613,10 @@ func handleTcpConnection2(client *Connection) error {
 			return err
 		}
 		goon.Dump(r)
+
+		state.Lock()
+		client.JoinStatus = PUBLIC_CLIENT
+		state.Unlock()
 	}
 
 	{
@@ -711,12 +727,6 @@ func handleTcpConnection2(client *Connection) error {
 	}
 
 	for {
-		var playerId uint8 = func() uint8 {
-			playersStateMu.Lock()
-			defer playersStateMu.Unlock()
-			// TODO: Do this properly.
-			return uint8(len(playersState))
-		}()
 		var team uint8
 
 		{
@@ -739,6 +749,19 @@ func handleTcpConnection2(client *Connection) error {
 			team = r.Team
 		}
 
+		var playerId uint8 = func /*allocatePlayerId*/ () uint8 {
+			playersStateMu.Lock()
+			defer playersStateMu.Unlock()
+			for id := 0; ; id++ {
+				if _, ok := playersState[id]; !ok {
+					return uint8(id)
+				}
+			}
+		}()
+		playersStateMu.Lock()
+		playersState[int(playerId)] = playerState{conn: client}
+		playersStateMu.Unlock()
+
 		state.Lock()
 		logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*20
 		fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(startedProcess).Seconds(), playerId, "TODO: name", team, logicTime, state.session.GlobalStateSequenceNumberTEST)
@@ -752,7 +775,8 @@ func handleTcpConnection2(client *Connection) error {
 
 			// TODO: Proper spawn location calculation.
 			ps := player0Spawn
-			ps.X += float32(playerId * 20)
+			ps.X += float32(playerId) * 20
+			ps.conn = playersState[int(playerId)].conn
 			playersStateMu.Lock()
 			playersState[int(playerId)] = ps
 			playersStateMu.Unlock()

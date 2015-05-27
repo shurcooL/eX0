@@ -414,6 +414,8 @@ func connectToServer(s *Connection) {
 								Y: pu.State.Y,
 								Z: pu.State.Z,
 							}
+						} else {
+							delete(playersState, i)
 						}
 					}
 					playersStateMu.Unlock()
