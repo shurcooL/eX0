@@ -13,7 +13,7 @@ var windowSize = [2]int{640, 480}
 var cameraX, cameraY float64 = 362, 340
 
 func view(runClientAndGameLogic bool) {
-	err := glfw.Init(gl.ContextSwitcher)
+	err := glfw.Init(gl.ContextWatcher)
 	if err != nil {
 		panic(err)
 	}
