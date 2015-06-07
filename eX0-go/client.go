@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
@@ -36,6 +37,13 @@ func startClient() *client {
 
 	return &client{}
 }
+
+var sentTimeRequestPacketTimes = make(map[uint8]float64)
+var trpReceived int
+var shortestLatency = float64(1000)
+var shortestLatencyLocalTime float64
+var shortestLatencyRemoteTime float64
+var finishedSyncingClock = make(chan struct{})
 
 func connectToServer(s *Connection) {
 	s.Signature = uint64(time.Now().UnixNano())
@@ -80,9 +88,11 @@ func connectToServer(s *Connection) {
 		state.Unlock()
 	}
 
-	// Upgrade connection to UDP at this point.
+	// Upgrade connection to UDP at this point, start listening for UDP packets.
+	go clientHandleUdp(s)
 
 	{
+		// TODO: Try sending multiple times, else it might not get received.
 		var p packet.Handshake
 		p.Type = packet.HandshakeType
 		p.Signature = s.Signature
@@ -109,6 +119,38 @@ func connectToServer(s *Connection) {
 			panic(err)
 		}
 		goon.Dump(r)
+	}
+
+	{
+		// Start syncing the clock, send a Time Request packet every 50 ms.
+		go func() {
+			var sn uint8
+
+			for ; ; time.Sleep(50 * time.Millisecond) {
+				select {
+				case <-finishedSyncingClock:
+					return
+				default:
+				}
+
+				var p packet.TimeRequest
+				p.Type = packet.TimeRequestType
+				p.SequenceNumber = sn
+				sn++
+
+				sentTimeRequestPacketTimes[p.SequenceNumber] = time.Since(startedProcess).Seconds()
+
+				var buf bytes.Buffer
+				err := binary.Write(&buf, binary.BigEndian, &p)
+				if err != nil {
+					panic(err)
+				}
+				err = sendUdpPacket(s, buf.Bytes())
+				if err != nil {
+					panic(err)
+				}
+			}
+		}()
 	}
 
 	{
@@ -226,6 +268,8 @@ func connectToServer(s *Connection) {
 		goon.Dump(r)
 	}
 
+	<-finishedSyncingClock
+
 	{
 		var p packet.EnteredGameNotification
 		p.Type = packet.EnteredGameNotificationType
@@ -313,114 +357,151 @@ func connectToServer(s *Connection) {
 	}
 
 	fmt.Println("Client connected and joined team.")
+}
 
-	go func() {
-		for {
-			buf, err := receiveUdpPacket(s)
+func clientHandleUdp(s *Connection) {
+	for {
+		buf, err := receiveUdpPacket(s)
+		if err != nil {
+			panic(err)
+		}
+
+		var udpHeader packet.UdpHeader
+		err = binary.Read(buf, binary.BigEndian, &udpHeader)
+		if err != nil {
+			panic(err)
+		}
+
+		switch udpHeader.Type {
+		case packet.TimeResponseType:
+			logicTimeAtReceive := time.Since(startedProcess).Seconds()
+
+			var r packet.TimeResponse
+			err = binary.Read(buf, binary.BigEndian, &r.SequenceNumber)
+			if err != nil {
+				panic(err)
+			}
+			err = binary.Read(buf, binary.BigEndian, &r.Time)
 			if err != nil {
 				panic(err)
 			}
 
-			var udpHeader packet.UdpHeader
-			err = binary.Read(buf, binary.BigEndian, &udpHeader)
+			trpReceived++
+
+			if trpReceived <= 30 {
+				latency := logicTimeAtReceive - sentTimeRequestPacketTimes[r.SequenceNumber]
+				if latency <= shortestLatency {
+					shortestLatency = latency
+					shortestLatencyLocalTime = logicTimeAtReceive
+					shortestLatencyRemoteTime = r.Time + 0.5*shortestLatency // Remote time now is what server said plus half round-trip time.
+				}
+				fmt.Fprintf(os.Stderr, "Got a TRP #%v at %.3f ms, latency: %.3f ms (shortest = %.3f ms)\n", trpReceived, logicTimeAtReceive*1000, latency*1000, shortestLatency*1000)
+			} else {
+				fmt.Fprintf(os.Stderr, "Got an unnecessary TRP #%v packet, ignoring.\n", trpReceived)
+			}
+
+			if trpReceived == 30 {
+				// Adjust logic clock.
+				delta := shortestLatencyLocalTime - shortestLatencyRemoteTime
+				fmt.Fprintln(os.Stderr, "startedProcess before:", startedProcess)
+				fmt.Fprintln(os.Stderr, "delta seconds:", delta)
+				startedProcess = startedProcess.Add(time.Duration(delta * float64(time.Second)))
+				fmt.Fprintln(os.Stderr, "startedProcess after:", startedProcess)
+
+				close(finishedSyncingClock)
+			}
+		case packet.PingType:
+			var r packet.Ping
+			err = binary.Read(buf, binary.BigEndian, &r.PingData)
+			if err != nil {
+				panic(err)
+			}
+			r.LastLatencies = make([]uint16, state.TotalPlayerCount)
+			err = binary.Read(buf, binary.BigEndian, &r.LastLatencies)
 			if err != nil {
 				panic(err)
 			}
 
-			switch udpHeader.Type {
-			case packet.PingType:
-				var r packet.Ping
-				err = binary.Read(buf, binary.BigEndian, &r.PingData)
+			{
+				var p packet.Pong
+				p.Type = packet.PongType
+				p.PingData = r.PingData
+
+				pongSentTimes[r.PingData] = time.Now()
+
+				var buf bytes.Buffer
+				err := binary.Write(&buf, binary.BigEndian, &p)
 				if err != nil {
 					panic(err)
 				}
-				r.LastLatencies = make([]uint16, state.TotalPlayerCount)
-				err = binary.Read(buf, binary.BigEndian, &r.LastLatencies)
+				err = sendUdpPacket(s, buf.Bytes())
+				if err != nil {
+					panic(err)
+				}
+			}
+		case packet.PungType:
+			localTimeAtPungReceive := time.Now()
+
+			var r packet.Pung
+			err = binary.Read(buf, binary.BigEndian, &r.PingData)
+			if err != nil {
+				panic(err)
+			}
+			err = binary.Read(buf, binary.BigEndian, &r.Time)
+			if err != nil {
+				panic(err)
+			}
+
+			{
+				// Get the time sent of the matching Pong packet.
+				if localTimeAtPongSend, ok := pongSentTimes[r.PingData]; ok {
+					delete(pongSentTimes, r.PingData)
+
+					// Calculate own latency and update it on the scoreboard.
+					latency := localTimeAtPungReceive.Sub(localTimeAtPongSend)
+					log.Printf("Own latency is %.5f ms.\n", latency.Seconds()*1000)
+				}
+			}
+		case packet.ServerUpdateType:
+			var r packet.ServerUpdate
+			err = binary.Read(buf, binary.BigEndian, &r.CurrentUpdateSequenceNumber)
+			if err != nil {
+				panic(err)
+			}
+			r.PlayerUpdates = make([]packet.PlayerUpdate, state.TotalPlayerCount)
+			for i := range r.PlayerUpdates {
+				var playerUpdate packet.PlayerUpdate
+				err = binary.Read(buf, binary.BigEndian, &playerUpdate.ActivePlayer)
 				if err != nil {
 					panic(err)
 				}
 
-				{
-					var p packet.Pong
-					p.Type = packet.PongType
-					p.PingData = r.PingData
-
-					pongSentTimes[r.PingData] = time.Now()
-
-					var buf bytes.Buffer
-					err := binary.Write(&buf, binary.BigEndian, &p)
+				if playerUpdate.ActivePlayer != 0 {
+					playerUpdate.State = new(packet.State)
+					err = binary.Read(buf, binary.BigEndian, playerUpdate.State)
 					if err != nil {
 						panic(err)
 					}
-					err = sendUdpPacket(s, buf.Bytes())
-					if err != nil {
-						panic(err)
-					}
-				}
-			case packet.PungType:
-				localTimeAtPungReceive := time.Now()
-
-				var r packet.Pung
-				err = binary.Read(buf, binary.BigEndian, &r.PingData)
-				if err != nil {
-					panic(err)
-				}
-				err = binary.Read(buf, binary.BigEndian, &r.Time)
-				if err != nil {
-					panic(err)
 				}
 
-				{
-					// Get the time sent of the matching Pong packet.
-					if localTimeAtPongSend, ok := pongSentTimes[r.PingData]; ok {
-						delete(pongSentTimes, r.PingData)
+				r.PlayerUpdates[i] = playerUpdate
+			}
 
-						// Calculate own latency and update it on the scoreboard.
-						latency := localTimeAtPungReceive.Sub(localTimeAtPongSend)
-						log.Printf("Own latency is %.5f ms.\n", latency.Seconds()*1000)
-					}
-				}
-			case packet.ServerUpdateType:
-				var r packet.ServerUpdate
-				err = binary.Read(buf, binary.BigEndian, &r.CurrentUpdateSequenceNumber)
-				if err != nil {
-					panic(err)
-				}
-				r.PlayerUpdates = make([]packet.PlayerUpdate, state.TotalPlayerCount)
-				for i := range r.PlayerUpdates {
-					var playerUpdate packet.PlayerUpdate
-					err = binary.Read(buf, binary.BigEndian, &playerUpdate.ActivePlayer)
-					if err != nil {
-						panic(err)
-					}
-
-					if playerUpdate.ActivePlayer != 0 {
-						playerUpdate.State = new(packet.State)
-						err = binary.Read(buf, binary.BigEndian, playerUpdate.State)
-						if err != nil {
-							panic(err)
+			if components.server == nil {
+				playersStateMu.Lock()
+				for i, pu := range r.PlayerUpdates {
+					if pu.ActivePlayer != 0 {
+						playersState[i] = playerState{
+							X: pu.State.X,
+							Y: pu.State.Y,
+							Z: pu.State.Z,
 						}
+					} else {
+						delete(playersState, i)
 					}
-
-					r.PlayerUpdates[i] = playerUpdate
 				}
-
-				if components.server == nil {
-					playersStateMu.Lock()
-					for i, pu := range r.PlayerUpdates {
-						if pu.ActivePlayer != 0 {
-							playersState[i] = playerState{
-								X: pu.State.X,
-								Y: pu.State.Y,
-								Z: pu.State.Z,
-							}
-						} else {
-							delete(playersState, i)
-						}
-					}
-					playersStateMu.Unlock()
-				}
+				playersStateMu.Unlock()
 			}
 		}
-	}()
+	}
 }
