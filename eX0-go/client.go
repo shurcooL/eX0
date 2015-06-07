@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
@@ -414,11 +415,14 @@ func clientHandleUdp(s *Connection) {
 			}
 
 			if trpReceived == 30 {
-				// Adjust logic clock.
-				delta := shortestLatencyLocalTime - shortestLatencyRemoteTime
-				state.Lock()
-				startedProcess = startedProcess.Add(time.Duration(delta * float64(time.Second)))
-				state.Unlock()
+				if components.server == nil { // TODO: This check should be more like "if !components.logic.authoritative", and logic timer should be inside components.logic.
+					// Adjust logic clock.
+					delta := shortestLatencyLocalTime - shortestLatencyRemoteTime
+					state.Lock()
+					startedProcess = startedProcess.Add(time.Duration(delta * float64(time.Second)))
+					fmt.Fprintf(os.Stderr, "delta: %.3f seconds, startedProcess: %v\n", delta, startedProcess)
+					state.Unlock()
+				}
 
 				close(finishedSyncingClock)
 			}
