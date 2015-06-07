@@ -37,9 +37,11 @@ func main() {
 		components.server = startServer()
 		view(false)
 	case len(args) == 1 && args[0] == "client-view":
+		components.client = startClient()
 		view(true)
 	case len(args) == 1 && (args[0] == "client-server-view" || args[0] == "server-client-view"):
 		components.server = startServer()
+		components.client = startClient()
 		view(true)
 	default:
 		fmt.Fprintln(os.Stderr, "invalid usage")
