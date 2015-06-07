@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
@@ -395,18 +394,12 @@ func clientHandleUdp(s *Connection) {
 					shortestLatencyLocalTime = logicTimeAtReceive
 					shortestLatencyRemoteTime = r.Time + 0.5*shortestLatency // Remote time now is what server said plus half round-trip time.
 				}
-				fmt.Fprintf(os.Stderr, "Got a TRP #%v at %.3f ms, latency: %.3f ms (shortest = %.3f ms)\n", trpReceived, logicTimeAtReceive*1000, latency*1000, shortestLatency*1000)
-			} else {
-				fmt.Fprintf(os.Stderr, "Got an unnecessary TRP #%v packet, ignoring.\n", trpReceived)
 			}
 
 			if trpReceived == 30 {
 				// Adjust logic clock.
 				delta := shortestLatencyLocalTime - shortestLatencyRemoteTime
-				fmt.Fprintln(os.Stderr, "startedProcess before:", startedProcess)
-				fmt.Fprintln(os.Stderr, "delta seconds:", delta)
 				startedProcess = startedProcess.Add(time.Duration(delta * float64(time.Second)))
-				fmt.Fprintln(os.Stderr, "startedProcess after:", startedProcess)
 
 				close(finishedSyncingClock)
 			}

@@ -44,11 +44,6 @@ func startServer() *server {
 
 	time.Sleep(time.Millisecond) // HACK: Give some time for listeners to start.
 	fmt.Println("Started server.")
-	go func() {
-		for ; ; time.Sleep(time.Second) {
-			fmt.Fprintln(os.Stderr, "startedProcess:", startedProcess)
-		}
-	}()
 
 	return &server{}
 }
