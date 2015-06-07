@@ -83,6 +83,7 @@ func connectToServer(s *Connection) {
 		goon.Dump(r)
 
 		state.Lock()
+		s.JoinStatus = ACCEPTED
 		state.TotalPlayerCount = r.TotalPlayerCount + 1
 		state.Unlock()
 	}
@@ -118,6 +119,10 @@ func connectToServer(s *Connection) {
 			panic(err)
 		}
 		goon.Dump(r)
+
+		state.Lock()
+		s.JoinStatus = UDP_CONNECTED
+		state.Unlock()
 	}
 
 	{
@@ -137,7 +142,9 @@ func connectToServer(s *Connection) {
 				p.SequenceNumber = sn
 				sn++
 
+				state.Lock()
 				sentTimeRequestPacketTimes[p.SequenceNumber] = time.Since(startedProcess).Seconds()
+				state.Unlock()
 
 				var buf bytes.Buffer
 				err := binary.Write(&buf, binary.BigEndian, &p)
@@ -189,6 +196,10 @@ func connectToServer(s *Connection) {
 		if err != nil {
 			panic(err)
 		}
+
+		state.Lock()
+		s.JoinStatus = PUBLIC_CLIENT
+		state.Unlock()
 	}
 
 	{
@@ -268,6 +279,10 @@ func connectToServer(s *Connection) {
 	}
 
 	<-finishedSyncingClock
+
+	state.Lock()
+	s.JoinStatus = IN_GAME
+	state.Unlock()
 
 	{
 		var p packet.EnteredGameNotification
@@ -388,7 +403,9 @@ func clientHandleUdp(s *Connection) {
 			trpReceived++
 
 			if trpReceived <= 30 {
+				state.Lock()
 				latency := logicTimeAtReceive - sentTimeRequestPacketTimes[r.SequenceNumber]
+				state.Unlock()
 				if latency <= shortestLatency {
 					shortestLatency = latency
 					shortestLatencyLocalTime = logicTimeAtReceive
@@ -399,7 +416,9 @@ func clientHandleUdp(s *Connection) {
 			if trpReceived == 30 {
 				// Adjust logic clock.
 				delta := shortestLatencyLocalTime - shortestLatencyRemoteTime
+				state.Lock()
 				startedProcess = startedProcess.Add(time.Duration(delta * float64(time.Second)))
+				state.Unlock()
 
 				close(finishedSyncingClock)
 			}

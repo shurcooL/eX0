@@ -233,7 +233,9 @@ func handleUdp(mux *Connection) {
 				var p packet.TimeResponse
 				p.Type = packet.TimeResponseType
 				p.SequenceNumber = r.SequenceNumber
+				state.Lock()
 				p.Time = time.Since(startedProcess).Seconds()
+				state.Unlock()
 
 				var buf bytes.Buffer
 				err := binary.Write(&buf, binary.BigEndian, &p)
