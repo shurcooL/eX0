@@ -19,18 +19,24 @@ func startLogic() *logic {
 
 func gameLogic(doInput func()) {
 	for {
+		tick := false
+		sleep := time.Millisecond
+
 		state.Lock()
-		for time.Since(startedProcess).Seconds() >= state.session.NextTickTime {
+		if now := time.Since(startedProcess).Seconds(); now >= state.session.NextTickTime {
 			state.session.NextTickTime += 1.0 / 20
 			state.session.GlobalStateSequenceNumberTEST++
+			tick = true
+			sleep = time.Duration((state.session.NextTickTime - now) * float64(time.Second))
+		}
+		state.Unlock()
 
+		if tick {
 			if doInput != nil {
 				doInput()
 			}
 		}
-		state.Unlock()
 
-		time.Sleep(time.Millisecond)
-		//runtime.Gosched()
+		time.Sleep(sleep)
 	}
 }
