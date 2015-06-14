@@ -9,10 +9,10 @@ const Tau = 2 * math.Pi
 
 type logic struct{}
 
-func startLogic() *logic {
+func startLogic(doInput func()) *logic {
 	state.session.GlobalStateSequenceNumberTEST = 0
 	state.session.NextTickTime = time.Since(startedProcess).Seconds()
-	go gameLogic(nil)
+	go gameLogic(doInput)
 
 	return &logic{}
 }

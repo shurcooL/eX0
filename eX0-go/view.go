@@ -1,8 +1,6 @@
 package main
 
 import (
-	"time"
-
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/goxjs/gl"
 	"github.com/goxjs/glfw"
@@ -58,12 +56,7 @@ func view(runGameLogic bool) {
 	}
 
 	if runGameLogic {
-		// TODO: Use components.logic = startLogic().
-		{
-			state.session.GlobalStateSequenceNumberTEST = 0
-			state.session.NextTickTime = time.Since(startedProcess).Seconds()
-			go gameLogic(func() { input(window) })
-		}
+		components.logic = startLogic(func() { input(window) })
 	}
 
 	for !window.ShouldClose() {

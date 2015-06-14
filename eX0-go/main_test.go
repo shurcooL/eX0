@@ -13,7 +13,7 @@ func ExampleFullConnection() {
 		}
 	}()
 
-	components.logic = startLogic()
+	components.logic = startLogic(nil)
 	components.server = startServer() // Wait for server to start listening.
 	components.client = startClient()
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.

@@ -29,11 +29,11 @@ func main() {
 		components.client = startClient()
 		time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 	case len(args) == 1 && args[0] == "server":
-		components.logic = startLogic()
+		components.logic = startLogic(nil)
 		components.server = startServer()
 		select {}
 	case len(args) == 1 && args[0] == "server-view":
-		components.logic = startLogic()
+		components.logic = startLogic(nil)
 		components.server = startServer()
 		view(false)
 	case len(args) == 1 && args[0] == "client-view":
