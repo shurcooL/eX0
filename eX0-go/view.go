@@ -87,4 +87,9 @@ func view(runGameLogic bool) {
 
 		window.SwapBuffers()
 	}
+
+	if runGameLogic {
+		components.logic.quit <- struct{}{}
+		<-components.logic.quit
+	}
 }

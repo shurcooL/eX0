@@ -7,18 +7,31 @@ import (
 
 const Tau = 2 * math.Pi
 
-type logic struct{}
-
-func startLogic(doInput func()) *logic {
-	state.session.GlobalStateSequenceNumberTEST = 0
-	state.session.NextTickTime = time.Since(startedProcess).Seconds()
-	go gameLogic(doInput)
-
-	return &logic{}
+type logic struct {
+	quit chan struct{} // Receiving a value on this channel results in sending a response, and quitting.
 }
 
-func gameLogic(doInput func()) {
+func startLogic(doInput func()) *logic {
+	state.Lock()
+	state.session.GlobalStateSequenceNumberTEST = 0
+	state.session.NextTickTime = time.Since(startedProcess).Seconds()
+	state.Unlock()
+	l := &logic{
+		quit: make(chan struct{}),
+	}
+	go l.gameLogic(doInput)
+	return l
+}
+
+func (l *logic) gameLogic(doInput func()) {
 	for {
+		select {
+		case <-l.quit:
+			l.quit <- struct{}{}
+			return
+		default:
+		}
+
 		tick := false
 		sleep := time.Millisecond
 
