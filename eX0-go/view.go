@@ -25,6 +25,8 @@ func view(runGameLogic bool) {
 	}
 	window.MakeContextCurrent()
 
+	glfw.SwapInterval(1)
+
 	gl.ClearColor(227/255.0, 189/255.0, 162/255.0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 
