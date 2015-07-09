@@ -9,7 +9,7 @@ import (
 	"github.com/goxjs/gl/glutil"
 	"github.com/goxjs/glfw"
 	"github.com/shurcooL/go/gists/gist6545684"
-	"golang.org/x/mobile/f32"
+	"golang.org/x/mobile/exp/f32"
 )
 
 func newLevel(name string) (*level, error) {

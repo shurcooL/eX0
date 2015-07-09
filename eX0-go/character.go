@@ -9,7 +9,7 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/goxjs/gl"
 	"github.com/goxjs/gl/glutil"
-	"golang.org/x/mobile/f32"
+	"golang.org/x/mobile/exp/f32"
 )
 
 func newCharacter() (*character, error) {
