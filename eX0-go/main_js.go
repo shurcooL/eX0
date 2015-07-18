@@ -3,7 +3,6 @@
 package main
 
 import (
-	"flag"
 	"net/url"
 	"os"
 	"path"
@@ -12,14 +11,17 @@ import (
 )
 
 func queryToArgs() []string {
-	href := js.Global.Get("location").Get("href").String()
-	u, _ := url.Parse(href)
+	u, err := url.Parse(js.Global.Get("location").Get("href").String())
+	if err != nil {
+		panic(err)
+	}
 	args := []string{path.Base(u.Path)} // First element is the process name.
-	for key, values := range u.Query() {
-		key = "-" + key
-		for _, value := range values {
-			args = append(args, key)
-			args = append(args, value)
+	for k, vs := range u.Query() {
+		for _, v := range vs {
+			args = append(args, k)
+			if v != "" {
+				args = append(args, v)
+			}
 		}
 	}
 	return args
@@ -27,11 +29,7 @@ func queryToArgs() []string {
 
 func init() {
 	os.Args = queryToArgs()
-}
-
-func main() {
-	flag.Parse()
-
-	components.client = startClient()
-	view(true)
+	if len(os.Args) == 1 {
+		os.Args = append(os.Args, "client-view") // Default mode when no parameters are provided.
+	}
 }

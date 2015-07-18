@@ -1,5 +1,3 @@
-// +build !js
-
 // eX0-go is a work in progress Go implementation of eX0.
 //
 // The client runs as a native desktop app and in browser.
@@ -11,6 +9,15 @@ import (
 	"os"
 	"time"
 )
+
+var startedProcess = time.Now()
+
+// THINK: Is this the best way?
+var components struct {
+	logic  *logic
+	server *server
+	client *client
+}
 
 func main() {
 	flag.Parse()
@@ -35,7 +42,7 @@ func main() {
 		components.client = startClient()
 		view(true)
 	default:
-		fmt.Fprintln(os.Stderr, "invalid usage")
+		fmt.Fprintf(os.Stderr, "invalid usage: %q\n", args)
 		os.Exit(2)
 	}
 }
