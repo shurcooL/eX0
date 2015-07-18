@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -12,10 +13,9 @@ import (
 	"github.com/shurcooL/go-goon"
 )
 
-var pongSentTimes = make(map[uint32]time.Time) // PingData -> Time.
+var hostFlag = flag.String("host", "localhost", "Server host (without port) for client to connect to.")
 
-//const host = "dmitri.shuralyov.com"
-const host = "localhost"
+var pongSentTimes = make(map[uint32]time.Time) // PingData -> Time.
 
 var clientToServerConn *Connection
 
