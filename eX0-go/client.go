@@ -14,6 +14,7 @@ import (
 )
 
 var hostFlag = flag.String("host", "localhost", "Server host (without port) for client to connect to.")
+var nameFlag = flag.String("name", "Unnamed Player", "Local client player name.")
 
 var pongSentTimes = make(map[uint32]time.Time) // PingData -> Time.
 
@@ -162,16 +163,14 @@ func connectToServer(s *Connection) {
 	}
 
 	{
-		const name = "shurcooL"
-
 		var p packet.LocalPlayerInfo
 		p.Type = packet.LocalPlayerInfoType
-		p.NameLength = uint8(len(name))
-		p.Name = []byte(name)
+		p.NameLength = uint8(len(*nameFlag))
+		p.Name = []byte(*nameFlag)
 		p.CommandRate = 20
 		p.UpdateRate = 20
 
-		p.Length = 3 + uint16(len(name))
+		p.Length = 3 + uint16(len(*nameFlag))
 
 		var buf bytes.Buffer
 		err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
