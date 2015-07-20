@@ -76,6 +76,13 @@ func view(runGameLogic bool) {
 
 		playersStateMu.Lock()
 		for _, ps := range playersState {
+			if ps.conn != nil && ps.conn.JoinStatus < IN_GAME {
+				continue
+			}
+			if ps.Team == 2 {
+				continue
+			}
+
 			mvMatrix = mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
 			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(ps.X, ps.Y, 0))
 			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-ps.Z))

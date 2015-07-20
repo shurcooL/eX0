@@ -84,8 +84,9 @@ func connectToServer(s *Connection) {
 		goon.Dump(r)
 
 		state.Lock()
-		s.JoinStatus = ACCEPTED
+		components_client_id = r.YourPlayerId
 		state.TotalPlayerCount = r.TotalPlayerCount + 1
+		s.JoinStatus = ACCEPTED
 		state.Unlock()
 	}
 
@@ -357,8 +358,6 @@ func connectToServer(s *Connection) {
 			r2.State = &packet.State{CommandSequenceNumber: 123, X: 1.0, Y: 2.0, Z: 3.0} // Override with deterministic value so test passes.
 			goon.Dump(r2)
 		}
-
-		components_client_id = r.PlayerId
 
 		playersStateMu.Lock()
 		playersState[int(components_client_id)] = playerState{

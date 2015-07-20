@@ -77,9 +77,9 @@ type CurrentPlayersInfo struct {
 
 type PlayerInfo struct {
 	NameLength uint8
-	Name       []byte
-	Team       uint8
-	State      *State // If Team != 2.
+	Name       []byte // If NameLength > 0.
+	Team       uint8  // If NameLength > 0.
+	State      *State // If NameLength > 0 && Team != 2.
 }
 
 type State struct {

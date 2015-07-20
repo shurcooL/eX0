@@ -19,6 +19,8 @@ var state = struct {
 	TotalPlayerCount: 16,
 }
 
+// TODO: I think this should be moved into logic component (not server), yeah?
+//       There's also some overlap with state.connections, shouldn't that be resolved?
 var playersStateMu sync.Mutex            // Also protects serverLastAckedCmdSequenceNumber.
 var playersState = map[int]playerState{} // Player Id -> Player State.
 
@@ -29,9 +31,13 @@ var player0Spawn = playerState{
 	Z: 6.0,
 }
 
+// TODO: Split into positions (there will be many over time) and current name, team, connection, etc.
 type playerState struct {
 	X, Y, Z    float32
 	VelX, VelY float32
+
+	Name string
+	Team uint8
 
 	// TODO: Move this to a better place.
 	conn *Connection

@@ -44,9 +44,10 @@ type Connection struct {
 
 	// Common.
 	Signature uint64
+	PlayerId  uint8 // TODO: Unsure if this should be here, experimental.
 }
 
-func sendTcpPacket(c *Connection, b []byte) error {
+func sendTcpPacket2(c *Connection, b []byte) error {
 	c.sendTcp <- b
 	return nil
 }

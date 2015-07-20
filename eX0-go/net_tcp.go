@@ -141,6 +141,7 @@ type Connection struct {
 
 	// Common.
 	Signature uint64
+	PlayerId  uint8 // TODO: Unsure if this should be here, experimental.
 
 	sendTcp chan []byte
 	recvTcp chan []byte
@@ -154,7 +155,7 @@ type Connection struct {
 	UdpAddr *net.UDPAddr
 }
 
-func sendTcpPacket(c *Connection, b []byte) error {
+func sendTcpPacket2(c *Connection, b []byte) error {
 	c.sendTcp <- b
 	return nil
 }
