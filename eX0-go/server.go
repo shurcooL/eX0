@@ -364,7 +364,7 @@ func sendServerUpdates(c *Connection) {
 		state.Unlock()
 		playersStateMu.Lock()
 		for id, ps := range playersState {
-			if ps.conn == nil || ps.conn.JoinStatus < IN_GAME {
+			if ps.conn == nil || ps.conn.JoinStatus < IN_GAME || ps.Team == 2 {
 				continue
 			}
 			p.PlayerUpdates[id] = packet.PlayerUpdate{
