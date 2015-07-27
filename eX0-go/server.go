@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"log"
 	"math"
 	"net"
@@ -152,193 +153,204 @@ func handleUdp(mux *Connection) {
 			panic(err)
 		}
 
-		var udpHeader packet.UdpHeader
-		err = binary.Read(buf, binary.BigEndian, &udpHeader)
+		err = processUdpPacket(buf, c, udpAddr, mux)
 		if err != nil {
-			panic(err)
-		}
-
-		if c == nil && udpHeader.Type != packet.HandshakeType {
-			continue
-		}
-
-		switch udpHeader.Type {
-		case packet.HandshakeType:
-			var r packet.Handshake
-			err = binary.Read(buf, binary.BigEndian, &r.Signature)
-			if err != nil {
-				panic(err)
-			}
-			{
-				r2 := r
-				r2.Signature = 123
-				goon.Dump(r2)
-			}
-
-			state.Lock()
-			for _, connection := range state.connections {
-				if connection.Signature == r.Signature {
-					connection.JoinStatus = UDP_CONNECTED
-					connection.udp = mux.udp
-					connection.UdpAddr = udpAddr
-
-					c = connection
-					break
-				}
-			}
-			state.Unlock()
-
+			fmt.Println("handleUdpPacket:", err)
 			if c != nil {
-				var p packet.UdpConnectionEstablished
-				p.Type = packet.UdpConnectionEstablishedType
-
-				p.Length = 0
-
-				var buf bytes.Buffer
-				err := binary.Write(&buf, binary.BigEndian, &p)
-				if err != nil {
-					panic(err)
-				}
-				err = sendTcpPacket(c, buf.Bytes())
-				if err != nil {
-					panic(err)
-				}
-			}
-		case packet.TimeRequestType:
-			var r packet.TimeRequest
-			err = binary.Read(buf, binary.BigEndian, &r.SequenceNumber)
-			if err != nil {
-				panic(err)
-			}
-
-			{
-				var p packet.TimeResponse
-				p.Type = packet.TimeResponseType
-				p.SequenceNumber = r.SequenceNumber
-				state.Lock()
-				p.Time = time.Since(startedProcess).Seconds()
-				state.Unlock()
-
-				var buf bytes.Buffer
-				err := binary.Write(&buf, binary.BigEndian, &p)
-				if err != nil {
-					panic(err)
-				}
-				err = sendUdpPacket(c, buf.Bytes())
-				if err != nil {
-					panic(err)
-				}
-			}
-		case packet.PongType:
-			var r packet.Pong
-			err = binary.Read(buf, binary.BigEndian, &r.PingData)
-			if err != nil {
-				panic(err)
-			}
-
-			{
-				var p packet.Pung
-				p.Type = packet.PungType
-				p.PingData = r.PingData
-				p.Time = time.Since(startedProcess).Seconds()
-
-				var buf bytes.Buffer
-				err := binary.Write(&buf, binary.BigEndian, &p)
-				if err != nil {
-					panic(err)
-				}
-				err = sendUdpPacket(c, buf.Bytes())
-				if err != nil {
-					panic(err)
-				}
-			}
-		case packet.ClientCommandType:
-			var r packet.ClientCommand
-			err = binary.Read(buf, binary.BigEndian, &r.CommandSequenceNumber)
-			if err != nil {
-				panic(err)
-			}
-			err = binary.Read(buf, binary.BigEndian, &r.CommandSeriesNumber)
-			if err != nil {
-				panic(err)
-			}
-			err = binary.Read(buf, binary.BigEndian, &r.MovesCount)
-			if err != nil {
-				panic(err)
-			}
-			r.MovesCount += 1 // De-normalize back to 1 (min value).
-			r.Moves = make([]packet.Move, r.MovesCount)
-			err = binary.Read(buf, binary.BigEndian, &r.Moves)
-			if err != nil {
-				panic(err)
-			}
-			//goon.Dump(r)
-
-			// TODO: Properly process and authenticate new result states.
-			if len(r.Moves) > 0 {
-				lastMove := r.Moves[len(r.Moves)-1]
-
-				var playerId int
-				playersStateMu.Lock()
-				for id, ps := range playersState {
-					if ps.conn == c {
-						playerId = id
-						break
-					}
-				}
-				playersStateMu.Unlock()
-
-				{
-					const TOP_SPEED = 3.5
-
-					var TargetVel mgl32.Vec2
-
-					if lastMove.MoveDirection == 255 {
-					} else if lastMove.MoveDirection >= 0 && lastMove.MoveDirection < 8 {
-						direction := float64(lastMove.Z) + Tau*float64(lastMove.MoveDirection)/8
-						speed := TOP_SPEED
-						if lastMove.Stealth != 0 {
-							speed -= 2.25
-						}
-
-						TargetVel[0] = float32(math.Sin(direction) * speed)
-						TargetVel[1] = float32(math.Cos(direction) * speed)
-					} else {
-						log.Printf("WARNING: Invalid nMoveDirection = %v!\n", lastMove.MoveDirection)
-					}
-
-					var CurrentVel = mgl32.Vec2{playersState[playerId].VelX, playersState[playerId].VelY}
-					var Delta = TargetVel.Sub(CurrentVel)
-					if DeltaLength := float64(Delta.Len()); DeltaLength >= 0.001 {
-						Delta = Delta.Normalize()
-
-						var Move1 = DeltaLength * DeltaLength * 0.03
-						var Move2 = math.Min(0.2, DeltaLength)
-
-						CurrentVel = CurrentVel.Add(Delta.Mul(float32(math.Max(Move1, Move2))))
-					}
-
-					playersStateMu.Lock()
-					playersState[playerId] = playerState{
-						VelX: CurrentVel[0],
-						VelY: CurrentVel[1],
-
-						X: playersState[playerId].X + CurrentVel[0],
-						Y: playersState[playerId].Y + CurrentVel[1],
-						Z: lastMove.Z,
-
-						conn: playersState[playerId].conn,
-					}
-					playersStateMu.Unlock()
-				}
-
-				// It takes State #0 and Command #0 to produce State #1.
-				playersStateMu.Lock()
-				serverLastAckedCmdSequenceNumber = r.CommandSequenceNumber + 1
-				playersStateMu.Unlock()
+				c.tcp.Close()
 			}
 		}
 	}
+}
+
+func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *Connection) error {
+	var udpHeader packet.UdpHeader
+	err := binary.Read(buf, binary.BigEndian, &udpHeader)
+	if err != nil {
+		return err
+	}
+
+	if c == nil && udpHeader.Type != packet.HandshakeType {
+		return fmt.Errorf("nil c, unexpected udpHeader.Type: %v", udpHeader.Type)
+	}
+
+	switch udpHeader.Type {
+	case packet.HandshakeType:
+		var r packet.Handshake
+		err = binary.Read(buf, binary.BigEndian, &r.Signature)
+		if err != nil {
+			return err
+		}
+		{
+			r2 := r
+			r2.Signature = 123
+			goon.Dump(r2)
+		}
+
+		state.Lock()
+		for _, connection := range state.connections {
+			if connection.Signature == r.Signature {
+				connection.JoinStatus = UDP_CONNECTED
+				connection.udp = mux.udp
+				connection.UdpAddr = udpAddr
+
+				c = connection
+				break
+			}
+		}
+		state.Unlock()
+
+		if c != nil {
+			var p packet.UdpConnectionEstablished
+			p.Type = packet.UdpConnectionEstablishedType
+
+			p.Length = 0
+
+			var buf bytes.Buffer
+			err := binary.Write(&buf, binary.BigEndian, &p)
+			if err != nil {
+				return err
+			}
+			err = sendTcpPacket(c, buf.Bytes())
+			if err != nil {
+				return err
+			}
+		}
+	case packet.TimeRequestType:
+		var r packet.TimeRequest
+		err = binary.Read(buf, binary.BigEndian, &r.SequenceNumber)
+		if err != nil {
+			return err
+		}
+
+		{
+			var p packet.TimeResponse
+			p.Type = packet.TimeResponseType
+			p.SequenceNumber = r.SequenceNumber
+			state.Lock()
+			p.Time = time.Since(startedProcess).Seconds()
+			state.Unlock()
+
+			var buf bytes.Buffer
+			err := binary.Write(&buf, binary.BigEndian, &p)
+			if err != nil {
+				return err
+			}
+			err = sendUdpPacket(c, buf.Bytes())
+			if err != nil {
+				return err
+			}
+		}
+	case packet.PongType:
+		var r packet.Pong
+		err = binary.Read(buf, binary.BigEndian, &r.PingData)
+		if err != nil {
+			return err
+		}
+
+		{
+			var p packet.Pung
+			p.Type = packet.PungType
+			p.PingData = r.PingData
+			p.Time = time.Since(startedProcess).Seconds()
+
+			var buf bytes.Buffer
+			err := binary.Write(&buf, binary.BigEndian, &p)
+			if err != nil {
+				return err
+			}
+			err = sendUdpPacket(c, buf.Bytes())
+			if err != nil {
+				return err
+			}
+		}
+	case packet.ClientCommandType:
+		var r packet.ClientCommand
+		err = binary.Read(buf, binary.BigEndian, &r.CommandSequenceNumber)
+		if err != nil {
+			return err
+		}
+		err = binary.Read(buf, binary.BigEndian, &r.CommandSeriesNumber)
+		if err != nil {
+			return err
+		}
+		err = binary.Read(buf, binary.BigEndian, &r.MovesCount)
+		if err != nil {
+			return err
+		}
+		r.MovesCount += 1 // De-normalize back to 1 (min value).
+		r.Moves = make([]packet.Move, r.MovesCount)
+		err = binary.Read(buf, binary.BigEndian, &r.Moves)
+		if err != nil {
+			return err
+		}
+		//goon.Dump(r)
+
+		// TODO: Properly process and authenticate new result states.
+		if len(r.Moves) > 0 {
+			lastMove := r.Moves[len(r.Moves)-1]
+
+			var playerId int
+			playersStateMu.Lock()
+			for id, ps := range playersState {
+				if ps.conn == c {
+					playerId = id
+					break
+				}
+			}
+			playersStateMu.Unlock()
+
+			{
+				const TOP_SPEED = 3.5
+
+				var TargetVel mgl32.Vec2
+
+				if lastMove.MoveDirection == 255 {
+				} else if lastMove.MoveDirection >= 0 && lastMove.MoveDirection < 8 {
+					direction := float64(lastMove.Z) + Tau*float64(lastMove.MoveDirection)/8
+					speed := TOP_SPEED
+					if lastMove.Stealth != 0 {
+						speed -= 2.25
+					}
+
+					TargetVel[0] = float32(math.Sin(direction) * speed)
+					TargetVel[1] = float32(math.Cos(direction) * speed)
+				} else {
+					log.Printf("WARNING: Invalid nMoveDirection = %v!\n", lastMove.MoveDirection)
+				}
+
+				var CurrentVel = mgl32.Vec2{playersState[playerId].VelX, playersState[playerId].VelY}
+				var Delta = TargetVel.Sub(CurrentVel)
+				if DeltaLength := float64(Delta.Len()); DeltaLength >= 0.001 {
+					Delta = Delta.Normalize()
+
+					var Move1 = DeltaLength * DeltaLength * 0.03
+					var Move2 = math.Min(0.2, DeltaLength)
+
+					CurrentVel = CurrentVel.Add(Delta.Mul(float32(math.Max(Move1, Move2))))
+				}
+
+				playersStateMu.Lock()
+				playersState[playerId] = playerState{
+					VelX: CurrentVel[0],
+					VelY: CurrentVel[1],
+
+					X: playersState[playerId].X + CurrentVel[0],
+					Y: playersState[playerId].Y + CurrentVel[1],
+					Z: lastMove.Z,
+
+					conn: playersState[playerId].conn,
+				}
+				playersStateMu.Unlock()
+			}
+
+			// It takes State #0 and Command #0 to produce State #1.
+			playersStateMu.Lock()
+			serverLastAckedCmdSequenceNumber = r.CommandSequenceNumber + 1
+			playersStateMu.Unlock()
+		}
+	}
+	return nil
 }
 
 var serverLastAckedCmdSequenceNumber uint8 // TODO: These should be per-connection.
