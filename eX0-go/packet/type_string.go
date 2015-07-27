@@ -9,7 +9,7 @@ const (
 	_Type_name_1 = "UdpConnectionEstablishedTypeEnterGamePermissionTypeEnteredGameNotificationType"
 	_Type_name_2 = "PingTypePongTypePungType"
 	_Type_name_3 = "LoadLevelTypeCurrentPlayersInfoType"
-	_Type_name_4 = "JoinTeamRequestTypePlayerJoinedTeamType"
+	_Type_name_4 = "PlayerJoinedServerTypePlayerLeftServerTypeJoinTeamRequestTypePlayerJoinedTeamType"
 	_Type_name_5 = "LocalPlayerInfoType"
 	_Type_name_6 = "HandshakeType"
 	_Type_name_7 = "TimeRequestTypeTimeResponseType"
@@ -20,7 +20,7 @@ var (
 	_Type_index_1 = [...]uint8{0, 28, 51, 78}
 	_Type_index_2 = [...]uint8{0, 8, 16, 24}
 	_Type_index_3 = [...]uint8{0, 13, 35}
-	_Type_index_4 = [...]uint8{0, 19, 39}
+	_Type_index_4 = [...]uint8{0, 22, 42, 61, 81}
 	_Type_index_5 = [...]uint8{0, 19}
 	_Type_index_6 = [...]uint8{0, 13}
 	_Type_index_7 = [...]uint8{0, 15, 31}
@@ -40,8 +40,8 @@ func (i Type) String() string {
 	case 20 <= i && i <= 21:
 		i -= 20
 		return _Type_name_3[_Type_index_3[i]:_Type_index_3[i+1]]
-	case 27 <= i && i <= 28:
-		i -= 27
+	case 25 <= i && i <= 28:
+		i -= 25
 		return _Type_name_4[_Type_index_4[i]:_Type_index_4[i+1]]
 	case i == 30:
 		return _Type_name_5
