@@ -20,8 +20,8 @@ func sendTcpPacket(c *Connection, b []byte) error {
 		if err != nil {
 			panic(err)
 		}
-		if len(b) != tcpHeaderSize+int(tcpHeader.Length) {
-			panic(fmt.Errorf("sendTcpPacket: invalid size: %v %+v", len(b), tcpHeader))
+		if len(b)-tcpHeaderSize != int(tcpHeader.Length) {
+			panic(fmt.Errorf("sendTcpPacket: invalid payload size: %v %+v", len(b)-tcpHeaderSize, tcpHeader))
 		}
 	}
 
