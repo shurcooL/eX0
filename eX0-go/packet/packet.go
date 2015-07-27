@@ -1,6 +1,8 @@
 // Package packet is for TCP and UDP packets used in eX0 networking protocol.
 package packet
 
+import "encoding/binary"
+
 const MAX_TCP_SIZE = 1448
 const MAX_UDP_SIZE = 1448
 
@@ -38,6 +40,15 @@ const (
 type TcpHeader struct {
 	Length uint16
 	Type   Type
+}
+
+// TcpHeaderSize is the size in bytes of the TCP packet header.
+const TcpHeaderSize = 3
+
+func init() {
+	if TcpHeaderSize != binary.Size(TcpHeader{}) {
+		panic("TcpHeaderSize != binary.Size(TcpHeader{})")
+	}
 }
 
 type JoinServerRequest struct {

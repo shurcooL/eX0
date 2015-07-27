@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 
@@ -60,34 +61,32 @@ func newConnection() *Connection {
 			}
 
 			if udpSize == 0 {
-				const tcpHeaderSize = 3 // TODO: This shouldn't be hardcoded here.
-
 				var b = make([]byte, packet.MAX_TCP_SIZE)
-				_, err := io.ReadFull(c.tcp, b[:tcpHeaderSize])
+				_, err := io.ReadFull(c.tcp, b[:packet.TcpHeaderSize])
 				if err != nil {
 					close(c.recvTcp)
 					close(c.recvUdp)
 					return
 				}
 				var tcpHeader packet.TcpHeader
-				err = binary.Read(bytes.NewReader(b[:tcpHeaderSize]), binary.BigEndian, &tcpHeader)
+				err = binary.Read(bytes.NewReader(b[:packet.TcpHeaderSize]), binary.BigEndian, &tcpHeader)
 				if err != nil {
 					close(c.recvTcp)
 					close(c.recvUdp)
 					return
 				}
-				if tcpHeaderSize+tcpHeader.Length > packet.MAX_TCP_SIZE {
+				if packet.TcpHeaderSize+tcpHeader.Length > packet.MAX_TCP_SIZE {
 					close(c.recvTcp)
 					close(c.recvUdp)
 					return
 				}
-				_, err = io.ReadFull(c.tcp, b[tcpHeaderSize:tcpHeaderSize+tcpHeader.Length])
+				_, err = io.ReadFull(c.tcp, b[packet.TcpHeaderSize:packet.TcpHeaderSize+tcpHeader.Length])
 				if err != nil {
 					close(c.recvTcp)
 					close(c.recvUdp)
 					return
 				}
-				c.recvTcp <- b[:tcpHeaderSize+tcpHeader.Length]
+				c.recvTcp <- b[:packet.TcpHeaderSize+tcpHeader.Length]
 			} else {
 				var b = make([]byte, udpSize, udpSize)
 				_, err := io.ReadFull(c.tcp, b)
@@ -160,12 +159,23 @@ func sendTcpPacket2(c *Connection, b []byte) error {
 	return nil
 }
 
-func receiveTcpPacket(c *Connection) (io.Reader, error) {
+func receiveTcpPacket(c *Connection) (io.Reader, packet.TcpHeader, error) {
 	b, ok := <-c.recvTcp
 	if !ok {
-		return nil, errors.New("conn prob")
+		return nil, packet.TcpHeader{}, errors.New("conn prob")
 	}
-	return bytes.NewReader(b), nil
+	if len(b) < packet.TcpHeaderSize {
+		return nil, packet.TcpHeader{}, fmt.Errorf("tcp packet size %v less than tcp header size %v", len(b), packet.TcpHeaderSize)
+	}
+	var tcpHeader packet.TcpHeader
+	err := binary.Read(bytes.NewReader(b[:packet.TcpHeaderSize]), binary.BigEndian, &tcpHeader)
+	if err != nil {
+		return nil, packet.TcpHeader{}, err
+	}
+	if packet.TcpHeaderSize+tcpHeader.Length > packet.MAX_TCP_SIZE {
+		return nil, packet.TcpHeader{}, fmt.Errorf("tcp packet size %v greater than max %v", packet.TcpHeaderSize+tcpHeader.Length, packet.MAX_TCP_SIZE)
+	}
+	return bytes.NewReader(b), tcpHeader, nil
 }
 
 func sendUdpPacket(c *Connection, b []byte) error {

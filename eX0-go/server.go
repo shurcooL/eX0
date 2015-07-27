@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"math"
 	"net"
@@ -289,16 +290,6 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 		if len(r.Moves) > 0 {
 			lastMove := r.Moves[len(r.Moves)-1]
 
-			var playerId uint8
-			playersStateMu.Lock()
-			for id, ps := range playersState {
-				if ps.conn == c {
-					playerId = id
-					break
-				}
-			}
-			playersStateMu.Unlock()
-
 			{
 				const TOP_SPEED = 3.5
 
@@ -318,7 +309,7 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 					log.Printf("WARNING: Invalid nMoveDirection = %v!\n", lastMove.MoveDirection)
 				}
 
-				var CurrentVel = mgl32.Vec2{playersState[playerId].VelX, playersState[playerId].VelY}
+				var CurrentVel = mgl32.Vec2{playersState[c.PlayerId].VelX, playersState[c.PlayerId].VelY}
 				var Delta = TargetVel.Sub(CurrentVel)
 				if DeltaLength := float64(Delta.Len()); DeltaLength >= 0.001 {
 					Delta = Delta.Normalize()
@@ -330,21 +321,21 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 				}
 
 				playersStateMu.Lock()
-				ps := playersState[playerId]
+				ps := playersState[c.PlayerId]
 				ps.X += CurrentVel[0]
 				ps.Y += CurrentVel[1]
 				ps.Z = lastMove.Z
 				ps.VelX = CurrentVel[0]
 				ps.VelY = CurrentVel[1]
-				playersState[playerId] = ps
+				playersState[c.PlayerId] = ps
 				playersStateMu.Unlock()
 			}
 
 			// It takes State #0 and Command #0 to produce State #1.
 			playersStateMu.Lock()
-			ps := playersState[playerId]
+			ps := playersState[c.PlayerId]
 			ps.serverLastAckedCmdSequenceNumber = r.CommandSequenceNumber + 1
-			playersState[playerId] = ps
+			playersState[c.PlayerId] = ps
 			playersStateMu.Unlock()
 		}
 	}
@@ -361,8 +352,8 @@ func sendServerUpdates(c *Connection) {
 		ps := playersState[c.PlayerId]
 		ps.lastUpdateSequenceNumber++ // First update sent should have sequence number 1.
 		playersState[c.PlayerId] = ps
-		lastUpdateSequenceNumber := playersState[c.PlayerId].lastUpdateSequenceNumber
 		playersStateMu.Unlock()
+		lastUpdateSequenceNumber := ps.lastUpdateSequenceNumber
 
 		// Prepare a ServerUpdate packet.
 		var p packet.ServerUpdate
@@ -372,11 +363,11 @@ func sendServerUpdates(c *Connection) {
 		p.PlayerUpdates = make([]packet.PlayerUpdate, state.TotalPlayerCount)
 		state.Unlock()
 		playersStateMu.Lock()
-		for i, ps := range playersState {
+		for id, ps := range playersState {
 			if ps.conn == nil || ps.conn.JoinStatus < IN_GAME {
 				continue
 			}
-			p.PlayerUpdates[i] = packet.PlayerUpdate{
+			p.PlayerUpdates[id] = packet.PlayerUpdate{
 				ActivePlayer: 1,
 				State: &packet.State{
 					CommandSequenceNumber: ps.serverLastAckedCmdSequenceNumber,
@@ -541,7 +532,7 @@ func handleTcpConnection2(client *Connection) error {
 	var playerId uint8
 
 	{
-		buf, err := receiveTcpPacket(client)
+		buf, _, err := receiveTcpPacket(client)
 		if err != nil {
 			return err
 		}
@@ -644,7 +635,7 @@ func handleTcpConnection2(client *Connection) error {
 	}
 
 	{
-		buf, err := receiveTcpPacket(client)
+		buf, _, err := receiveTcpPacket(client)
 		if err != nil {
 			return err
 		}
@@ -850,7 +841,7 @@ func handleTcpConnection2(client *Connection) error {
 	}
 
 	{
-		buf, err := receiveTcpPacket(client)
+		buf, _, err := receiveTcpPacket(client)
 		if err != nil {
 			return err
 		}
@@ -870,114 +861,120 @@ func handleTcpConnection2(client *Connection) error {
 	}
 
 	for {
-		var team uint8
-
-		{
-			buf, err := receiveTcpPacket(client)
-			if err != nil {
-				return err
-			}
-			var r packet.JoinTeamRequest
-			err = binary.Read(buf, binary.BigEndian, &r.TcpHeader)
-			if err != nil {
-				return err
-			}
-			// TODO: Handle potential PlayerNumber.
-			err = binary.Read(buf, binary.BigEndian, &r.Team)
-			if err != nil {
-				return err
-			}
-			goon.Dump(r)
-
-			team = r.Team
+		buf, tcpHeader, err := receiveTcpPacket(client)
+		if err != nil {
+			return err
 		}
 
-		playersStateMu.Lock()
-		{
-			ps := playersState[playerId]
-			ps.Team = team
-			playersState[playerId] = ps
-		}
-		playersStateMu.Unlock()
+		switch tcpHeader.Type {
+		case packet.JoinTeamRequestType:
+			var team uint8
 
-		state.Lock()
-		playersStateMu.Lock()
-		logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*20
-		fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(startedProcess).Seconds(), playerId, playersState[playerId].Name, team, logicTime, state.session.GlobalStateSequenceNumberTEST)
-		playersStateMu.Unlock()
-		state.Unlock()
+			{
+				var r = packet.JoinTeamRequest{TcpHeader: tcpHeader}
+				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
+				if err != nil {
+					return err
+				}
+				// TODO: Handle potential PlayerNumber.
+				err = binary.Read(buf, binary.BigEndian, &r.Team)
+				if err != nil {
+					return err
+				}
+				goon.Dump(r)
 
-		{
-			var p packet.PlayerJoinedTeam
-			p.Type = packet.PlayerJoinedTeamType
-			p.PlayerId = playerId
-			p.Team = team
+				team = r.Team
+			}
 
 			playersStateMu.Lock()
-			ps := playersState[playerId]
 			{
-				// TODO: Proper spawn location calculation.
-				ps.X = player0Spawn.X + float32(playerId)*20
-				ps.Y = player0Spawn.Y
-				ps.Z = player0Spawn.Z
-				ps.VelX = 0
-				ps.VelY = 0
+				ps := playersState[playerId]
+				ps.Team = team
+				playersState[playerId] = ps
 			}
-			playersState[playerId] = ps
 			playersStateMu.Unlock()
 
 			state.Lock()
-			if p.Team != 2 {
-				p.State = &packet.State{
-					CommandSequenceNumber: state.session.GlobalStateSequenceNumberTEST - 1,
-					X: ps.X,
-					Y: ps.Y,
-					Z: ps.Z,
-				}
-			}
+			playersStateMu.Lock()
+			logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*20
+			fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(startedProcess).Seconds(), playerId, playersState[playerId].Name, team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+			playersStateMu.Unlock()
 			state.Unlock()
 
-			p.Length = 2
-			if p.State != nil {
-				p.Length += 13
-			}
+			{
+				var p packet.PlayerJoinedTeam
+				p.Type = packet.PlayerJoinedTeamType
+				p.PlayerId = playerId
+				p.Team = team
 
-			var buf bytes.Buffer
-			err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
-			if err != nil {
-				return err
-			}
-			err = binary.Write(&buf, binary.BigEndian, &p.PlayerId)
-			if err != nil {
-				return err
-			}
-			err = binary.Write(&buf, binary.BigEndian, &p.Team)
-			if err != nil {
-				return err
-			}
-			if p.State != nil {
-				err = binary.Write(&buf, binary.BigEndian, p.State)
+				playersStateMu.Lock()
+				ps := playersState[playerId]
+				{
+					// TODO: Proper spawn location calculation.
+					ps.X = player0Spawn.X + float32(playerId)*20
+					ps.Y = player0Spawn.Y
+					ps.Z = player0Spawn.Z
+					ps.VelX = 0
+					ps.VelY = 0
+				}
+				playersState[playerId] = ps
+				playersStateMu.Unlock()
+
+				state.Lock()
+				if p.Team != 2 {
+					p.State = &packet.State{
+						CommandSequenceNumber: state.session.GlobalStateSequenceNumberTEST - 1,
+						X: ps.X,
+						Y: ps.Y,
+						Z: ps.Z,
+					}
+				}
+				state.Unlock()
+
+				p.Length = 2
+				if p.State != nil {
+					p.Length += 13
+				}
+
+				var buf bytes.Buffer
+				err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
 				if err != nil {
 					return err
 				}
-			}
-
-			// Broadcast the packet to all connections with at least PUBLIC_CLIENT.
-			var cs []*Connection
-			state.Lock()
-			for _, c := range state.connections {
-				if c.JoinStatus < PUBLIC_CLIENT {
-					continue
-				}
-				cs = append(cs, c)
-			}
-			state.Unlock()
-			for _, c := range cs {
-				err = sendTcpPacket(c, buf.Bytes())
+				err = binary.Write(&buf, binary.BigEndian, &p.PlayerId)
 				if err != nil {
 					return err
 				}
+				err = binary.Write(&buf, binary.BigEndian, &p.Team)
+				if err != nil {
+					return err
+				}
+				if p.State != nil {
+					err = binary.Write(&buf, binary.BigEndian, p.State)
+					if err != nil {
+						return err
+					}
+				}
+
+				// Broadcast the packet to all connections with at least PUBLIC_CLIENT.
+				var cs []*Connection
+				state.Lock()
+				for _, c := range state.connections {
+					if c.JoinStatus < PUBLIC_CLIENT {
+						continue
+					}
+					cs = append(cs, c)
+				}
+				state.Unlock()
+				for _, c := range cs {
+					err = sendTcpPacket(c, buf.Bytes())
+					if err != nil {
+						return err
+					}
+				}
 			}
+		default:
+			fmt.Println("[server] got unsupported tcp packet type:", tcpHeader.Type)
 		}
 	}
 }

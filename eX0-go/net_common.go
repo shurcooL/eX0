@@ -11,17 +11,16 @@ import (
 func sendTcpPacket(c *Connection, b []byte) error {
 	// Validate packet size (for debugging).
 	if debugValidation {
-		const tcpHeaderSize = 3 // TODO: This shouldn't be hardcoded here.
-		if len(b) < tcpHeaderSize {
-			panic(fmt.Errorf("sendTcpPacket: smaller than tcpHeaderSize: %v", b))
+		if len(b) < packet.TcpHeaderSize {
+			panic(fmt.Errorf("sendTcpPacket: smaller than packet.TcpHeaderSize: %v", b))
 		}
 		var tcpHeader packet.TcpHeader
-		err := binary.Read(bytes.NewReader(b[:tcpHeaderSize]), binary.BigEndian, &tcpHeader)
+		err := binary.Read(bytes.NewReader(b[:packet.TcpHeaderSize]), binary.BigEndian, &tcpHeader)
 		if err != nil {
 			panic(err)
 		}
-		if len(b)-tcpHeaderSize != int(tcpHeader.Length) {
-			panic(fmt.Errorf("sendTcpPacket: invalid payload size: %v %+v", len(b)-tcpHeaderSize, tcpHeader))
+		if len(b)-packet.TcpHeaderSize != int(tcpHeader.Length) {
+			panic(fmt.Errorf("sendTcpPacket: invalid payload size: %v %+v", len(b)-packet.TcpHeaderSize, tcpHeader))
 		}
 	}
 

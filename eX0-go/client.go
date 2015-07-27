@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -73,7 +75,7 @@ func connectToServer(s *Connection) {
 	}
 
 	{
-		buf, err := receiveTcpPacket(s)
+		buf, _, err := receiveTcpPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -112,7 +114,7 @@ func connectToServer(s *Connection) {
 	}
 
 	{
-		buf, err := receiveTcpPacket(s)
+		buf, _, err := receiveTcpPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -204,7 +206,7 @@ func connectToServer(s *Connection) {
 	}
 
 	{
-		buf, err := receiveTcpPacket(s)
+		buf, _, err := receiveTcpPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -223,7 +225,7 @@ func connectToServer(s *Connection) {
 	}
 
 	{
-		buf, err := receiveTcpPacket(s)
+		buf, _, err := receiveTcpPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -267,7 +269,7 @@ func connectToServer(s *Connection) {
 	}
 
 	{
-		buf, err := receiveTcpPacket(s)
+		buf, _, err := receiveTcpPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -327,7 +329,7 @@ func connectToServer(s *Connection) {
 	}
 
 	{
-		buf, err := receiveTcpPacket(s)
+		buf, _, err := receiveTcpPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -358,18 +360,69 @@ func connectToServer(s *Connection) {
 			goon.Dump(r2)
 		}
 
-		playersStateMu.Lock()
-		playersState[components_client_id] = playerState{
-			X: r.State.X,
-			Y: r.State.Y,
-			Z: r.State.Z,
+		if components.server == nil {
+			playersStateMu.Lock()
+			ps := playersState[r.PlayerId]
+			ps.X = r.State.X
+			ps.Y = r.State.Y
+			ps.Z = r.State.Z
+			ps.Team = r.Team
+			playersState[r.PlayerId] = ps
+			playersStateMu.Unlock()
 		}
-		playersStateMu.Unlock()
 
 		clientLastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
 	}
 
 	fmt.Println("Client connected and joined team.")
+
+	go func() {
+		for {
+			buf, tcpHeader, err := receiveTcpPacket(s)
+			if err != nil {
+				panic(err)
+			}
+
+			switch tcpHeader.Type {
+			case packet.PlayerJoinedTeamType:
+				var r = packet.PlayerJoinedTeam{TcpHeader: tcpHeader}
+				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
+				if err != nil {
+					panic(err)
+				}
+				err = binary.Read(buf, binary.BigEndian, &r.PlayerId)
+				if err != nil {
+					panic(err)
+				}
+				err = binary.Read(buf, binary.BigEndian, &r.Team)
+				if err != nil {
+					panic(err)
+				}
+				if r.Team != 2 {
+					r.State = new(packet.State)
+					err = binary.Read(buf, binary.BigEndian, r.State)
+					if err != nil {
+						panic(err)
+					}
+				}
+
+				if components.server == nil {
+					playersStateMu.Lock()
+					ps := playersState[r.PlayerId]
+					ps.X = r.State.X
+					ps.Y = r.State.Y
+					ps.Z = r.State.Z
+					ps.Team = r.Team
+					playersState[r.PlayerId] = ps
+					playersStateMu.Unlock()
+				}
+
+				clientLastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
+			default:
+				fmt.Println("[client] got unsupported tcp packet type:", tcpHeader.Type)
+			}
+		}
+	}()
 }
 
 func clientHandleUdp(s *Connection) {
@@ -413,7 +466,7 @@ func clientHandleUdp(s *Connection) {
 			}
 
 			if trpReceived == 30 {
-				if components.server == nil { // TODO: This check should be more like "if !components.logic.authoritative", and logic timer should be inside components.logic.
+				if components.server == nil { // TODO: This check should be more like "if !components.logic.authoritative", and logic timer should be inside components.logic. Better yet, each of server and client components should have a pointer to logic component that they own.
 					// Adjust logic clock.
 					delta := shortestLatencyLocalTime - shortestLatencyRemoteTime
 					state.Lock()
@@ -503,15 +556,15 @@ func clientHandleUdp(s *Connection) {
 
 			if components.server == nil {
 				playersStateMu.Lock()
-				for i, pu := range r.PlayerUpdates {
+				for id, pu := range r.PlayerUpdates {
 					if pu.ActivePlayer != 0 {
-						playersState[uint8(i)] = playerState{
-							X: pu.State.X,
-							Y: pu.State.Y,
-							Z: pu.State.Z,
-						}
+						ps := playersState[uint8(id)]
+						ps.X = pu.State.X
+						ps.Y = pu.State.Y
+						ps.Z = pu.State.Z
+						playersState[uint8(id)] = ps
 					} else {
-						delete(playersState, uint8(i))
+						delete(playersState, uint8(id))
 					}
 				}
 				playersStateMu.Unlock()

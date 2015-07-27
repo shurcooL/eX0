@@ -4,8 +4,12 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
+	"fmt"
 	"io"
 	"net"
+
+	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
 // TCP and UDP via local channels. Requires `-tags=chan`.
@@ -52,9 +56,20 @@ func sendTcpPacket2(c *Connection, b []byte) error {
 	return nil
 }
 
-func receiveTcpPacket(c *Connection) (io.Reader, error) {
+func receiveTcpPacket(c *Connection) (io.Reader, packet.TcpHeader, error) {
 	b := <-c.recvTcp
-	return bytes.NewReader(b), nil
+	if len(b) < packet.TcpHeaderSize {
+		return nil, packet.TcpHeader{}, fmt.Errorf("tcp packet size %v less than tcp header size %v", len(b), packet.TcpHeaderSize)
+	}
+	var tcpHeader packet.TcpHeader
+	err := binary.Read(bytes.NewReader(b[:packet.TcpHeaderSize]), binary.BigEndian, &tcpHeader)
+	if err != nil {
+		return nil, packet.TcpHeader{}, err
+	}
+	if packet.TcpHeaderSize+tcpHeader.Length > packet.MAX_TCP_SIZE {
+		return nil, packet.TcpHeader{}, fmt.Errorf("tcp packet size %v greater than max %v", packet.TcpHeaderSize+tcpHeader.Length, packet.MAX_TCP_SIZE)
+	}
+	return bytes.NewReader(b), tcpHeader, nil
 }
 
 func sendUdpPacket(c *Connection, b []byte) error {
