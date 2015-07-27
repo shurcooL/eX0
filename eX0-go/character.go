@@ -55,6 +55,10 @@ void main() {
 		fragmentSource = `//#version 120 // OpenGL 2.1.
 //#version 100 // WebGL.
 
+#ifdef GL_ES
+	precision lowp float;
+#endif
+
 uniform vec3 uColor;
 
 void main() {
