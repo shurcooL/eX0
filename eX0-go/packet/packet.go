@@ -16,6 +16,8 @@ const (
 	EnteredGameNotificationType  Type = 7
 	LoadLevelType                Type = 20
 	CurrentPlayersInfoType       Type = 21
+	PlayerJoinedServerType       Type = 25
+	PlayerLeftServerType         Type = 26
 	JoinTeamRequestType          Type = 27
 	PlayerJoinedTeamType         Type = 28
 	LocalPlayerInfoType          Type = 30
@@ -87,6 +89,20 @@ type State struct {
 	X                     float32
 	Y                     float32
 	Z                     float32
+}
+
+type PlayerJoinedServer struct {
+	TcpHeader
+
+	PlayerId   uint8
+	NameLength uint8
+	Name       []byte
+}
+
+type PlayerLeftServer struct {
+	TcpHeader
+
+	PlayerId uint8
 }
 
 type JoinTeamRequest struct {

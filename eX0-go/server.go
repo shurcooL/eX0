@@ -446,7 +446,7 @@ func broadcastPingPacket() {
 			panic(err)
 		}
 
-		// Get a list of all connections to broadcast to.
+		// Broadcast the packet to all connections with at least IN_GAME.
 		var cs []*Connection
 		state.Lock()
 		for _, c := range state.connections {
@@ -456,8 +456,6 @@ func broadcastPingPacket() {
 			cs = append(cs, c)
 		}
 		state.Unlock()
-
-		// Broadcast the packet.
 		for _, c := range cs {
 			err = sendUdpPacket(c, buf.Bytes())
 			if err != nil {
@@ -472,6 +470,50 @@ func broadcastPingPacket() {
 func handleTcpConnection(client *Connection) {
 	err := handleTcpConnection2(client)
 	fmt.Println("tcp conn ended with:", err)
+
+	if client.JoinStatus >= PUBLIC_CLIENT {
+		// Broadcast a PlayerLeftServer packet.
+		err := func() error {
+			var p packet.PlayerLeftServer
+			p.Type = packet.PlayerLeftServerType
+
+			p.Length = 1
+
+			p.PlayerId = client.PlayerId
+
+			var buf bytes.Buffer
+			err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
+			if err != nil {
+				return err
+			}
+			err = binary.Write(&buf, binary.BigEndian, &p.PlayerId)
+			if err != nil {
+				return err
+			}
+
+			// Broadcast the packet to all other connections with at least PUBLIC_CLIENT.
+			var cs []*Connection
+			state.Lock()
+			for _, c := range state.connections {
+				if c.JoinStatus < PUBLIC_CLIENT || c == client {
+					continue
+				}
+				cs = append(cs, c)
+			}
+			state.Unlock()
+			for _, c := range cs {
+				err = sendTcpPacket(c, buf.Bytes())
+				if err != nil {
+					// TODO: This error handling is wrong. If fail to send to one client, should still send to others, etc.
+					return err
+				}
+			}
+			return nil
+		}()
+		if err != nil {
+			fmt.Println("error while broadcasting PlayerLeftServer packet:", err)
+		}
+	}
 
 	state.Lock()
 	for i, connection := range state.connections {
@@ -741,6 +783,56 @@ func handleTcpConnection2(client *Connection) error {
 	}
 
 	{
+		var p packet.PlayerJoinedServer
+		p.Type = packet.PlayerJoinedServerType
+
+		playersStateMu.Lock()
+		ps := playersState[playerId]
+		playersStateMu.Unlock()
+
+		p.PlayerId = playerId
+		p.NameLength = uint8(len(ps.Name))
+		p.Name = []byte(ps.Name)
+
+		p.Length = 2 + uint16(len(p.Name))
+
+		var buf bytes.Buffer
+		err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
+		if err != nil {
+			return err
+		}
+		err = binary.Write(&buf, binary.BigEndian, &p.PlayerId)
+		if err != nil {
+			return err
+		}
+		err = binary.Write(&buf, binary.BigEndian, &p.NameLength)
+		if err != nil {
+			return err
+		}
+		err = binary.Write(&buf, binary.BigEndian, &p.Name)
+		if err != nil {
+			return err
+		}
+
+		// Broadcast the packet to all other connections with at least PUBLIC_CLIENT.
+		var cs []*Connection
+		state.Lock()
+		for _, c := range state.connections {
+			if c.JoinStatus < PUBLIC_CLIENT || c == client {
+				continue
+			}
+			cs = append(cs, c)
+		}
+		state.Unlock()
+		for _, c := range cs {
+			err = sendTcpPacket(c, buf.Bytes())
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	{
 		var p packet.EnterGamePermission
 		p.Type = packet.EnterGamePermissionType
 
@@ -869,9 +961,22 @@ func handleTcpConnection2(client *Connection) error {
 					return err
 				}
 			}
-			err = sendTcpPacket(client, buf.Bytes())
-			if err != nil {
-				return err
+
+			// Broadcast the packet to all connections with at least PUBLIC_CLIENT.
+			var cs []*Connection
+			state.Lock()
+			for _, c := range state.connections {
+				if c.JoinStatus < PUBLIC_CLIENT {
+					continue
+				}
+				cs = append(cs, c)
+			}
+			state.Unlock()
+			for _, c := range cs {
+				err = sendTcpPacket(c, buf.Bytes())
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
