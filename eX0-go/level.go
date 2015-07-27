@@ -48,8 +48,9 @@ type level struct {
 	vertexPositionAttribute gl.Attrib
 }
 
-const (
-	levelVertexSource = `//#version 120 // OpenGL 2.1.
+func (l *level) initShaders() error {
+	const (
+		vertexSource = `//#version 120 // OpenGL 2.1.
 //#version 100 // WebGL.
 
 attribute vec3 aVertexPosition;
@@ -61,18 +62,17 @@ void main() {
 	gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
 }
 `
-	levelFragmentSource = `//#version 120 // OpenGL 2.1.
+		fragmentSource = `//#version 120 // OpenGL 2.1.
 //#version 100 // WebGL.
 
 void main() {
 	gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 }
 `
-)
+	)
 
-func (l *level) initShaders() error {
 	var err error
-	l.program, err = glutil.CreateProgram(characterVertexSource, characterFragmentSource)
+	l.program, err = glutil.CreateProgram(vertexSource, fragmentSource)
 	if err != nil {
 		return err
 	}

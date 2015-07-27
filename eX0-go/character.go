@@ -33,12 +33,14 @@ type character struct {
 	program                 gl.Program
 	pMatrixUniform          gl.Uniform
 	mvMatrixUniform         gl.Uniform
+	colorUniform            gl.Uniform
 	vertexPositionBuffer    gl.Buffer
 	vertexPositionAttribute gl.Attrib
 }
 
-const (
-	characterVertexSource = `//#version 120 // OpenGL 2.1.
+func (l *character) initShaders() error {
+	const (
+		vertexSource = `//#version 120 // OpenGL 2.1.
 //#version 100 // WebGL.
 
 attribute vec3 aVertexPosition;
@@ -50,18 +52,19 @@ void main() {
 	gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
 }
 `
-	characterFragmentSource = `//#version 120 // OpenGL 2.1.
+		fragmentSource = `//#version 120 // OpenGL 2.1.
 //#version 100 // WebGL.
 
+uniform vec3 uColor;
+
 void main() {
-	gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+	gl_FragColor = vec4(uColor, 1.0);
 }
 `
-)
+	)
 
-func (l *character) initShaders() error {
 	var err error
-	l.program, err = glutil.CreateProgram(characterVertexSource, characterFragmentSource)
+	l.program, err = glutil.CreateProgram(vertexSource, fragmentSource)
 	if err != nil {
 		return err
 	}
@@ -75,6 +78,7 @@ func (l *character) initShaders() error {
 
 	l.pMatrixUniform = gl.GetUniformLocation(l.program, "uPMatrix")
 	l.mvMatrixUniform = gl.GetUniformLocation(l.program, "uMVMatrix")
+	l.colorUniform = gl.GetUniformLocation(l.program, "uColor")
 
 	if glError := gl.GetError(); glError != 0 {
 		return fmt.Errorf("gl.GetError: %v", glError)
@@ -114,13 +118,18 @@ func (l *character) setup() {
 	gl.VertexAttribPointer(l.vertexPositionAttribute, 2, gl.FLOAT, false, 0, 0)
 }
 
-func (l *character) render() {
-	var first int
+func (l *character) render(team uint8) {
+	switch team {
+	case 0:
+		gl.Uniform3f(l.colorUniform, 1, 0, 0)
+	case 1:
+		gl.Uniform3f(l.colorUniform, 0, 0, 1)
+	}
 
+	var first int
 	count := l.vertexCount
 	gl.DrawArrays(gl.TRIANGLE_STRIP, first, count)
 	first += count
-
 	count = 4
 	gl.DrawArrays(gl.TRIANGLE_FAN, first, count)
 	first += count

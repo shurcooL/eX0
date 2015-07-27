@@ -90,7 +90,7 @@ func view(runGameLogic bool) {
 			c.setup()
 			gl.UniformMatrix4fv(c.pMatrixUniform, pMatrix[:])
 			gl.UniformMatrix4fv(c.mvMatrixUniform, mvMatrix[:])
-			c.render()
+			c.render(ps.Team)
 		}
 		playersStateMu.Unlock()
 
