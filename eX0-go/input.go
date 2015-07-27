@@ -13,7 +13,7 @@ func inputCommand(window *glfw.Window) packet.Move {
 	playersStateMu.Lock()
 	var move = packet.Move{
 		MoveDirection: 255,
-		Z:             playersState[int(components_client_id)].Z,
+		Z:             playersState[components_client_id].Z,
 	}
 	playersStateMu.Unlock()
 

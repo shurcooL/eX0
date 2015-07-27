@@ -359,7 +359,7 @@ func connectToServer(s *Connection) {
 		}
 
 		playersStateMu.Lock()
-		playersState[int(components_client_id)] = playerState{
+		playersState[components_client_id] = playerState{
 			X: r.State.X,
 			Y: r.State.Y,
 			Z: r.State.Z,
@@ -505,13 +505,13 @@ func clientHandleUdp(s *Connection) {
 				playersStateMu.Lock()
 				for i, pu := range r.PlayerUpdates {
 					if pu.ActivePlayer != 0 {
-						playersState[i] = playerState{
+						playersState[uint8(i)] = playerState{
 							X: pu.State.X,
 							Y: pu.State.Y,
 							Z: pu.State.Z,
 						}
 					} else {
-						delete(playersState, i)
+						delete(playersState, uint8(i))
 					}
 				}
 				playersStateMu.Unlock()

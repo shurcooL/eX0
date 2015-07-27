@@ -21,8 +21,8 @@ var state = struct {
 
 // TODO: I think this should be moved into logic component (not server), yeah?
 //       There's also some overlap with state.connections, shouldn't that be resolved?
-var playersStateMu sync.Mutex            // Also protects serverLastAckedCmdSequenceNumber.
-var playersState = map[int]playerState{} // Player Id -> Player State.
+var playersStateMu sync.Mutex
+var playersState = map[uint8]playerState{} // Player Id -> Player State.
 
 // TODO: Get rid of this.
 var player0Spawn = playerState{
@@ -41,4 +41,7 @@ type playerState struct {
 
 	// TODO: Move this to a better place.
 	conn *Connection
+
+	serverLastAckedCmdSequenceNumber uint8
+	lastUpdateSequenceNumber         uint8
 }

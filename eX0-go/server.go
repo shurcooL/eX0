@@ -37,7 +37,6 @@ func startServer() *server {
 		go listenAndHandleChan()
 	}
 
-	go sendServerUpdates()
 	go broadcastPingPacket()
 
 	time.Sleep(time.Millisecond) // HACK: Give some time for listeners to start.
@@ -290,7 +289,7 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 		if len(r.Moves) > 0 {
 			lastMove := r.Moves[len(r.Moves)-1]
 
-			var playerId int
+			var playerId uint8
 			playersStateMu.Lock()
 			for id, ps := range playersState {
 				if ps.conn == c {
@@ -331,34 +330,40 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 				}
 
 				playersStateMu.Lock()
-				playersState[playerId] = playerState{
-					VelX: CurrentVel[0],
-					VelY: CurrentVel[1],
-
-					X: playersState[playerId].X + CurrentVel[0],
-					Y: playersState[playerId].Y + CurrentVel[1],
-					Z: lastMove.Z,
-
-					conn: playersState[playerId].conn,
-				}
+				ps := playersState[playerId]
+				ps.X += CurrentVel[0]
+				ps.Y += CurrentVel[1]
+				ps.Z = lastMove.Z
+				ps.VelX = CurrentVel[0]
+				ps.VelY = CurrentVel[1]
+				playersState[playerId] = ps
 				playersStateMu.Unlock()
 			}
 
 			// It takes State #0 and Command #0 to produce State #1.
 			playersStateMu.Lock()
-			serverLastAckedCmdSequenceNumber = r.CommandSequenceNumber + 1
+			ps := playersState[playerId]
+			ps.serverLastAckedCmdSequenceNumber = r.CommandSequenceNumber + 1
+			playersState[playerId] = ps
 			playersStateMu.Unlock()
 		}
 	}
 	return nil
 }
 
-var serverLastAckedCmdSequenceNumber uint8 // TODO: These should be per-connection.
-var lastUpdateSequenceNumber uint8 = 1     // TODO: These should be per-connection.
-
-// TODO: Apparently C++ version sends updates to each connection individually (at their update rate), so do that for now.
-func sendServerUpdates() {
+func sendServerUpdates(c *Connection) {
 	for ; true; time.Sleep(time.Second / 20) {
+		playersStateMu.Lock()
+		if _, ok := playersState[c.PlayerId]; !ok { // HACK.
+			playersStateMu.Unlock()
+			return
+		}
+		ps := playersState[c.PlayerId]
+		ps.lastUpdateSequenceNumber++ // First update sent should have sequence number 1.
+		playersState[c.PlayerId] = ps
+		lastUpdateSequenceNumber := playersState[c.PlayerId].lastUpdateSequenceNumber
+		playersStateMu.Unlock()
+
 		// Prepare a ServerUpdate packet.
 		var p packet.ServerUpdate
 		p.Type = packet.ServerUpdateType
@@ -374,7 +379,7 @@ func sendServerUpdates() {
 			p.PlayerUpdates[i] = packet.PlayerUpdate{
 				ActivePlayer: 1,
 				State: &packet.State{
-					CommandSequenceNumber: serverLastAckedCmdSequenceNumber,
+					CommandSequenceNumber: ps.serverLastAckedCmdSequenceNumber,
 					X: ps.X,
 					Y: ps.Y,
 					Z: ps.Z,
@@ -406,26 +411,11 @@ func sendServerUpdates() {
 			}
 		}
 
-		// Get a list of all connections to broadcast to.
-		var cs []*Connection
-		state.Lock()
-		for _, c := range state.connections {
-			if c.JoinStatus < IN_GAME {
-				continue
-			}
-			cs = append(cs, c)
+		// Send the packet to this client.
+		err = sendUdpPacket(c, buf.Bytes())
+		if err != nil {
+			panic(err)
 		}
-		state.Unlock()
-
-		// Broadcast the packet.
-		for _, c := range cs {
-			err = sendUdpPacket(c, buf.Bytes())
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		lastUpdateSequenceNumber++
 	}
 }
 
@@ -551,15 +541,15 @@ func handleTcpConnection2(client *Connection) error {
 		state.Lock()
 		playersStateMu.Lock()
 		playerId = func /* allocatePlayerId */ () uint8 {
-			for id := 0; ; id++ {
+			for id := uint8(0); ; id++ {
 				if _, taken := playersState[id]; !taken {
-					return uint8(id)
+					return id
 				}
 			}
 		}()
 		serverFull := playerId >= state.TotalPlayerCount
 		if !serverFull {
-			playersState[int(playerId)] = playerState{conn: client}
+			playersState[playerId] = playerState{conn: client}
 			client.Signature = r.Signature
 			client.PlayerId = playerId
 			client.JoinStatus = ACCEPTED
@@ -648,10 +638,10 @@ func handleTcpConnection2(client *Connection) error {
 		state.Lock()
 		playersStateMu.Lock()
 		{
-			ps := playersState[int(playerId)]
+			ps := playersState[playerId]
 			ps.Name = string(r.Name)
 			ps.Team = 2
-			playersState[int(playerId)] = ps
+			playersState[playerId] = ps
 		}
 		client.JoinStatus = PUBLIC_CLIENT
 		playersStateMu.Unlock()
@@ -692,7 +682,7 @@ func handleTcpConnection2(client *Connection) error {
 			if c.JoinStatus < PUBLIC_CLIENT {
 				continue
 			}
-			ps := playersState[int(c.PlayerId)]
+			ps := playersState[c.PlayerId]
 			var playerInfo packet.PlayerInfo
 			playerInfo.NameLength = uint8(len(ps.Name))
 			if playerInfo.NameLength > 0 {
@@ -702,7 +692,7 @@ func handleTcpConnection2(client *Connection) error {
 				p.Length += 1
 				if playerInfo.Team != 2 {
 					playerInfo.State = &packet.State{
-						CommandSequenceNumber: serverLastAckedCmdSequenceNumber,
+						CommandSequenceNumber: ps.serverLastAckedCmdSequenceNumber,
 						X: ps.X,
 						Y: ps.Y,
 						Z: ps.Z,
@@ -782,6 +772,9 @@ func handleTcpConnection2(client *Connection) error {
 		state.Lock()
 		client.JoinStatus = IN_GAME
 		state.Unlock()
+
+		// TODO: Who is responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way.
+		go sendServerUpdates(client)
 	}
 
 	for {
@@ -809,16 +802,16 @@ func handleTcpConnection2(client *Connection) error {
 
 		playersStateMu.Lock()
 		{
-			ps := playersState[int(playerId)]
+			ps := playersState[playerId]
 			ps.Team = team
-			playersState[int(playerId)] = ps
+			playersState[playerId] = ps
 		}
 		playersStateMu.Unlock()
 
 		state.Lock()
 		playersStateMu.Lock()
 		logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*20
-		fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(startedProcess).Seconds(), playerId, playersState[int(playerId)].Name, team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+		fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(startedProcess).Seconds(), playerId, playersState[playerId].Name, team, logicTime, state.session.GlobalStateSequenceNumberTEST)
 		playersStateMu.Unlock()
 		state.Unlock()
 
@@ -829,7 +822,7 @@ func handleTcpConnection2(client *Connection) error {
 			p.Team = team
 
 			playersStateMu.Lock()
-			ps := playersState[int(playerId)]
+			ps := playersState[playerId]
 			{
 				// TODO: Proper spawn location calculation.
 				ps.X = player0Spawn.X + float32(playerId)*20
@@ -838,7 +831,7 @@ func handleTcpConnection2(client *Connection) error {
 				ps.VelX = 0
 				ps.VelY = 0
 			}
-			playersState[int(playerId)] = ps
+			playersState[playerId] = ps
 			playersStateMu.Unlock()
 
 			state.Lock()
