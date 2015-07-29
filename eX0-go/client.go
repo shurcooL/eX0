@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
-	"github.com/shurcooL/eX0/eX0-go/team"
 	"github.com/shurcooL/go-goon"
 )
 
@@ -473,7 +472,7 @@ func connectToServer(s *Connection) {
 					playersState[r.PlayerId] = ps
 					playersStateMu.Unlock()
 
-					fmt.Printf("%v joined %v.\n", ps.Name, team.Stringer(ps.Team))
+					fmt.Printf("%v joined %v.\n", ps.Name, ps.Team)
 				}
 
 				if r.State != nil {

@@ -868,7 +868,7 @@ func handleTcpConnection2(client *Connection) error {
 
 		switch tcpHeader.Type {
 		case packet.JoinTeamRequestType:
-			var team uint8
+			var team packet.Team
 
 			{
 				var r = packet.JoinTeamRequest{TcpHeader: tcpHeader}

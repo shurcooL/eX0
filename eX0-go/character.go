@@ -9,6 +9,7 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/goxjs/gl"
 	"github.com/goxjs/gl/glutil"
+	"github.com/shurcooL/eX0/eX0-go/packet"
 	"golang.org/x/mobile/exp/f32"
 )
 
@@ -122,11 +123,11 @@ func (l *character) setup() {
 	gl.VertexAttribPointer(l.vertexPositionAttribute, 2, gl.FLOAT, false, 0, 0)
 }
 
-func (l *character) render(team uint8) {
+func (l *character) render(team packet.Team) {
 	switch team {
-	case 0:
+	case packet.Red:
 		gl.Uniform3f(l.colorUniform, 1, 0, 0)
-	case 1:
+	case packet.Blue:
 		gl.Uniform3f(l.colorUniform, 0, 0, 1)
 	}
 

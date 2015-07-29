@@ -1,6 +1,10 @@
 package main
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/shurcooL/eX0/eX0-go/packet"
+)
 
 type server struct{}
 
@@ -37,7 +41,7 @@ type playerState struct {
 	VelX, VelY float32
 
 	Name string
-	Team uint8
+	Team packet.Team
 
 	// TODO: Move this to a better place.
 	conn *Connection

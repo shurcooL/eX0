@@ -91,7 +91,7 @@ type CurrentPlayersInfo struct {
 type PlayerInfo struct {
 	NameLength uint8
 	Name       []byte // If NameLength > 0.
-	Team       uint8  // If NameLength > 0.
+	Team       Team   // If NameLength > 0.
 	State      *State // If NameLength > 0 && Team != 2.
 }
 
@@ -120,14 +120,14 @@ type JoinTeamRequest struct {
 	TcpHeader
 
 	PlayerNumber *uint8 // If > 1 players per connection, player index within the connection.
-	Team         uint8
+	Team         Team
 }
 
 type PlayerJoinedTeam struct {
 	TcpHeader
 
 	PlayerId uint8
-	Team     uint8
+	Team     Team
 	State    *State // If Team != 2.
 }
 
