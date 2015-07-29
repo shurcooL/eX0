@@ -19,6 +19,6 @@ func (t Team) String() string {
 	case Spectator:
 		return "spectators"
 	default:
-		panic(fmt.Errorf("unsupported team %v", t))
+		panic(fmt.Errorf("unsupported team %d", t))
 	}
 }
