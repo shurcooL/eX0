@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
+	"github.com/shurcooL/eX0/eX0-go/team"
 	"github.com/shurcooL/go-goon"
 )
 
@@ -363,15 +364,19 @@ func connectToServer(s *Connection) {
 		if components.server == nil {
 			playersStateMu.Lock()
 			ps := playersState[r.PlayerId]
-			ps.X = r.State.X
-			ps.Y = r.State.Y
-			ps.Z = r.State.Z
+			if r.State != nil {
+				ps.X = r.State.X
+				ps.Y = r.State.Y
+				ps.Z = r.State.Z
+			}
 			ps.Team = r.Team
 			playersState[r.PlayerId] = ps
 			playersStateMu.Unlock()
 		}
 
-		clientLastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
+		if r.State != nil {
+			clientLastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
+		}
 	}
 
 	fmt.Println("Client connected and joined team.")
@@ -412,6 +417,8 @@ func connectToServer(s *Connection) {
 					playersStateMu.Lock()
 					playersState[r.PlayerId] = ps
 					playersStateMu.Unlock()
+
+					fmt.Printf("%v is entering the game.\n", ps.Name)
 				}
 			case packet.PlayerLeftServerType:
 				var r = packet.PlayerLeftServer{TcpHeader: tcpHeader}
@@ -426,8 +433,11 @@ func connectToServer(s *Connection) {
 
 				if components.server == nil {
 					playersStateMu.Lock()
+					ps := playersState[r.PlayerId]
 					delete(playersState, r.PlayerId)
 					playersStateMu.Unlock()
+
+					fmt.Printf("%v left the game.\n", ps.Name)
 				}
 			case packet.PlayerJoinedTeamType:
 				var r = packet.PlayerJoinedTeam{TcpHeader: tcpHeader}
@@ -454,15 +464,21 @@ func connectToServer(s *Connection) {
 				if components.server == nil {
 					playersStateMu.Lock()
 					ps := playersState[r.PlayerId]
-					ps.X = r.State.X
-					ps.Y = r.State.Y
-					ps.Z = r.State.Z
+					if r.State != nil {
+						ps.X = r.State.X
+						ps.Y = r.State.Y
+						ps.Z = r.State.Z
+					}
 					ps.Team = r.Team
 					playersState[r.PlayerId] = ps
 					playersStateMu.Unlock()
+
+					fmt.Printf("%v joined %v.\n", ps.Name, team.Stringer(ps.Team))
 				}
 
-				clientLastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
+				if r.State != nil {
+					clientLastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
+				}
 			default:
 				fmt.Println("[client] got unsupported tcp packet type:", tcpHeader.Type)
 			}
@@ -608,8 +624,6 @@ func clientHandleUdp(s *Connection) {
 						ps.Y = pu.State.Y
 						ps.Z = pu.State.Z
 						playersState[uint8(id)] = ps
-					} else {
-						delete(playersState, uint8(id))
 					}
 				}
 				playersStateMu.Unlock()
