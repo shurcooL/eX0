@@ -384,6 +384,51 @@ func connectToServer(s *Connection) {
 			}
 
 			switch tcpHeader.Type {
+			case packet.PlayerJoinedServerType:
+				var r = packet.PlayerJoinedServer{TcpHeader: tcpHeader}
+				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
+				if err != nil {
+					panic(err)
+				}
+				err = binary.Read(buf, binary.BigEndian, &r.PlayerId)
+				if err != nil {
+					panic(err)
+				}
+				err = binary.Read(buf, binary.BigEndian, &r.NameLength)
+				if err != nil {
+					panic(err)
+				}
+				r.Name = make([]byte, r.NameLength)
+				err = binary.Read(buf, binary.BigEndian, &r.Name)
+				if err != nil {
+					panic(err)
+				}
+
+				if components.server == nil {
+					ps := playerState{
+						Name: string(r.Name),
+						Team: 2,
+					}
+					playersStateMu.Lock()
+					playersState[r.PlayerId] = ps
+					playersStateMu.Unlock()
+				}
+			case packet.PlayerLeftServerType:
+				var r = packet.PlayerLeftServer{TcpHeader: tcpHeader}
+				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
+				if err != nil {
+					panic(err)
+				}
+				err = binary.Read(buf, binary.BigEndian, &r.PlayerId)
+				if err != nil {
+					panic(err)
+				}
+
+				if components.server == nil {
+					playersStateMu.Lock()
+					delete(playersState, r.PlayerId)
+					playersStateMu.Unlock()
+				}
 			case packet.PlayerJoinedTeamType:
 				var r = packet.PlayerJoinedTeam{TcpHeader: tcpHeader}
 				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
