@@ -236,6 +236,7 @@ func ExampleFullConnection() {
 	// 		Type:   (packet.Type)(7),
 	// 	}),
 	// })
+	// Client connected and joining team.
 	// (packet.JoinTeamRequest)(packet.JoinTeamRequest{
 	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
 	// 		Length: (uint16)(1),
@@ -258,7 +259,6 @@ func ExampleFullConnection() {
 	// 		Z: (float32)(3),
 	// 	}),
 	// })
-	// Client connected and joined team.
 }
 
 // Requires an empty server to be running.

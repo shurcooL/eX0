@@ -254,7 +254,7 @@ func connectToServer(s *Connection) {
 					panic(err)
 				}
 
-				if playerInfo.Team != 2 {
+				if playerInfo.Team != packet.Spectator {
 					playerInfo.State = new(packet.State)
 					err = binary.Read(buf, binary.BigEndian, playerInfo.State)
 					if err != nil {
@@ -306,10 +306,13 @@ func connectToServer(s *Connection) {
 
 	time.Sleep(3 * time.Second)
 
+	fmt.Println("Client connected and joining team.")
+	var debugFirstJoin = true
+
 	{
 		var p packet.JoinTeamRequest
 		p.Type = packet.JoinTeamRequestType
-		p.Team = 0
+		p.Team = packet.Red
 
 		p.Length = 1
 
@@ -327,58 +330,6 @@ func connectToServer(s *Connection) {
 			panic(err)
 		}
 	}
-
-	{
-		buf, _, err := receiveTcpPacket(s)
-		if err != nil {
-			panic(err)
-		}
-		var r packet.PlayerJoinedTeam
-		err = binary.Read(buf, binary.BigEndian, &r.TcpHeader)
-		if err != nil {
-			panic(err)
-		}
-		err = binary.Read(buf, binary.BigEndian, &r.PlayerId)
-		if err != nil {
-			panic(err)
-		}
-		err = binary.Read(buf, binary.BigEndian, &r.Team)
-		if err != nil {
-			panic(err)
-		}
-		if r.Team != 2 {
-			r.State = new(packet.State)
-			err = binary.Read(buf, binary.BigEndian, r.State)
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		{
-			r2 := r
-			r2.State = &packet.State{CommandSequenceNumber: 123, X: 1.0, Y: 2.0, Z: 3.0} // Override with deterministic value so test passes.
-			goon.Dump(r2)
-		}
-
-		if components.server == nil {
-			playersStateMu.Lock()
-			ps := playersState[r.PlayerId]
-			if r.State != nil {
-				ps.authed.X = r.State.X
-				ps.authed.Y = r.State.Y
-				ps.authed.Z = r.State.Z
-			}
-			ps.Team = r.Team
-			playersState[r.PlayerId] = ps
-			playersStateMu.Unlock()
-		}
-
-		if r.State != nil {
-			clientLastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
-		}
-	}
-
-	fmt.Println("Client connected and joined team.")
 
 	go func() {
 		for {
@@ -452,12 +403,19 @@ func connectToServer(s *Connection) {
 				if err != nil {
 					panic(err)
 				}
-				if r.Team != 2 {
+				if r.Team != packet.Spectator {
 					r.State = new(packet.State)
 					err = binary.Read(buf, binary.BigEndian, r.State)
 					if err != nil {
 						panic(err)
 					}
+				}
+
+				if debugFirstJoin {
+					debugFirstJoin = false
+					r2 := r
+					r2.State = &packet.State{CommandSequenceNumber: 123, X: 1.0, Y: 2.0, Z: 3.0} // Override with deterministic value so test passes.
+					goon.Dump(r2)
 				}
 
 				if components.server == nil {
