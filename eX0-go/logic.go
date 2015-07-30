@@ -37,7 +37,7 @@ func (l *logic) gameLogic(doInput func()) {
 
 		state.Lock()
 		if now := time.Since(startedProcess).Seconds(); now >= state.session.NextTickTime {
-			state.session.NextTickTime += 1.0 / 20
+			state.session.NextTickTime += 1.0 / 20 * 20
 			state.session.GlobalStateSequenceNumberTEST++
 			tick = true
 			sleep = time.Duration((state.session.NextTickTime - now) * float64(time.Second))

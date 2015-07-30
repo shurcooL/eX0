@@ -408,7 +408,7 @@ void CPlayer::CalcTrajs(State_st & oState)
 	//float fVelX, fVelY;
 
 	#define TOP_SPEED (3.5f)
-#if 0
+#if 1
 	// Update the player velocity (acceleration)
 	if (m_oCommand.cMoveDirection == -1)
 	{
@@ -686,8 +686,8 @@ void CPlayer::SetZ(float fValue)
 
 float CPlayer::GetZ()
 {
-	return fZ + Math::Sin(g_pGameSession->LogicTimer().GetTime() * 10.0f) * GetVelocity() * GetVelocity() / 3.5f * 0.0075f;
-	//return fZ;
+	//return fZ + Math::Sin(g_pGameSession->LogicTimer().GetTime() * 10.0f) * GetVelocity() * GetVelocity() / 3.5f * 0.0075f;
+	return fZ;
 }
 
 //void CPlayer::SetLastLatency(u_short nLastLatency) { eX0_assert(pConnection == NULL || dynamic_cast<RemoteClientConnection *>(pConnection), "called CPlayer::SetLastLatency(u_short) when pConnection != NULL"); m_nLastLatency = nLastLatency; }
