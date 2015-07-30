@@ -22,8 +22,6 @@ var pongSentTimes = make(map[uint32]time.Time) // PingData -> Time.
 
 var clientToServerConn *Connection
 
-var clientLastAckedCmdSequenceNumber uint8
-
 type client struct {
 	// TODO:
 	//id int // Own player ID.
@@ -425,16 +423,13 @@ func connectToServer(s *Connection) {
 						ps.authed.X = r.State.X
 						ps.authed.Y = r.State.Y
 						ps.authed.Z = r.State.Z
+						ps.authed.SequenceNumber = r.State.CommandSequenceNumber
 					}
 					ps.Team = r.Team
 					playersState[r.PlayerId] = ps
 					playersStateMu.Unlock()
 
 					fmt.Printf("%v joined %v.\n", ps.Name, ps.Team)
-				}
-
-				if r.State != nil {
-					clientLastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
 				}
 			default:
 				fmt.Println("[client] got unsupported tcp packet type:", tcpHeader.Type)
