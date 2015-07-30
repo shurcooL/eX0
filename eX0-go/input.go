@@ -12,8 +12,8 @@ import (
 func inputCommand(window *glfw.Window) packet.Move {
 	playersStateMu.Lock()
 	var move = packet.Move{
-		MoveDirection: 255,
-		Z:             playersState[components_client_id].Z,
+		MoveDirection: -1,
+		Z:             playersState[components_client_id].authed.Z,
 	}
 	playersStateMu.Unlock()
 

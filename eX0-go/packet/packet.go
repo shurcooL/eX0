@@ -162,7 +162,7 @@ type ClientCommand struct {
 }
 
 type Move struct {
-	MoveDirection uint8
+	MoveDirection int8
 	Stealth       uint8
 	Z             float32
 }

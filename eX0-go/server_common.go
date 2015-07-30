@@ -28,17 +28,19 @@ var state = struct {
 var playersStateMu sync.Mutex
 var playersState = map[uint8]playerState{} // Player Id -> Player State.
 
-// TODO: Get rid of this.
-var player0Spawn = playerState{
-	X: 25,
-	Y: -220,
-	Z: 6.0,
+type playerPosVel struct {
+	X, Y, Z    float32
+	VelX, VelY float32
+}
+
+type sequencedPlayerPosVel struct {
+	playerPosVel
+	SequenceNumber uint8
 }
 
 // TODO: Split into positions (there will be many over time) and current name, team, connection, etc.
 type playerState struct {
-	X, Y, Z    float32
-	VelX, VelY float32
+	authed sequencedPlayerPosVel
 
 	Name string
 	Team packet.Team
@@ -46,6 +48,5 @@ type playerState struct {
 	// TODO: Move this to a better place.
 	conn *Connection
 
-	serverLastAckedCmdSequenceNumber uint8
-	lastUpdateSequenceNumber         uint8
+	lastServerUpdateSequenceNumber uint8 // Sequence Number of last packet.ServerUpdate sent to this connection.
 }

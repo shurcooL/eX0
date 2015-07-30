@@ -4,6 +4,7 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/goxjs/gl"
 	"github.com/goxjs/glfw"
+	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
 var windowSize = [2]int{640, 480}
@@ -79,13 +80,13 @@ func view(runGameLogic bool) {
 			if ps.conn != nil && ps.conn.JoinStatus < IN_GAME {
 				continue
 			}
-			if ps.Team == 2 {
+			if ps.Team == packet.Spectator {
 				continue
 			}
 
 			mvMatrix = mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
-			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(ps.X, ps.Y, 0))
-			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-ps.Z))
+			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(ps.authed.X, ps.authed.Y, 0))
+			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-ps.authed.Z))
 
 			c.setup()
 			gl.UniformMatrix4fv(c.pMatrixUniform, pMatrix[:])

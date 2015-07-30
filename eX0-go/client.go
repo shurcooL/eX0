@@ -364,9 +364,9 @@ func connectToServer(s *Connection) {
 			playersStateMu.Lock()
 			ps := playersState[r.PlayerId]
 			if r.State != nil {
-				ps.X = r.State.X
-				ps.Y = r.State.Y
-				ps.Z = r.State.Z
+				ps.authed.X = r.State.X
+				ps.authed.Y = r.State.Y
+				ps.authed.Z = r.State.Z
 			}
 			ps.Team = r.Team
 			playersState[r.PlayerId] = ps
@@ -464,9 +464,9 @@ func connectToServer(s *Connection) {
 					playersStateMu.Lock()
 					ps := playersState[r.PlayerId]
 					if r.State != nil {
-						ps.X = r.State.X
-						ps.Y = r.State.Y
-						ps.Z = r.State.Z
+						ps.authed.X = r.State.X
+						ps.authed.Y = r.State.Y
+						ps.authed.Z = r.State.Z
 					}
 					ps.Team = r.Team
 					playersState[r.PlayerId] = ps
@@ -619,9 +619,9 @@ func clientHandleUdp(s *Connection) {
 				for id, pu := range r.PlayerUpdates {
 					if pu.ActivePlayer != 0 {
 						ps := playersState[uint8(id)]
-						ps.X = pu.State.X
-						ps.Y = pu.State.Y
-						ps.Z = pu.State.Z
+						ps.authed.X = pu.State.X
+						ps.authed.Y = pu.State.Y
+						ps.authed.Z = pu.State.Z
 						playersState[uint8(id)] = ps
 					}
 				}
