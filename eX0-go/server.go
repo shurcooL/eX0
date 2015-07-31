@@ -287,15 +287,22 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 		//goon.Dump(r)
 
 		// TODO: Properly process and authenticate new result states.
-		if len(r.Moves) > 0 {
-			lastMove := r.Moves[len(r.Moves)-1]
+		{
+			playersStateMu.Lock()
+			lastState := playersState[c.PlayerId].LatestAuthed()
+			playersStateMu.Unlock()
 
+			lastMove := r.Moves[len(r.Moves)-1] // There's always at least one move in a ClientCommand packet.
+
+			// TODO: Check that state sn == command sn, etc.
+
+			var newState sequencedPlayerPosVel
 			{
 				const TOP_SPEED = 3.5
 
 				var TargetVel mgl32.Vec2
 
-				if lastMove.MoveDirection == 255 {
+				if lastMove.MoveDirection == -1 {
 				} else if lastMove.MoveDirection >= 0 && lastMove.MoveDirection < 8 {
 					direction := float64(lastMove.Z) + Tau*float64(lastMove.MoveDirection)/8
 					speed := TOP_SPEED
@@ -309,7 +316,7 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 					log.Printf("WARNING: Invalid nMoveDirection = %v!\n", lastMove.MoveDirection)
 				}
 
-				var CurrentVel = mgl32.Vec2{playersState[c.PlayerId].VelX, playersState[c.PlayerId].VelY}
+				var CurrentVel = mgl32.Vec2{lastState.VelX, lastState.VelY}
 				var Delta = TargetVel.Sub(CurrentVel)
 				if DeltaLength := float64(Delta.Len()); DeltaLength >= 0.001 {
 					Delta = Delta.Normalize()
@@ -320,21 +327,22 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 					CurrentVel = CurrentVel.Add(Delta.Mul(float32(math.Max(Move1, Move2))))
 				}
 
-				playersStateMu.Lock()
-				ps := playersState[c.PlayerId]
-				ps.X += CurrentVel[0]
-				ps.Y += CurrentVel[1]
-				ps.Z = lastMove.Z
-				ps.VelX = CurrentVel[0]
-				ps.VelY = CurrentVel[1]
-				playersState[c.PlayerId] = ps
-				playersStateMu.Unlock()
+				if commandRate == 1 {
+					CurrentVel = TargetVel.Mul(20)
+				}
+
+				// It takes State #n and Command #n to produce State #n+1.
+				newState.X = lastState.X + CurrentVel[0]
+				newState.Y = lastState.Y + CurrentVel[1]
+				newState.Z = lastMove.Z
+				newState.VelX = CurrentVel[0]
+				newState.VelY = CurrentVel[1]
+				newState.SequenceNumber = r.CommandSequenceNumber + 1
 			}
 
-			// It takes State #0 and Command #0 to produce State #1.
 			playersStateMu.Lock()
 			ps := playersState[c.PlayerId]
-			ps.serverLastAckedCmdSequenceNumber = r.CommandSequenceNumber + 1
+			ps.PushAuthed(newState)
 			playersState[c.PlayerId] = ps
 			playersStateMu.Unlock()
 		}
@@ -350,30 +358,30 @@ func sendServerUpdates(c *Connection) {
 			return
 		}
 		ps := playersState[c.PlayerId]
-		ps.lastUpdateSequenceNumber++ // First update sent should have sequence number 1.
+		ps.lastServerUpdateSequenceNumber++ // First update sent should have sequence number 1.
 		playersState[c.PlayerId] = ps
 		playersStateMu.Unlock()
-		lastUpdateSequenceNumber := ps.lastUpdateSequenceNumber
+		lastServerUpdateSequenceNumber := ps.lastServerUpdateSequenceNumber
 
 		// Prepare a ServerUpdate packet.
 		var p packet.ServerUpdate
 		p.Type = packet.ServerUpdateType
-		p.CurrentUpdateSequenceNumber = lastUpdateSequenceNumber
+		p.CurrentUpdateSequenceNumber = lastServerUpdateSequenceNumber
 		state.Lock()
 		p.PlayerUpdates = make([]packet.PlayerUpdate, state.TotalPlayerCount)
 		state.Unlock()
 		playersStateMu.Lock()
 		for id, ps := range playersState {
-			if ps.conn == nil || ps.conn.JoinStatus < IN_GAME || ps.Team == 2 {
+			if ps.conn == nil || ps.conn.JoinStatus < IN_GAME || ps.Team == packet.Spectator {
 				continue
 			}
 			p.PlayerUpdates[id] = packet.PlayerUpdate{
 				ActivePlayer: 1,
 				State: &packet.State{
-					CommandSequenceNumber: ps.serverLastAckedCmdSequenceNumber,
-					X: ps.X,
-					Y: ps.Y,
-					Z: ps.Z,
+					CommandSequenceNumber: ps.LatestAuthed().SequenceNumber,
+					X: ps.LatestAuthed().X,
+					Y: ps.LatestAuthed().Y,
+					Z: ps.LatestAuthed().Z,
 				},
 			}
 		}
@@ -673,7 +681,7 @@ func handleTcpConnection2(client *Connection) error {
 		{
 			ps := playersState[playerId]
 			ps.Name = string(r.Name)
-			ps.Team = 2
+			ps.Team = packet.Spectator
 			playersState[playerId] = ps
 		}
 		client.JoinStatus = PUBLIC_CLIENT
@@ -723,12 +731,12 @@ func handleTcpConnection2(client *Connection) error {
 				p.Length += uint16(playerInfo.NameLength)
 				playerInfo.Team = ps.Team
 				p.Length += 1
-				if playerInfo.Team != 2 {
+				if playerInfo.Team != packet.Spectator {
 					playerInfo.State = &packet.State{
-						CommandSequenceNumber: ps.serverLastAckedCmdSequenceNumber,
-						X: ps.X,
-						Y: ps.Y,
-						Z: ps.Z,
+						CommandSequenceNumber: ps.LatestAuthed().SequenceNumber,
+						X: ps.LatestAuthed().X,
+						Y: ps.LatestAuthed().Y,
+						Z: ps.LatestAuthed().Z,
 					}
 					p.Length += 1 + 4 + 4 + 4
 				}
@@ -759,7 +767,7 @@ func handleTcpConnection2(client *Connection) error {
 					return err
 				}
 
-				if playerInfo.Team != 2 {
+				if playerInfo.Team != packet.Spectator {
 					err = binary.Write(&buf, binary.BigEndian, playerInfo.State)
 					if err != nil {
 						return err
@@ -896,7 +904,7 @@ func handleTcpConnection2(client *Connection) error {
 
 			state.Lock()
 			playersStateMu.Lock()
-			logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*20
+			logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*commandRate
 			fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(startedProcess).Seconds(), playerId, playersState[playerId].Name, team, logicTime, state.session.GlobalStateSequenceNumberTEST)
 			playersStateMu.Unlock()
 			state.Unlock()
@@ -907,26 +915,35 @@ func handleTcpConnection2(client *Connection) error {
 				p.PlayerId = playerId
 				p.Team = team
 
+				state.Lock()
 				playersStateMu.Lock()
 				ps := playersState[playerId]
 				{
 					// TODO: Proper spawn location calculation.
-					ps.X = player0Spawn.X + float32(playerId)*20
-					ps.Y = player0Spawn.Y
-					ps.Z = player0Spawn.Z
-					ps.VelX = 0
-					ps.VelY = 0
+					playerSpawn := playerPosVel{
+						X: 25,
+						Y: -220,
+						Z: 6.0,
+					}
+					playerSpawn.X += float32(playerId) * 20
+
+					ps.NewSeries()
+					ps.PushAuthed(sequencedPlayerPosVel{
+						playerPosVel:   playerSpawn,
+						SequenceNumber: state.session.GlobalStateSequenceNumberTEST - 1,
+					})
 				}
 				playersState[playerId] = ps
 				playersStateMu.Unlock()
+				state.Unlock()
 
 				state.Lock()
-				if p.Team != 2 {
+				if p.Team != packet.Spectator {
 					p.State = &packet.State{
-						CommandSequenceNumber: state.session.GlobalStateSequenceNumberTEST - 1,
-						X: ps.X,
-						Y: ps.Y,
-						Z: ps.Z,
+						CommandSequenceNumber: ps.LatestAuthed().SequenceNumber,
+						X: ps.LatestAuthed().X,
+						Y: ps.LatestAuthed().Y,
+						Z: ps.LatestAuthed().Z,
 					}
 				}
 				state.Unlock()

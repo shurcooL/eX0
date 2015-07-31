@@ -12,8 +12,8 @@ import (
 func inputCommand(window *glfw.Window) packet.Move {
 	playersStateMu.Lock()
 	var move = packet.Move{
-		MoveDirection: 255,
-		Z:             playersState[components_client_id].Z,
+		MoveDirection: -1,
+		Z:             playersState[components_client_id].LatestAuthed().Z,
 	}
 	playersStateMu.Unlock()
 
@@ -68,9 +68,11 @@ func input(window *glfw.Window) {
 	{
 		var p packet.ClientCommand
 		p.Type = packet.ClientCommandType
-		p.CommandSequenceNumber = clientLastAckedCmdSequenceNumber
-		p.CommandSeriesNumber = 1
-		p.Moves = []packet.Move{move}
+		state.Lock()
+		p.CommandSequenceNumber = state.session.GlobalStateSequenceNumberTEST - 1
+		state.Unlock()
+		p.CommandSeriesNumber = 1     // TODO: Don't hardcode this.
+		p.Moves = []packet.Move{move} // TODO: Send all unauthed moves.
 		p.MovesCount = uint8(len(p.Moves)) - 1
 
 		var buf bytes.Buffer
@@ -101,8 +103,5 @@ func input(window *glfw.Window) {
 		if err != nil {
 			panic(err)
 		}
-
-		// TODO: This should be happening when receiving packet.ServerUpdate, etc.
-		clientLastAckedCmdSequenceNumber++
 	}
 }

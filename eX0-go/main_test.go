@@ -13,10 +13,12 @@ func ExampleFullConnection() {
 		}
 	}()
 
-	components.logic = startLogic(nil)
+	components.logic = startLogic()
 	components.server = startServer() // Wait for server to start listening.
 	components.client = startClient()
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
+	components.logic.quit <- struct{}{}
+	<-components.logic.quit
 
 	// Output:
 	// Started server.
@@ -236,6 +238,7 @@ func ExampleFullConnection() {
 	// 		Type:   (packet.Type)(7),
 	// 	}),
 	// })
+	// Client connected and joining team.
 	// (packet.JoinTeamRequest)(packet.JoinTeamRequest{
 	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
 	// 		Length: (uint16)(1),
@@ -258,7 +261,6 @@ func ExampleFullConnection() {
 	// 		Z: (float32)(3),
 	// 	}),
 	// })
-	// Client connected and joined team.
 }
 
 // Requires an empty server to be running.

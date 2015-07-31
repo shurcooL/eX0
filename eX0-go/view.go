@@ -4,13 +4,14 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/goxjs/gl"
 	"github.com/goxjs/glfw"
+	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
 var windowSize = [2]int{640, 480}
 
 var cameraX, cameraY float64 = 362, 340
 
-func view(runGameLogic bool) {
+func view(gameLogicInput bool) {
 	err := glfw.Init(gl.ContextWatcher)
 	if err != nil {
 		panic(err)
@@ -57,8 +58,8 @@ func view(runGameLogic bool) {
 		panic(err)
 	}
 
-	if runGameLogic {
-		components.logic = startLogic(func() { input(window) })
+	if gameLogicInput {
+		components.logic.Input <- func() { input(window) }
 	}
 
 	for !window.ShouldClose() {
@@ -74,18 +75,21 @@ func view(runGameLogic bool) {
 		gl.UniformMatrix4fv(l.mvMatrixUniform, mvMatrix[:])
 		l.render()
 
+		state.Lock()
 		playersStateMu.Lock()
 		for _, ps := range playersState {
 			if ps.conn != nil && ps.conn.JoinStatus < IN_GAME {
 				continue
 			}
-			if ps.Team == 2 {
+			if ps.Team == packet.Spectator {
 				continue
 			}
 
+			pos := ps.Interpolated()
+
 			mvMatrix = mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
-			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(ps.X, ps.Y, 0))
-			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-ps.Z))
+			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(pos.X, pos.Y, 0))
+			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-pos.Z))
 
 			c.setup()
 			gl.UniformMatrix4fv(c.pMatrixUniform, pMatrix[:])
@@ -93,12 +97,8 @@ func view(runGameLogic bool) {
 			c.render(ps.Team)
 		}
 		playersStateMu.Unlock()
+		state.Unlock()
 
 		window.SwapBuffers()
-	}
-
-	if runGameLogic {
-		components.logic.quit <- struct{}{}
-		<-components.logic.quit
 	}
 }

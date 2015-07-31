@@ -22,8 +22,6 @@ var pongSentTimes = make(map[uint32]time.Time) // PingData -> Time.
 
 var clientToServerConn *Connection
 
-var clientLastAckedCmdSequenceNumber uint8
-
 type client struct {
 	// TODO:
 	//id int // Own player ID.
@@ -254,7 +252,7 @@ func connectToServer(s *Connection) {
 					panic(err)
 				}
 
-				if playerInfo.Team != 2 {
+				if playerInfo.Team != packet.Spectator {
 					playerInfo.State = new(packet.State)
 					err = binary.Read(buf, binary.BigEndian, playerInfo.State)
 					if err != nil {
@@ -266,6 +264,33 @@ func connectToServer(s *Connection) {
 			r.Players[i] = playerInfo
 		}
 		goon.Dump(r)
+
+		if components.server == nil {
+			state.Lock()
+			playersStateMu.Lock()
+			for id, p := range r.Players {
+				if p.NameLength == 0 {
+					continue
+				}
+				ps := playerState{
+					Name: string(p.Name),
+					Team: p.Team,
+				}
+				if p.State != nil {
+					ps.PushAuthed(sequencedPlayerPosVel{
+						playerPosVel: playerPosVel{
+							X: p.State.X,
+							Y: p.State.Y,
+							Z: p.State.Z,
+						},
+						SequenceNumber: p.State.CommandSequenceNumber,
+					})
+				}
+				playersState[uint8(id)] = ps
+			}
+			playersStateMu.Unlock()
+			state.Unlock()
+		}
 	}
 
 	{
@@ -306,10 +331,13 @@ func connectToServer(s *Connection) {
 
 	time.Sleep(3 * time.Second)
 
+	fmt.Println("Client connected and joining team.")
+	var debugFirstJoin = true
+
 	{
 		var p packet.JoinTeamRequest
 		p.Type = packet.JoinTeamRequestType
-		p.Team = 0
+		p.Team = packet.Red
 
 		p.Length = 1
 
@@ -327,58 +355,6 @@ func connectToServer(s *Connection) {
 			panic(err)
 		}
 	}
-
-	{
-		buf, _, err := receiveTcpPacket(s)
-		if err != nil {
-			panic(err)
-		}
-		var r packet.PlayerJoinedTeam
-		err = binary.Read(buf, binary.BigEndian, &r.TcpHeader)
-		if err != nil {
-			panic(err)
-		}
-		err = binary.Read(buf, binary.BigEndian, &r.PlayerId)
-		if err != nil {
-			panic(err)
-		}
-		err = binary.Read(buf, binary.BigEndian, &r.Team)
-		if err != nil {
-			panic(err)
-		}
-		if r.Team != 2 {
-			r.State = new(packet.State)
-			err = binary.Read(buf, binary.BigEndian, r.State)
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		{
-			r2 := r
-			r2.State = &packet.State{CommandSequenceNumber: 123, X: 1.0, Y: 2.0, Z: 3.0} // Override with deterministic value so test passes.
-			goon.Dump(r2)
-		}
-
-		if components.server == nil {
-			playersStateMu.Lock()
-			ps := playersState[r.PlayerId]
-			if r.State != nil {
-				ps.X = r.State.X
-				ps.Y = r.State.Y
-				ps.Z = r.State.Z
-			}
-			ps.Team = r.Team
-			playersState[r.PlayerId] = ps
-			playersStateMu.Unlock()
-		}
-
-		if r.State != nil {
-			clientLastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
-		}
-	}
-
-	fmt.Println("Client connected and joined team.")
 
 	go func() {
 		for {
@@ -452,7 +428,7 @@ func connectToServer(s *Connection) {
 				if err != nil {
 					panic(err)
 				}
-				if r.Team != 2 {
+				if r.Team != packet.Spectator {
 					r.State = new(packet.State)
 					err = binary.Read(buf, binary.BigEndian, r.State)
 					if err != nil {
@@ -460,23 +436,39 @@ func connectToServer(s *Connection) {
 					}
 				}
 
+				state.Lock()
+				playersStateMu.Lock()
+				logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*commandRate
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(startedProcess).Seconds(), components_client_id, playersState[components_client_id].Name, r.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+				playersStateMu.Unlock()
+				state.Unlock()
+
+				if debugFirstJoin {
+					debugFirstJoin = false
+					r2 := r
+					r2.State = &packet.State{CommandSequenceNumber: 123, X: 1.0, Y: 2.0, Z: 3.0} // Override with deterministic value so test passes.
+					goon.Dump(r2)
+				}
+
 				if components.server == nil {
 					playersStateMu.Lock()
 					ps := playersState[r.PlayerId]
 					if r.State != nil {
-						ps.X = r.State.X
-						ps.Y = r.State.Y
-						ps.Z = r.State.Z
+						ps.NewSeries()
+						ps.PushAuthed(sequencedPlayerPosVel{
+							playerPosVel: playerPosVel{
+								X: r.State.X,
+								Y: r.State.Y,
+								Z: r.State.Z,
+							},
+							SequenceNumber: r.State.CommandSequenceNumber,
+						})
 					}
 					ps.Team = r.Team
 					playersState[r.PlayerId] = ps
 					playersStateMu.Unlock()
 
 					fmt.Printf("%v joined %v.\n", ps.Name, ps.Team)
-				}
-
-				if r.State != nil {
-					clientLastAckedCmdSequenceNumber = r.State.CommandSequenceNumber
 				}
 			default:
 				fmt.Println("[client] got unsupported tcp packet type:", tcpHeader.Type)
@@ -532,6 +524,12 @@ func clientHandleUdp(s *Connection) {
 					state.Lock()
 					startedProcess = startedProcess.Add(time.Duration(delta * float64(time.Second)))
 					fmt.Fprintf(os.Stderr, "delta: %.3f seconds, startedProcess: %v\n", delta, startedProcess)
+					logicTime := time.Since(startedProcess).Seconds()
+					state.session.GlobalStateSequenceNumberTEST = uint8(logicTime * commandRate) // TODO: Adjust this.
+					state.session.NextTickTime = 0                                               // TODO: Adjust this.
+					for state.session.NextTickTime+1.0/commandRate < logicTime {
+						state.session.NextTickTime += 1.0 / commandRate
+					}
 					state.Unlock()
 				}
 
@@ -614,14 +612,21 @@ func clientHandleUdp(s *Connection) {
 				r.PlayerUpdates[i] = playerUpdate
 			}
 
+			// TODO: Verify r.CurrentUpdateSequenceNumber.
+
 			if components.server == nil {
 				playersStateMu.Lock()
 				for id, pu := range r.PlayerUpdates {
 					if pu.ActivePlayer != 0 {
 						ps := playersState[uint8(id)]
-						ps.X = pu.State.X
-						ps.Y = pu.State.Y
-						ps.Z = pu.State.Z
+						ps.PushAuthed(sequencedPlayerPosVel{
+							playerPosVel: playerPosVel{
+								X: pu.State.X,
+								Y: pu.State.Y,
+								Z: pu.State.Z,
+							},
+							SequenceNumber: pu.State.CommandSequenceNumber,
+						})
 						playersState[uint8(id)] = ps
 					}
 				}
