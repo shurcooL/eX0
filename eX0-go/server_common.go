@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -84,6 +85,7 @@ func (ps playerState) Interpolated() playerPosVel {
 	// Check if we're looking for a sequence number newer than history contains.
 	if int8(state.session.GlobalStateSequenceNumberTEST-b.SequenceNumber) > 0 {
 		// TODO: Extrapolate from history?
+		fmt.Println("warning: using LatestAuthed because:", int8(state.session.GlobalStateSequenceNumberTEST-b.SequenceNumber))
 		return ps.LatestAuthed().playerPosVel
 	}
 
