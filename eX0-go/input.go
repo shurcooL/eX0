@@ -13,7 +13,7 @@ func inputCommand(window *glfw.Window) packet.Move {
 	playersStateMu.Lock()
 	var move = packet.Move{
 		MoveDirection: -1,
-		Z:             playersState[components_client_id].authed.Z,
+		Z:             playersState[components_client_id].LatestAuthed().Z,
 	}
 	playersStateMu.Unlock()
 
@@ -63,18 +63,16 @@ func inputCommand(window *glfw.Window) packet.Move {
 func input(window *glfw.Window) {
 	move := inputCommand(window)
 
-	playersStateMu.Lock()
-	latestAuthed := playersState[components_client_id].authed
-	playersStateMu.Unlock()
-
 	// TODO: This should be done via Local/Network State Auther. This currently hardcodes network state auther.
 	// Send a ClientCommand packet to server.
 	{
 		var p packet.ClientCommand
 		p.Type = packet.ClientCommandType
-		p.CommandSequenceNumber = latestAuthed.SequenceNumber // TODO: This should be based on current time.
-		p.CommandSeriesNumber = 1                             // TODO: Don't hardcode this.
-		p.Moves = []packet.Move{move}                         // TODO: Send all unauthed moves.
+		state.Lock()
+		p.CommandSequenceNumber = state.session.GlobalStateSequenceNumberTEST - 1
+		state.Unlock()
+		p.CommandSeriesNumber = 1     // TODO: Don't hardcode this.
+		p.Moves = []packet.Move{move} // TODO: Send all unauthed moves.
 		p.MovesCount = uint8(len(p.Moves)) - 1
 
 		var buf bytes.Buffer

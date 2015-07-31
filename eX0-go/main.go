@@ -29,20 +29,28 @@ func main() {
 		components.client = startClient()
 		time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 	case len(args) == 1 && args[0] == "server":
-		components.logic = startLogic(nil)
+		components.logic = startLogic()
 		components.server = startServer()
 		select {}
 	case len(args) == 1 && args[0] == "server-view":
-		components.logic = startLogic(nil)
+		components.logic = startLogic()
 		components.server = startServer()
 		view(false)
 	case len(args) == 1 && args[0] == "client-view":
+		components.logic = startLogic()
 		components.client = startClient()
 		view(true)
+
+		components.logic.quit <- struct{}{}
+		<-components.logic.quit
 	case len(args) == 1 && (args[0] == "client-server-view" || args[0] == "server-client-view"):
+		components.logic = startLogic()
 		components.server = startServer()
 		components.client = startClient()
 		view(true)
+
+		components.logic.quit <- struct{}{}
+		<-components.logic.quit
 	default:
 		fmt.Fprintf(os.Stderr, "invalid usage: %q\n", args)
 		os.Exit(2)

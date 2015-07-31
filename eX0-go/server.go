@@ -289,7 +289,7 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 		// TODO: Properly process and authenticate new result states.
 		{
 			playersStateMu.Lock()
-			lastState := playersState[c.PlayerId].authed
+			lastState := playersState[c.PlayerId].LatestAuthed()
 			playersStateMu.Unlock()
 
 			lastMove := r.Moves[len(r.Moves)-1] // There's always at least one move in a ClientCommand packet.
@@ -340,7 +340,7 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 
 			playersStateMu.Lock()
 			ps := playersState[c.PlayerId]
-			ps.authed = newState
+			ps.PushAuthed(newState)
 			playersState[c.PlayerId] = ps
 			playersStateMu.Unlock()
 		}
@@ -370,16 +370,16 @@ func sendServerUpdates(c *Connection) {
 		state.Unlock()
 		playersStateMu.Lock()
 		for id, ps := range playersState {
-			if ps.conn == nil || ps.conn.JoinStatus < IN_GAME || ps.Team == 2 {
+			if ps.conn == nil || ps.conn.JoinStatus < IN_GAME || ps.Team == packet.Spectator {
 				continue
 			}
 			p.PlayerUpdates[id] = packet.PlayerUpdate{
 				ActivePlayer: 1,
 				State: &packet.State{
-					CommandSequenceNumber: ps.authed.SequenceNumber,
-					X: ps.authed.X,
-					Y: ps.authed.Y,
-					Z: ps.authed.Z,
+					CommandSequenceNumber: ps.LatestAuthed().SequenceNumber,
+					X: ps.LatestAuthed().X,
+					Y: ps.LatestAuthed().Y,
+					Z: ps.LatestAuthed().Z,
 				},
 			}
 		}
@@ -679,7 +679,7 @@ func handleTcpConnection2(client *Connection) error {
 		{
 			ps := playersState[playerId]
 			ps.Name = string(r.Name)
-			ps.Team = 2
+			ps.Team = packet.Spectator
 			playersState[playerId] = ps
 		}
 		client.JoinStatus = PUBLIC_CLIENT
@@ -729,12 +729,12 @@ func handleTcpConnection2(client *Connection) error {
 				p.Length += uint16(playerInfo.NameLength)
 				playerInfo.Team = ps.Team
 				p.Length += 1
-				if playerInfo.Team != 2 {
+				if playerInfo.Team != packet.Spectator {
 					playerInfo.State = &packet.State{
-						CommandSequenceNumber: ps.authed.SequenceNumber,
-						X: ps.authed.X,
-						Y: ps.authed.Y,
-						Z: ps.authed.Z,
+						CommandSequenceNumber: ps.LatestAuthed().SequenceNumber,
+						X: ps.LatestAuthed().X,
+						Y: ps.LatestAuthed().Y,
+						Z: ps.LatestAuthed().Z,
 					}
 					p.Length += 1 + 4 + 4 + 4
 				}
@@ -765,7 +765,7 @@ func handleTcpConnection2(client *Connection) error {
 					return err
 				}
 
-				if playerInfo.Team != 2 {
+				if playerInfo.Team != packet.Spectator {
 					err = binary.Write(&buf, binary.BigEndian, playerInfo.State)
 					if err != nil {
 						return err
@@ -913,28 +913,35 @@ func handleTcpConnection2(client *Connection) error {
 				p.PlayerId = playerId
 				p.Team = team
 
+				state.Lock()
 				playersStateMu.Lock()
 				ps := playersState[playerId]
 				{
 					// TODO: Proper spawn location calculation.
-					player0Spawn := playerPosVel{
+					playerSpawn := playerPosVel{
 						X: 25,
 						Y: -220,
 						Z: 6.0,
 					}
-					ps.authed.playerPosVel = player0Spawn
-					ps.authed.X += float32(playerId) * 20
+					playerSpawn.X += float32(playerId) * 20
+
+					ps.NewSeries()
+					ps.PushAuthed(sequencedPlayerPosVel{
+						playerPosVel:   playerSpawn,
+						SequenceNumber: state.session.GlobalStateSequenceNumberTEST - 1,
+					})
 				}
 				playersState[playerId] = ps
 				playersStateMu.Unlock()
+				state.Unlock()
 
 				state.Lock()
-				if p.Team != 2 {
+				if p.Team != packet.Spectator {
 					p.State = &packet.State{
-						CommandSequenceNumber: state.session.GlobalStateSequenceNumberTEST - 1,
-						X: ps.authed.X,
-						Y: ps.authed.Y,
-						Z: ps.authed.Z,
+						CommandSequenceNumber: ps.LatestAuthed().SequenceNumber,
+						X: ps.LatestAuthed().X,
+						Y: ps.LatestAuthed().Y,
+						Z: ps.LatestAuthed().Z,
 					}
 				}
 				state.Unlock()

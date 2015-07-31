@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"sync"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
@@ -40,7 +42,7 @@ type sequencedPlayerPosVel struct {
 
 // TODO: Split into positions (there will be many over time) and current name, team, connection, etc.
 type playerState struct {
-	authed sequencedPlayerPosVel
+	authed []sequencedPlayerPosVel
 
 	Name string
 	Team packet.Team
@@ -48,5 +50,24 @@ type playerState struct {
 	// TODO: Move this to a better place.
 	conn *Connection
 
-	lastServerUpdateSequenceNumber uint8 // Sequence Number of last packet.ServerUpdate sent to this connection.
+	lastServerUpdateSequenceNumber uint8 // Sequence Number of last packet.ServerUpdate sent to this connection. // TODO: This should go into a serverToClient connection struct.
+}
+
+func (ps playerState) LatestAuthed() sequencedPlayerPosVel {
+	return ps.authed[len(ps.authed)-1]
+}
+
+func (ps *playerState) PushAuthed(newState sequencedPlayerPosVel) {
+	if len(ps.authed) > 0 && newState.SequenceNumber == ps.authed[len(ps.authed)-1].SequenceNumber {
+		// Skip updates that are not newer.
+		return
+	}
+	// TODO: GC.
+	fmt.Fprintln(os.Stderr, "PushAuthed:", newState.SequenceNumber)
+	ps.authed = append(ps.authed, newState)
+}
+
+func (ps *playerState) NewSeries() {
+	// TODO: Consider preserving.
+	ps.authed = nil
 }

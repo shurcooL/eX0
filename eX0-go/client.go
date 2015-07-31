@@ -264,6 +264,33 @@ func connectToServer(s *Connection) {
 			r.Players[i] = playerInfo
 		}
 		goon.Dump(r)
+
+		if components.server == nil {
+			state.Lock()
+			playersStateMu.Lock()
+			for id, p := range r.Players {
+				if p.NameLength == 0 {
+					continue
+				}
+				ps := playerState{
+					Name: string(p.Name),
+					Team: p.Team,
+				}
+				if p.State != nil {
+					ps.PushAuthed(sequencedPlayerPosVel{
+						playerPosVel: playerPosVel{
+							X: p.State.X,
+							Y: p.State.Y,
+							Z: p.State.Z,
+						},
+						SequenceNumber: p.State.CommandSequenceNumber,
+					})
+				}
+				playersState[uint8(id)] = ps
+			}
+			playersStateMu.Unlock()
+			state.Unlock()
+		}
 	}
 
 	{
@@ -409,6 +436,13 @@ func connectToServer(s *Connection) {
 					}
 				}
 
+				state.Lock()
+				playersStateMu.Lock()
+				logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*20/20
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(startedProcess).Seconds(), components_client_id, playersState[components_client_id].Name, r.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+				playersStateMu.Unlock()
+				state.Unlock()
+
 				if debugFirstJoin {
 					debugFirstJoin = false
 					r2 := r
@@ -420,10 +454,15 @@ func connectToServer(s *Connection) {
 					playersStateMu.Lock()
 					ps := playersState[r.PlayerId]
 					if r.State != nil {
-						ps.authed.X = r.State.X
-						ps.authed.Y = r.State.Y
-						ps.authed.Z = r.State.Z
-						ps.authed.SequenceNumber = r.State.CommandSequenceNumber
+						ps.NewSeries()
+						ps.PushAuthed(sequencedPlayerPosVel{
+							playerPosVel: playerPosVel{
+								X: r.State.X,
+								Y: r.State.Y,
+								Z: r.State.Z,
+							},
+							SequenceNumber: r.State.CommandSequenceNumber,
+						})
 					}
 					ps.Team = r.Team
 					playersState[r.PlayerId] = ps
@@ -485,6 +524,12 @@ func clientHandleUdp(s *Connection) {
 					state.Lock()
 					startedProcess = startedProcess.Add(time.Duration(delta * float64(time.Second)))
 					fmt.Fprintf(os.Stderr, "delta: %.3f seconds, startedProcess: %v\n", delta, startedProcess)
+					logicTime := time.Since(startedProcess).Seconds()
+					state.session.GlobalStateSequenceNumberTEST = uint8(logicTime * 20 / 20) // TODO: Adjust this.
+					state.session.NextTickTime = 0                                           // TODO: Adjust this.
+					for state.session.NextTickTime+1.0/20*20 < logicTime {
+						state.session.NextTickTime += 1.0 / 20 * 20
+					}
 					state.Unlock()
 				}
 
@@ -567,14 +612,21 @@ func clientHandleUdp(s *Connection) {
 				r.PlayerUpdates[i] = playerUpdate
 			}
 
+			// TODO: Verify r.CurrentUpdateSequenceNumber.
+
 			if components.server == nil {
 				playersStateMu.Lock()
 				for id, pu := range r.PlayerUpdates {
 					if pu.ActivePlayer != 0 {
 						ps := playersState[uint8(id)]
-						ps.authed.X = pu.State.X
-						ps.authed.Y = pu.State.Y
-						ps.authed.Z = pu.State.Z
+						ps.PushAuthed(sequencedPlayerPosVel{
+							playerPosVel: playerPosVel{
+								X: pu.State.X,
+								Y: pu.State.Y,
+								Z: pu.State.Z,
+							},
+							SequenceNumber: pu.State.CommandSequenceNumber,
+						})
 						playersState[uint8(id)] = ps
 					}
 				}
