@@ -17,6 +17,8 @@ func ExampleFullConnection() {
 	components.server = startServer() // Wait for server to start listening.
 	components.client = startClient()
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
+	components.logic.quit <- struct{}{}
+	<-components.logic.quit
 
 	// Output:
 	// Started server.

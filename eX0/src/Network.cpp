@@ -31,7 +31,7 @@ double			dShortestLatencyRemoteTime;
 u_int			nTrpReceived = 0;
 u_int			nSendTimeRequestPacketEventId = 0;
 
-u_char			g_cCommandRate = 1;
+u_char			g_cCommandRate = 20;
 u_char			g_cUpdateRate = 19;
 
 const float		kfInterpolate = 0.1f;

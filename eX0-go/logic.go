@@ -3,6 +3,8 @@ package main
 import (
 	"math"
 	"time"
+
+	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
 const Tau = 2 * math.Pi
@@ -48,7 +50,7 @@ func (l *logic) gameLogic() {
 
 		state.Lock()
 		if now := time.Since(startedProcess).Seconds(); now >= state.session.NextTickTime {
-			state.session.NextTickTime += 1.0 / 20 * 20
+			state.session.NextTickTime += 1.0 / commandRate
 			state.session.GlobalStateSequenceNumberTEST++
 			//fmt.Fprintln(os.Stderr, "GlobalStateSequenceNumberTEST++:", state.session.GlobalStateSequenceNumberTEST)
 			tick = true
@@ -58,7 +60,13 @@ func (l *logic) gameLogic() {
 
 		if tick {
 			if doInput != nil {
-				doInput()
+				playersStateMu.Lock()
+				ps, ok := playersState[components_client_id]
+				playersStateMu.Unlock()
+
+				if ok && ps.Team != packet.Spectator {
+					doInput()
+				}
 			}
 		}
 

@@ -327,7 +327,7 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 					CurrentVel = CurrentVel.Add(Delta.Mul(float32(math.Max(Move1, Move2))))
 				}
 
-				if true {
+				if commandRate == 1 {
 					CurrentVel = TargetVel.Mul(20)
 				}
 
@@ -904,7 +904,7 @@ func handleTcpConnection2(client *Connection) error {
 
 			state.Lock()
 			playersStateMu.Lock()
-			logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*20/20
+			logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*commandRate
 			fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(startedProcess).Seconds(), playerId, playersState[playerId].Name, team, logicTime, state.session.GlobalStateSequenceNumberTEST)
 			playersStateMu.Unlock()
 			state.Unlock()

@@ -438,7 +438,7 @@ func connectToServer(s *Connection) {
 
 				state.Lock()
 				playersStateMu.Lock()
-				logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*20/20
+				logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*commandRate
 				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(startedProcess).Seconds(), components_client_id, playersState[components_client_id].Name, r.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
 				playersStateMu.Unlock()
 				state.Unlock()
@@ -525,10 +525,10 @@ func clientHandleUdp(s *Connection) {
 					startedProcess = startedProcess.Add(time.Duration(delta * float64(time.Second)))
 					fmt.Fprintf(os.Stderr, "delta: %.3f seconds, startedProcess: %v\n", delta, startedProcess)
 					logicTime := time.Since(startedProcess).Seconds()
-					state.session.GlobalStateSequenceNumberTEST = uint8(logicTime * 20 / 20) // TODO: Adjust this.
-					state.session.NextTickTime = 0                                           // TODO: Adjust this.
-					for state.session.NextTickTime+1.0/20*20 < logicTime {
-						state.session.NextTickTime += 1.0 / 20 * 20
+					state.session.GlobalStateSequenceNumberTEST = uint8(logicTime * commandRate) // TODO: Adjust this.
+					state.session.NextTickTime = 0                                               // TODO: Adjust this.
+					for state.session.NextTickTime+1.0/commandRate < logicTime {
+						state.session.NextTickTime += 1.0 / commandRate
 					}
 					state.Unlock()
 				}

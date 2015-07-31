@@ -40,7 +40,6 @@ func main() {
 		components.logic = startLogic()
 		components.client = startClient()
 		view(true)
-
 		components.logic.quit <- struct{}{}
 		<-components.logic.quit
 	case len(args) == 1 && (args[0] == "client-server-view" || args[0] == "server-client-view"):
@@ -48,7 +47,6 @@ func main() {
 		components.server = startServer()
 		components.client = startClient()
 		view(true)
-
 		components.logic.quit <- struct{}{}
 		<-components.logic.quit
 	default:

@@ -24,6 +24,8 @@ var state = struct {
 	TotalPlayerCount: 16,
 }
 
+const commandRate = 20
+
 // TODO: I think this should be moved into logic component (not server), yeah?
 //       There's also some overlap with state.connections, shouldn't that be resolved?
 var playersStateMu sync.Mutex
@@ -99,7 +101,7 @@ func (ps playerState) Interpolated() playerPosVel {
 
 	a := ps.authed[bi-1]
 
-	interp := float32((time.Since(startedProcess).Seconds() - state.session.NextTickTime + 1.0/20*20) * 20 / 20)
+	interp := float32((time.Since(startedProcess).Seconds() - state.session.NextTickTime + 1.0/commandRate) * commandRate)
 
 	return playerPosVel{
 		X: (1-interp)*a.playerPosVel.X + interp*b.playerPosVel.X,
