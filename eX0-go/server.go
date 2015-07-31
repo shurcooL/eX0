@@ -294,6 +294,8 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 
 			lastMove := r.Moves[len(r.Moves)-1] // There's always at least one move in a ClientCommand packet.
 
+			// TODO: Check that state sn == command sn, etc.
+
 			var newState sequencedPlayerPosVel
 			{
 				const TOP_SPEED = 3.5
@@ -329,7 +331,7 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 					CurrentVel = TargetVel.Mul(20)
 				}
 
-				// It takes State #0 and Command #0 to produce State #1.
+				// It takes State #n and Command #n to produce State #n+1.
 				newState.X = lastState.X + CurrentVel[0]
 				newState.Y = lastState.Y + CurrentVel[1]
 				newState.Z = lastMove.Z

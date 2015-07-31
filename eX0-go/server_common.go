@@ -1,9 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"sync"
+	"time"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
@@ -63,11 +62,48 @@ func (ps *playerState) PushAuthed(newState sequencedPlayerPosVel) {
 		return
 	}
 	// TODO: GC.
-	fmt.Fprintln(os.Stderr, "PushAuthed:", newState.SequenceNumber)
+	//fmt.Fprintln(os.Stderr, "PushAuthed:", newState.SequenceNumber)
 	ps.authed = append(ps.authed, newState)
 }
 
 func (ps *playerState) NewSeries() {
 	// TODO: Consider preserving.
 	ps.authed = nil
+}
+
+func (ps playerState) Interpolated() playerPosVel {
+	if len(ps.authed) == 1 {
+		return ps.authed[0].playerPosVel
+	}
+
+	bi := len(ps.authed) - 1
+	b := ps.authed[bi]
+
+	// Check if we're looking for a sequence number newer than history contains.
+	if int8(state.session.GlobalStateSequenceNumberTEST-b.SequenceNumber) > 0 {
+		// TODO: Extrapolate from history?
+		return ps.LatestAuthed().playerPosVel
+	}
+
+	for b.SequenceNumber != state.session.GlobalStateSequenceNumberTEST {
+		bi--
+		b = ps.authed[bi]
+		if bi == 0 {
+			break
+		}
+	}
+
+	if bi == 0 {
+		return ps.authed[0].playerPosVel
+	}
+
+	a := ps.authed[bi-1]
+
+	interp := float32((time.Since(startedProcess).Seconds() - state.session.NextTickTime + 1.0/20*20) * 20 / 20)
+
+	return playerPosVel{
+		X: (1-interp)*a.playerPosVel.X + interp*b.playerPosVel.X,
+		Y: (1-interp)*a.playerPosVel.Y + interp*b.playerPosVel.Y,
+		Z: (1-interp)*a.playerPosVel.Z + interp*b.playerPosVel.Z,
+	}
 }

@@ -75,6 +75,7 @@ func view(gameLogicInput bool) {
 		gl.UniformMatrix4fv(l.mvMatrixUniform, mvMatrix[:])
 		l.render()
 
+		state.Lock()
 		playersStateMu.Lock()
 		for _, ps := range playersState {
 			if ps.conn != nil && ps.conn.JoinStatus < IN_GAME {
@@ -84,9 +85,11 @@ func view(gameLogicInput bool) {
 				continue
 			}
 
+			pos := ps.Interpolated()
+
 			mvMatrix = mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
-			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(ps.LatestAuthed().X, ps.LatestAuthed().Y, 0))
-			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-ps.LatestAuthed().Z))
+			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(pos.X, pos.Y, 0))
+			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-pos.Z))
 
 			c.setup()
 			gl.UniformMatrix4fv(c.pMatrixUniform, pMatrix[:])
@@ -94,6 +97,7 @@ func view(gameLogicInput bool) {
 			c.render(ps.Team)
 		}
 		playersStateMu.Unlock()
+		state.Unlock()
 
 		window.SwapBuffers()
 	}

@@ -37,6 +37,9 @@ func (l *logic) gameLogic() {
 			l.quit <- struct{}{}
 			return
 		case doInput = <-l.Input:
+			// TODO: Fix bug in GopherJS, remove this noop case body.
+			//       https://github.com/gopherjs/gopherjs/issues/267
+			_ = 0
 		default:
 		}
 
