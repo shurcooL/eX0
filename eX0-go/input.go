@@ -1,21 +1,18 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
-
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/goxjs/glfw"
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
 func inputCommand(window *glfw.Window) packet.Move {
-	playersStateMu.Lock()
+	//playersStateMu.Lock()
 	var move = packet.Move{
 		MoveDirection: -1,
-		Z:             playersState[components_client_id].LatestAuthed().Z,
+		//Z:             playersState[components_client_id].LatestAuthed().Z,
 	}
-	playersStateMu.Unlock()
+	//playersStateMu.Unlock()
 
 	var direction [2]int8
 	if (window.GetKey(glfw.KeyA) != glfw.Release) && !(window.GetKey(glfw.KeyD) != glfw.Release) {
@@ -58,50 +55,4 @@ func inputCommand(window *glfw.Window) packet.Move {
 	}
 
 	return move
-}
-
-func input(window *glfw.Window) {
-	move := inputCommand(window)
-
-	// TODO: This should be done via Local/Network State Auther. This currently hardcodes network state auther.
-	// Send a ClientCommand packet to server.
-	{
-		var p packet.ClientCommand
-		p.Type = packet.ClientCommandType
-		state.Lock()
-		p.CommandSequenceNumber = state.session.GlobalStateSequenceNumberTEST - 1
-		state.Unlock()
-		p.CommandSeriesNumber = 1     // TODO: Don't hardcode this.
-		p.Moves = []packet.Move{move} // TODO: Send all unauthed moves.
-		p.MovesCount = uint8(len(p.Moves)) - 1
-
-		var buf bytes.Buffer
-		err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
-		if err != nil {
-			panic(err)
-		}
-		err = binary.Write(&buf, binary.BigEndian, &p.CommandSequenceNumber)
-		if err != nil {
-			panic(err)
-		}
-		err = binary.Write(&buf, binary.BigEndian, &p.CommandSeriesNumber)
-		if err != nil {
-			panic(err)
-		}
-		err = binary.Write(&buf, binary.BigEndian, &p.MovesCount)
-		if err != nil {
-			panic(err)
-		}
-		for _, move := range p.Moves {
-			err = binary.Write(&buf, binary.BigEndian, &move)
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		err = sendUdpPacket(clientToServerConn, buf.Bytes())
-		if err != nil {
-			panic(err)
-		}
-	}
 }

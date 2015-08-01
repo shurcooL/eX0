@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
+	"github.com/go-gl/mathgl/mgl32"
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
@@ -42,9 +44,15 @@ type sequencedPlayerPosVel struct {
 	SequenceNumber uint8
 }
 
+type predictedMove struct {
+	move      packet.Move
+	predicted sequencedPlayerPosVel
+}
+
 // TODO: Split into positions (there will be many over time) and current name, team, connection, etc.
 type playerState struct {
-	authed []sequencedPlayerPosVel
+	authed      []sequencedPlayerPosVel
+	unconfirmed []predictedMove
 
 	Name string
 	Team packet.Team
@@ -58,50 +66,107 @@ type playerState struct {
 func (ps playerState) LatestAuthed() sequencedPlayerPosVel {
 	return ps.authed[len(ps.authed)-1]
 }
+func (ps playerState) LatestPredicted() sequencedPlayerPosVel {
+	if len(ps.unconfirmed) > 0 {
+		return ps.unconfirmed[len(ps.unconfirmed)-1].predicted
+	}
+	return ps.authed[len(ps.authed)-1]
+}
 
 func (ps *playerState) PushAuthed(newState sequencedPlayerPosVel) {
 	if len(ps.authed) > 0 && newState.SequenceNumber == ps.authed[len(ps.authed)-1].SequenceNumber {
 		// Skip updates that are not newer.
 		return
 	}
+
+	// Drop unconfirmed predicted moves once they've been authed.
+	for len(ps.unconfirmed) > 0 && newState.SequenceNumber != ps.unconfirmed[0].predicted.SequenceNumber {
+		//fmt.Fprintf(os.Stderr, "PushAuthed: dropping unmatched ps.unconfirmed\n")
+		ps.unconfirmed = ps.unconfirmed[1:]
+	}
+	if len(ps.unconfirmed) > 0 && newState.SequenceNumber == ps.unconfirmed[0].predicted.SequenceNumber {
+		same := mgl32.FloatEqualThreshold(newState.X, ps.unconfirmed[0].predicted.X, 0.001) &&
+			mgl32.FloatEqualThreshold(newState.Y, ps.unconfirmed[0].predicted.Y, 0.001)
+		if same {
+			//fmt.Fprintf(os.Stderr, "PushAuthed: dropping matched ps.unconfirmed, same!\n")
+		} else {
+			fmt.Fprintf(os.Stderr, "PushAuthed: dropping matched ps.unconfirmed, diff by %v, %v\n", newState.X-ps.unconfirmed[0].predicted.X, newState.Y-ps.unconfirmed[0].predicted.Y)
+		}
+
+		// Keep the locally-predicted velocity.
+		newState.VelX = ps.unconfirmed[0].predicted.VelX
+		newState.VelY = ps.unconfirmed[0].predicted.VelY
+
+		ps.unconfirmed = ps.unconfirmed[1:]
+	}
+
 	// TODO: GC.
 	//fmt.Fprintln(os.Stderr, "PushAuthed:", newState.SequenceNumber)
 	ps.authed = append(ps.authed, newState)
+
+	// Replay remaining ones.
+	prevState := newState
+	for i := range ps.unconfirmed {
+		ps.unconfirmed[i].predicted = nextState(prevState, ps.unconfirmed[i].move)
+		prevState = ps.unconfirmed[i].predicted
+	}
 }
 
 func (ps *playerState) NewSeries() {
 	// TODO: Consider preserving.
 	ps.authed = nil
+	ps.unconfirmed = nil
 }
 
-func (ps playerState) Interpolated() playerPosVel {
-	if len(ps.authed) == 1 {
-		return ps.authed[0].playerPosVel
+func (ps playerState) Interpolated(playerId uint8) playerPosVel {
+	desiredBStateSN := state.session.GlobalStateSequenceNumberTEST
+
+	if components.client == nil || components_client_id != playerId {
+		desiredBStateSN -= 2 // HACK: Assumes command rate of 20, this puts us 100 ms in the past (2 * 1s/20 = 100 ms).
 	}
 
-	bi := len(ps.authed) - 1
-	b := ps.authed[bi]
+	states := append([]sequencedPlayerPosVel(nil), ps.authed...)
+	for _, unconfirmed := range ps.unconfirmed {
+		states = append(states, unconfirmed.predicted)
+	}
+
+	if false {
+		for i, s := range ps.authed {
+			fmt.Println("authed:", i, s.SequenceNumber)
+		}
+		for i, u := range ps.unconfirmed {
+			fmt.Println("unconfirmed:", i, u.predicted.SequenceNumber)
+		}
+	}
+
+	if len(states) == 1 {
+		//fmt.Println("warning: using LatestAuthed because len(states) == 1")
+		return states[0].playerPosVel
+	}
+
+	bi := len(states) - 1
+	b := states[bi]
 
 	// Check if we're looking for a sequence number newer than history contains.
-	if int8(state.session.GlobalStateSequenceNumberTEST-b.SequenceNumber) > 0 {
+	if int8(desiredBStateSN-b.SequenceNumber) > 0 {
 		// TODO: Extrapolate from history?
-		fmt.Println("warning: using LatestAuthed because:", int8(state.session.GlobalStateSequenceNumberTEST-b.SequenceNumber))
-		return ps.LatestAuthed().playerPosVel
+		//fmt.Println("warning: using LatestAuthed because:", int8(state.session.GlobalStateSequenceNumberTEST-b.SequenceNumber))
+		return states[len(states)-1].playerPosVel
 	}
 
-	for b.SequenceNumber != state.session.GlobalStateSequenceNumberTEST {
+	for b.SequenceNumber != desiredBStateSN {
 		bi--
-		b = ps.authed[bi]
+		b = states[bi]
 		if bi == 0 {
 			break
 		}
 	}
 
 	if bi == 0 {
-		return ps.authed[0].playerPosVel
+		return states[0].playerPosVel
 	}
 
-	a := ps.authed[bi-1]
+	a := states[bi-1]
 
 	interp := float32((time.Since(startedProcess).Seconds() - state.session.NextTickTime + 1.0/commandRate) * commandRate)
 

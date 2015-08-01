@@ -59,7 +59,7 @@ func view(gameLogicInput bool) {
 	}
 
 	if gameLogicInput {
-		components.logic.Input <- func() { input(window) }
+		components.logic.Input <- func() packet.Move { return inputCommand(window) }
 	}
 
 	for !window.ShouldClose() {
@@ -77,7 +77,7 @@ func view(gameLogicInput bool) {
 
 		state.Lock()
 		playersStateMu.Lock()
-		for _, ps := range playersState {
+		for id, ps := range playersState {
 			if ps.conn != nil && ps.conn.JoinStatus < IN_GAME {
 				continue
 			}
@@ -85,7 +85,7 @@ func view(gameLogicInput bool) {
 				continue
 			}
 
-			pos := ps.Interpolated()
+			pos := ps.Interpolated(uint8(id))
 
 			mvMatrix = mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
 			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(pos.X, pos.Y, 0))

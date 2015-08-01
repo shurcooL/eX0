@@ -30,6 +30,10 @@ type client struct {
 var components_client_id uint8
 
 func startClient() *client {
+	if components.logic != nil {
+		components.logic.Input <- func() packet.Move { return packet.Move{MoveDirection: -1} }
+	}
+
 	clientToServerConn = newConnection()
 
 	clientToServerConn.dialServer()

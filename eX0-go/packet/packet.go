@@ -155,10 +155,10 @@ type UdpHeader struct {
 type ClientCommand struct {
 	UdpHeader
 
-	CommandSequenceNumber uint8
+	CommandSequenceNumber uint8 // Latest command sequence number (i.e., last one in the slice).
 	CommandSeriesNumber   uint8
-	MovesCount            uint8 // len(Moves) - 1.
-	Moves                 []Move
+	MovesCount            uint8  // len(Moves) - 1.
+	Moves                 []Move // Oldest first, newest last.
 }
 
 type Move struct {
