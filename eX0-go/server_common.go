@@ -138,24 +138,30 @@ func (ps playerState) Interpolated(playerId uint8) playerPosVel {
 	a := states[ai]
 
 	// Check if we're looking for a sequence number newer than history contains.
-	if desiredBStateSN := desiredAStateSN + 1; int8(desiredBStateSN-a.SequenceNumber) > 0 {
-		// Either A or B are not in history, so we'd need to extrapolate (to some degree).
-		// TODO: Extrapolate from history?
-		//fmt.Println("warning: using LatestAuthed because:", int8(desiredBStateSN-a.SequenceNumber))
+	if int8(desiredAStateSN-a.SequenceNumber) > 0 {
+		// Point A is not yet in history, so we'd need to extrapolate into future a lot.
+		// TODO: Extrapolate into future?
+		//fmt.Println("warning: using LatestAuthed because:", int8(desiredAStateSN-a.SequenceNumber))
 		return states[len(states)-1].playerPosVel
 	}
 	// Scroll index of a back until it's the desired sn (or earlier).
 	for int8(a.SequenceNumber-desiredAStateSN) > 0 {
 		ai--
 		if ai < 0 {
-			// Point A is not in history, so we'd need to extrapolate (into past)... Just return earliest state for now.
+			// Point A is not in history, so we'd need to extrapolate into past... Just return earliest state for now.
 			// TODO: Extrapolate in past?
 			return states[0].playerPosVel
 		}
 		a = states[ai]
 	}
 
-	b := states[ai+1]
+	bi := ai + 1
+	if bi >= len(states) {
+		// Point B is not yet in history, so we'd need to extrapolate into future a little.
+		// TODO: Extrapolate into future?
+		return states[len(states)-1].playerPosVel
+	}
+	b := states[bi]
 
 	interp := float32(desiredAStateSN-a.SequenceNumber) + float32((time.Since(startedProcess).Seconds()-state.session.NextTickTime+1.0/commandRate)*commandRate)
 	interpDistance := float32(b.SequenceNumber - a.SequenceNumber)
