@@ -7,7 +7,7 @@ SRC_PATH := src/
 CC		= clang++
 CC2		= clang
 
-CFLAGS = -I. -I/usr/X11R6/include \
+CFLAGS = -I. -Iinclude -I/usr/X11R6/include \
 	-DEX0_CLIENT -D_DEBUG \
 	-O0 -g -pthread -Wall \
 	-Wno-unknown-pragmas -Wno-comment \
@@ -15,8 +15,8 @@ CFLAGS = -I. -I/usr/X11R6/include \
 # Old
 # -ffast-math
 CPPFLAGS = -std=c++11
-LFLAGS = ./libglfw.a \
-	-framework OpenGL -framework Cocoa
+LFLAGS = ./lib/libglfw.a \
+	-framework OpenGL -framework Cocoa -framework IOKit
 # Linux
 #	-L/usr/X11R6/lib -lGL -lGLU -lX11 -lXrandr -lpthread -lm
 # Old

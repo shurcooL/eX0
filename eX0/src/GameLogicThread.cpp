@@ -59,6 +59,7 @@ glfwLockMutex(oPlayerTick);
 				g_dNextTickTime += 1.0 / g_cCommandRate;
 				//++g_cCurrentCommandSequenceNumber;
 				++g_pGameSession->GlobalStateSequenceNumberTEST;
+				//printf("GlobalStateSequenceNumberTEST: %d\n", g_pGameSession->GlobalStateSequenceNumberTEST);
 			}
 			for (uint8 nPlayer = 0; nPlayer < nPlayerCount; ++nPlayer) {
 				if (PlayerGet(nPlayer) != NULL)

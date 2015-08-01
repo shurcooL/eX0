@@ -765,8 +765,11 @@ bool NetworkProcessUdpPacket(CPacket & oPacket)
 				dTimePassed = 0;
 				dCurTime = glfwGetTime();
 				dBaseTime = dCurTime;*/
+				//printf("logic time before: %.10f\n", g_pGameSession->LogicTimer().GetTime());
 				g_pGameSession->LogicTimer().SetTime((g_pGameSession->LogicTimer().GetRealTime() - dShortestLatencyLocalTime)
 					+ dShortestLatencyRemoteTime + 0.5 * dShortestLatency + 0.0000135);
+				//printf("adjusted time by %.10f\n", (-dShortestLatencyLocalTime + dShortestLatencyRemoteTime + 0.5 * dShortestLatency + 0.0000135));
+				//printf("logic time after: %.10f\n", g_pGameSession->LogicTimer().GetTime());
 
 				glfwLockMutex(oJoinGameMutex);
 				bFinishedSyncingClock = true;
