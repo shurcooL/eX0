@@ -452,7 +452,7 @@ func (c *client) connectToServer() {
 				state.Lock()
 				playersStateMu.Lock()
 				logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(startedProcess).Seconds(), c.playerId, playersState[c.playerId].Name, r.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(startedProcess).Seconds(), r.PlayerId, playersState[r.PlayerId].Name, r.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
 				playersStateMu.Unlock()
 				state.Unlock()
 
