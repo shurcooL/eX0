@@ -17,18 +17,20 @@ type logic struct {
 	quit chan struct{} // Receiving a value on this channel results in sending a response, and quitting.
 
 	Input chan func() packet.Move
+
+	started time.Time
 }
 
 func startLogic() *logic {
+	l := &logic{
+		quit:    make(chan struct{}),
+		Input:   make(chan func() packet.Move),
+		started: time.Now(),
+	}
 	state.Lock()
-	startedProcess = time.Now()
 	state.session.GlobalStateSequenceNumberTEST = 0
 	state.session.NextTickTime = 0
 	state.Unlock()
-	l := &logic{
-		quit:  make(chan struct{}),
-		Input: make(chan func() packet.Move),
-	}
 	go l.gameLogic()
 	return l
 }
@@ -50,7 +52,7 @@ func (l *logic) gameLogic() {
 		sleep := time.Millisecond
 
 		state.Lock()
-		if now := time.Since(startedProcess).Seconds(); now >= state.session.NextTickTime {
+		if now := time.Since(l.started).Seconds(); now >= state.session.NextTickTime {
 			state.session.NextTickTime += 1.0 / commandRate
 			state.session.GlobalStateSequenceNumberTEST++
 			//fmt.Fprintln(os.Stderr, "GlobalStateSequenceNumberTEST++:", state.session.GlobalStateSequenceNumberTEST)
@@ -64,8 +66,8 @@ func (l *logic) gameLogic() {
 			ps, ok := playersState[components.client.playerId]
 			if ok && ps.Team != packet.Spectator {
 				debugFirstJoin = false
-				logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(startedProcess).Seconds(), components.client.playerId, playersState[components.client.playerId].Name, ps.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+				logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(l.started).Seconds()-state.session.NextTickTime)*commandRate
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(l.started).Seconds(), components.client.playerId, playersState[components.client.playerId].Name, ps.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
 			}
 			playersStateMu.Unlock()
 		}
@@ -112,7 +114,7 @@ func (l *logic) gameLogic() {
 					state.Unlock()
 					p.CommandSeriesNumber = 1 // TODO: Don't hardcode this.
 					p.Moves = moves
-					//fmt.Printf("%.3f: sending ClientCommand with %v moves, clientLastAckedCSN=%v, G-1=%v\n", time.Since(startedProcess).Seconds(), len(p.Moves), clientLastAckedCmdSequenceNumber, state.session.GlobalStateSequenceNumberTEST-1)
+					//fmt.Printf("%.3f: sending ClientCommand with %v moves, clientLastAckedCSN=%v, G-1=%v\n", time.Since(l.started).Seconds(), len(p.Moves), clientLastAckedCmdSequenceNumber, state.session.GlobalStateSequenceNumberTEST-1)
 					/*for i, unconfirmed := range ps.unconfirmed {
 						fmt.Println(i, "unconfirmed.predicted.SequenceNumber:", unconfirmed.predicted.SequenceNumber, "dir:", unconfirmed.move.MoveDirection)
 					}*/

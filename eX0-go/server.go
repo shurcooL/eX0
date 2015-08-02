@@ -224,7 +224,7 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 			p.Type = packet.TimeResponseType
 			p.SequenceNumber = r.SequenceNumber
 			state.Lock()
-			p.Time = time.Since(startedProcess).Seconds()
+			p.Time = time.Since(components.logic.started).Seconds()
 			state.Unlock()
 
 			var buf bytes.Buffer
@@ -248,7 +248,7 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 			var p packet.Pung
 			p.Type = packet.PungType
 			p.PingData = r.PingData
-			p.Time = time.Since(startedProcess).Seconds()
+			p.Time = time.Since(components.logic.started).Seconds()
 
 			var buf bytes.Buffer
 			err := binary.Write(&buf, binary.BigEndian, &p)
@@ -855,8 +855,8 @@ func handleTcpConnection2(client *Connection) error {
 
 			state.Lock()
 			playersStateMu.Lock()
-			logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*commandRate
-			fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(startedProcess).Seconds(), playerId, playersState[playerId].Name, team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+			logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(components.logic.started).Seconds()-state.session.NextTickTime)*commandRate
+			fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(components.logic.started).Seconds(), playerId, playersState[playerId].Name, team, logicTime, state.session.GlobalStateSequenceNumberTEST)
 			playersStateMu.Unlock()
 			state.Unlock()
 

@@ -159,7 +159,7 @@ func (c *client) connectToServer() {
 				sn++
 
 				state.Lock()
-				c.sentTimeRequestPacketTimes[p.SequenceNumber] = time.Since(startedProcess).Seconds()
+				c.sentTimeRequestPacketTimes[p.SequenceNumber] = time.Since(components.logic.started).Seconds()
 				state.Unlock()
 
 				var buf bytes.Buffer
@@ -451,8 +451,8 @@ func (c *client) connectToServer() {
 
 				state.Lock()
 				playersStateMu.Lock()
-				logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(startedProcess).Seconds(), r.PlayerId, playersState[r.PlayerId].Name, r.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+				logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(components.logic.started).Seconds()-state.session.NextTickTime)*commandRate
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(components.logic.started).Seconds(), r.PlayerId, playersState[r.PlayerId].Name, r.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
 				playersStateMu.Unlock()
 				state.Unlock()
 
@@ -525,7 +525,7 @@ func (c *client) handleUdp(s *Connection) {
 
 		switch udpHeader.Type {
 		case packet.TimeResponseType:
-			logicTimeAtReceive := time.Since(startedProcess).Seconds()
+			logicTimeAtReceive := time.Since(components.logic.started).Seconds()
 
 			var r packet.TimeResponse
 			err = binary.Read(buf, binary.BigEndian, &r.SequenceNumber)
@@ -555,9 +555,9 @@ func (c *client) handleUdp(s *Connection) {
 					// Adjust logic clock.
 					delta := c.shortestLatencyLocalTime - c.shortestLatencyRemoteTime
 					state.Lock()
-					startedProcess = startedProcess.Add(time.Duration(delta * float64(time.Second)))
-					fmt.Fprintf(os.Stderr, "delta: %.3f seconds, startedProcess: %v\n", delta, startedProcess)
-					logicTime := time.Since(startedProcess).Seconds()
+					components.logic.started = components.logic.started.Add(time.Duration(delta * float64(time.Second)))
+					fmt.Fprintf(os.Stderr, "delta: %.3f seconds, started: %v\n", delta, components.logic.started)
+					logicTime := time.Since(components.logic.started).Seconds()
 					state.session.GlobalStateSequenceNumberTEST = uint8(logicTime * commandRate) // TODO: Adjust this.
 					state.session.NextTickTime = 0                                               // TODO: Adjust this.
 					for state.session.NextTickTime+1.0/commandRate < logicTime {

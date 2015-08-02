@@ -161,7 +161,7 @@ func (ps playerState) Interpolated(playerId uint8) playerPosVel {
 	}
 	b := states[bi]
 
-	interp := float32(desiredAStateSN-a.SequenceNumber) + float32((time.Since(startedProcess).Seconds()-state.session.NextTickTime+1.0/commandRate)*commandRate)
+	interp := float32(desiredAStateSN-a.SequenceNumber) + float32((time.Since(components.logic.started).Seconds()-state.session.NextTickTime+1.0/commandRate)*commandRate)
 	interpDistance := float32(b.SequenceNumber - a.SequenceNumber)
 	interp = interp / interpDistance
 
