@@ -104,7 +104,7 @@ func (l *logic) gameLogic() {
 
 				// TODO: This should be done via Local/Network State Auther. This currently hardcodes network state auther.
 				// Send a ClientCommand packet to server.
-				if clientToServerConn != nil && clientToServerConn.JoinStatus >= IN_GAME {
+				if components.client != nil && components.client.serverConn != nil && components.client.serverConn.JoinStatus >= IN_GAME {
 					var p packet.ClientCommand
 					p.Type = packet.ClientCommandType
 					state.Lock()
@@ -142,7 +142,7 @@ func (l *logic) gameLogic() {
 						}
 					}
 
-					err = sendUdpPacket(clientToServerConn, buf.Bytes())
+					err = sendUdpPacket(components.client.serverConn, buf.Bytes())
 					if err != nil {
 						panic(err)
 					}

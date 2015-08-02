@@ -10,8 +10,6 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
-type server struct{}
-
 var state = struct {
 	sync.Mutex
 

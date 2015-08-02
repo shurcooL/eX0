@@ -18,14 +18,21 @@ import (
 var hostFlag = flag.String("host", "localhost", "Server host (without port) for client to connect to.")
 var nameFlag = flag.String("name", "Unnamed Player", "Local client player name.")
 
-var pongSentTimes = make(map[uint32]time.Time) // PingData -> Time.
-
-var clientToServerConn *Connection
-
 type client struct {
 	playerId uint8
 
 	ZOffset float32
+
+	serverConn *Connection
+
+	sentTimeRequestPacketTimes map[uint8]float64
+	trpReceived                int
+	shortestLatency            float64
+	shortestLatencyLocalTime   float64
+	shortestLatencyRemoteTime  float64
+	finishedSyncingClock       chan struct{}
+
+	pongSentTimes map[uint32]time.Time // PingData -> Time.
 }
 
 func startClient() *client {
@@ -37,21 +44,22 @@ func startClient() *client {
 			}
 		}
 	}
-	clientToServerConn = newConnection()
-	clientToServerConn.dialServer()
-	c := &client{}
-	c.connectToServer(clientToServerConn)
+	c := &client{
+		serverConn:                 newConnection(),
+		sentTimeRequestPacketTimes: make(map[uint8]float64),
+		shortestLatency:            1000,
+		finishedSyncingClock:       make(chan struct{}),
+		pongSentTimes:              make(map[uint32]time.Time),
+	}
+	c.connectToServer()
 	return c
 }
 
-var sentTimeRequestPacketTimes = make(map[uint8]float64)
-var trpReceived int
-var shortestLatency = float64(1000)
-var shortestLatencyLocalTime float64
-var shortestLatencyRemoteTime float64
-var finishedSyncingClock = make(chan struct{})
+func (c *client) connectToServer() {
+	c.serverConn.dialServer()
 
-func (c *client) connectToServer(s *Connection) {
+	s := c.serverConn
+
 	s.Signature = uint64(time.Now().UnixNano())
 
 	{
@@ -97,7 +105,7 @@ func (c *client) connectToServer(s *Connection) {
 	}
 
 	// Upgrade connection to UDP at this point, start listening for UDP packets.
-	go clientHandleUdp(s)
+	go c.handleUdp(s)
 
 	{
 		// TODO: Try sending multiple times, else it might not get received.
@@ -140,7 +148,7 @@ func (c *client) connectToServer(s *Connection) {
 
 			for ; ; time.Sleep(50 * time.Millisecond) {
 				select {
-				case <-finishedSyncingClock:
+				case <-c.finishedSyncingClock:
 					return
 				default:
 				}
@@ -151,7 +159,7 @@ func (c *client) connectToServer(s *Connection) {
 				sn++
 
 				state.Lock()
-				sentTimeRequestPacketTimes[p.SequenceNumber] = time.Since(startedProcess).Seconds()
+				c.sentTimeRequestPacketTimes[p.SequenceNumber] = time.Since(startedProcess).Seconds()
 				state.Unlock()
 
 				var buf bytes.Buffer
@@ -311,7 +319,7 @@ func (c *client) connectToServer(s *Connection) {
 		goon.Dump(r)
 	}
 
-	<-finishedSyncingClock
+	<-c.finishedSyncingClock
 
 	state.Lock()
 	s.JoinStatus = IN_GAME
@@ -502,7 +510,7 @@ func (c *client) connectToServer(s *Connection) {
 	}()
 }
 
-func clientHandleUdp(s *Connection) {
+func (c *client) handleUdp(s *Connection) {
 	for {
 		buf, err := receiveUdpPacket(s)
 		if err != nil {
@@ -529,23 +537,23 @@ func clientHandleUdp(s *Connection) {
 				panic(err)
 			}
 
-			trpReceived++
+			c.trpReceived++
 
-			if trpReceived <= 30 {
+			if c.trpReceived <= 30 {
 				state.Lock()
-				latency := logicTimeAtReceive - sentTimeRequestPacketTimes[r.SequenceNumber]
+				latency := logicTimeAtReceive - c.sentTimeRequestPacketTimes[r.SequenceNumber]
 				state.Unlock()
-				if latency <= shortestLatency {
-					shortestLatency = latency
-					shortestLatencyLocalTime = logicTimeAtReceive
-					shortestLatencyRemoteTime = r.Time + 0.5*shortestLatency // Remote time now is what server said plus half round-trip time.
+				if latency <= c.shortestLatency {
+					c.shortestLatency = latency
+					c.shortestLatencyLocalTime = logicTimeAtReceive
+					c.shortestLatencyRemoteTime = r.Time + 0.5*c.shortestLatency // Remote time now is what server said plus half round-trip time.
 				}
 			}
 
-			if trpReceived == 30 {
+			if c.trpReceived == 30 {
 				if components.server == nil { // TODO: This check should be more like "if !components.logic.authoritative", and logic timer should be inside components.logic. Better yet, each of server and client components should have a pointer to logic component that they own.
 					// Adjust logic clock.
-					delta := shortestLatencyLocalTime - shortestLatencyRemoteTime
+					delta := c.shortestLatencyLocalTime - c.shortestLatencyRemoteTime
 					state.Lock()
 					startedProcess = startedProcess.Add(time.Duration(delta * float64(time.Second)))
 					fmt.Fprintf(os.Stderr, "delta: %.3f seconds, startedProcess: %v\n", delta, startedProcess)
@@ -558,7 +566,7 @@ func clientHandleUdp(s *Connection) {
 					state.Unlock()
 				}
 
-				close(finishedSyncingClock)
+				close(c.finishedSyncingClock)
 			}
 		case packet.PingType:
 			var r packet.Ping
@@ -577,7 +585,7 @@ func clientHandleUdp(s *Connection) {
 				p.Type = packet.PongType
 				p.PingData = r.PingData
 
-				pongSentTimes[r.PingData] = time.Now()
+				c.pongSentTimes[r.PingData] = time.Now()
 
 				var buf bytes.Buffer
 				err := binary.Write(&buf, binary.BigEndian, &p)
@@ -604,8 +612,8 @@ func clientHandleUdp(s *Connection) {
 
 			{
 				// Get the time sent of the matching Pong packet.
-				if localTimeAtPongSend, ok := pongSentTimes[r.PingData]; ok {
-					delete(pongSentTimes, r.PingData)
+				if localTimeAtPongSend, ok := c.pongSentTimes[r.PingData]; ok {
+					delete(c.pongSentTimes, r.PingData)
 
 					// Calculate own latency and update it on the scoreboard.
 					latency := localTimeAtPungReceive.Sub(localTimeAtPongSend)

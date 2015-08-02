@@ -24,8 +24,8 @@ func newConnection() *Connection {
 }
 
 func (clientToServerConn *Connection) dialServer() {
-	chanListener <- clientToServerConn
-	<-chanListenerReply
+	components.server.chanListener <- clientToServerConn
+	<-components.server.chanListenerReply
 }
 
 func (_ *Connection) dialedClient() {

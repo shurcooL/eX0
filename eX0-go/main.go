@@ -19,6 +19,7 @@ var components struct {
 	logic  *logic
 	server *server
 	client *client
+	view   *view
 }
 
 func main() {
@@ -35,18 +36,18 @@ func main() {
 	case len(args) == 1 && args[0] == "server-view":
 		components.logic = startLogic()
 		components.server = startServer()
-		view(false)
+		components.view = runView(false)
 	case len(args) == 1 && args[0] == "client-view":
 		components.logic = startLogic()
 		components.client = startClient()
-		view(true)
+		components.view = runView(true)
 		components.logic.quit <- struct{}{}
 		<-components.logic.quit
 	case len(args) == 1 && (args[0] == "client-server-view" || args[0] == "server-client-view"):
 		components.logic = startLogic()
 		components.server = startServer()
 		components.client = startClient()
-		view(true)
+		components.view = runView(true)
 		components.logic.quit <- struct{}{}
 		<-components.logic.quit
 	default:

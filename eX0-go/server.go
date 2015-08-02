@@ -18,29 +18,31 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+type server struct {
+	lastPingData uint32
+	//pingSentTimes = make(map[uint32]time.Time) // TODO: Use.
+
+	chanListener      chan *Connection
+	chanListenerReply chan struct{}
+}
+
 func startServer() *server {
-	{
-		go listenAndHandleTcp()
+	s := &server{
+		chanListener:      make(chan *Connection),
+		chanListenerReply: make(chan struct{}),
 	}
 
-	{
-		go listenAndHandleUdp()
-	}
+	go listenAndHandleTcp()
+	go listenAndHandleUdp()
+	go listenAndHandleWebSocket()
+	go s.listenAndHandleChan()
 
-	{
-		go listenAndHandleWebSocket()
-	}
-
-	{
-		go listenAndHandleChan()
-	}
-
-	go broadcastPingPacket()
+	go s.broadcastPingPacket()
 
 	time.Sleep(time.Millisecond) // HACK: Give some time for listeners to start.
 	fmt.Println("Started server.")
 
-	return &server{}
+	return s
 }
 
 func listenAndHandleTcp() {
@@ -98,11 +100,8 @@ func listenAndHandleWebSocket() {
 	}
 }
 
-var chanListener = make(chan *Connection)
-var chanListenerReply = make(chan struct{})
-
-func listenAndHandleChan() {
-	for clientToServerConn := range chanListener {
+func (s *server) listenAndHandleChan() {
+	for clientToServerConn := range s.chanListener {
 
 		serverToClientConn := newConnection()
 		// Join server <-> client channel ends together.
@@ -121,7 +120,7 @@ func listenAndHandleChan() {
 		}
 		go handleTcpConnection(serverToClientConn)
 
-		chanListenerReply <- struct{}{}
+		s.chanListenerReply <- struct{}{}
 	}
 }
 
@@ -373,17 +372,14 @@ func sendServerUpdates(c *Connection) {
 	}
 }
 
-var lastPingData uint32
-var pingSentTimes = make(map[uint32]time.Time) // TODO: Use.
-
-func broadcastPingPacket() {
+func (s *server) broadcastPingPacket() {
 	const BROADCAST_PING_PERIOD = 2500 * time.Millisecond // How often to broadcast the Ping packet on the server.
 
 	for ; true; time.Sleep(BROADCAST_PING_PERIOD) {
 		// Prepare a Ping packet.
 		var p packet.Ping
 		p.Type = packet.PingType
-		p.PingData = lastPingData
+		p.PingData = s.lastPingData
 		p.LastLatencies = make([]uint16, state.TotalPlayerCount)
 
 		var buf bytes.Buffer
@@ -417,7 +413,7 @@ func broadcastPingPacket() {
 			}
 		}
 
-		lastPingData++
+		s.lastPingData++
 	}
 }
 

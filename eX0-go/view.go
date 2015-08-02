@@ -9,11 +9,22 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
-var windowSize = [2]int{640, 480}
+type view struct {
+	windowSize [2]int
 
-var cameraX, cameraY float64 = 362, 340
+	cameraPos [2]float32
+}
 
-func view(gameLogicInput bool) {
+func runView(gameLogicInput bool) *view {
+	v := &view{
+		windowSize: [2]int{640, 480},
+		cameraPos:  [2]float32{362, 340},
+	}
+	v.initAndMainLoop(gameLogicInput)
+	return v
+}
+
+func (v *view) initAndMainLoop(gameLogicInput bool) {
 	err := glfw.Init(gl.ContextWatcher)
 	if err != nil {
 		panic(err)
@@ -22,7 +33,7 @@ func view(gameLogicInput bool) {
 
 	glfw.WindowHint(glfw.Samples, 8) // Anti-aliasing.
 
-	window, err := glfw.CreateWindow(windowSize[0], windowSize[1], "eX0-go", nil, nil)
+	window, err := glfw.CreateWindow(v.windowSize[0], v.windowSize[1], "eX0-go", nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -34,14 +45,14 @@ func view(gameLogicInput bool) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 
 	window.SetScrollCallback(func(_ *glfw.Window, xoff, yoff float64) {
-		cameraX += xoff * 5
-		cameraY -= yoff * 5
+		v.cameraPos[0] += float32(xoff) * 5
+		v.cameraPos[1] -= float32(yoff) * 5
 	})
 
 	framebufferSizeCallback := func(w *glfw.Window, framebufferSize0, framebufferSize1 int) {
 		gl.Viewport(0, 0, framebufferSize0, framebufferSize1)
 
-		windowSize[0], windowSize[1] = w.GetSize()
+		v.windowSize[0], v.windowSize[1] = w.GetSize()
 	}
 	{
 		var framebufferSize [2]int
@@ -82,8 +93,8 @@ func view(gameLogicInput bool) {
 
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		pMatrix := mgl32.Ortho2D(0, float32(windowSize[0]), 0, float32(windowSize[1]))
-		mvMatrix := mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
+		pMatrix := mgl32.Ortho2D(0, float32(v.windowSize[0]), 0, float32(v.windowSize[1]))
+		mvMatrix := mgl32.Translate3D(v.cameraPos[0], v.cameraPos[1], 0)
 
 		l.setup()
 		gl.UniformMatrix4fv(l.pMatrixUniform, pMatrix[:])
@@ -102,7 +113,7 @@ func view(gameLogicInput bool) {
 
 			pos := ps.Interpolated(uint8(id))
 
-			mvMatrix = mgl32.Translate3D(float32(cameraX), float32(cameraY), 0)
+			mvMatrix = mgl32.Translate3D(v.cameraPos[0], v.cameraPos[1], 0)
 			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(pos.X, pos.Y, 0))
 			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-pos.Z))
 
