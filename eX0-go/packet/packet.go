@@ -23,6 +23,7 @@ const (
 	JoinTeamRequestType          Type = 27
 	PlayerJoinedTeamType         Type = 28
 	LocalPlayerInfoType          Type = 30
+	PlayerWasHitType             Type = 40
 
 	// UDP packet types.
 	ClientCommandType Type = 1
@@ -146,6 +147,13 @@ type LocalPlayerInfo struct {
 	Name        []byte
 	CommandRate uint8
 	UpdateRate  uint8
+}
+
+type PlayerWasHit struct {
+	TcpHeader
+
+	PlayerId    uint8
+	HealthGiven float32
 }
 
 type UdpHeader struct {

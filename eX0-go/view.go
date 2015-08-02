@@ -74,9 +74,9 @@ func view(gameLogicInput bool) {
 
 		if gameLogicInput {
 			if (window.GetKey(glfw.KeyLeft) != glfw.Release) && !(window.GetKey(glfw.KeyRight) != glfw.Release) {
-				components.client.ZOffset -= 2 * float32(timePassed.Seconds())
+				components.client.ZOffset -= 2.0 * float32(timePassed.Seconds())
 			} else if (window.GetKey(glfw.KeyRight) != glfw.Release) && !(window.GetKey(glfw.KeyLeft) != glfw.Release) {
-				components.client.ZOffset += 2 * float32(timePassed.Seconds())
+				components.client.ZOffset += 2.0 * float32(timePassed.Seconds())
 			}
 		}
 

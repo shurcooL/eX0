@@ -94,3 +94,7 @@ Team (char)
 	fY (float)
 	fZ (float)
 ]
+
+40. Player Was Hit (size == 5):
+Player Id (char)
+Health Given (float)

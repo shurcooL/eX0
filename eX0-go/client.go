@@ -478,6 +478,23 @@ func (c *client) connectToServer(s *Connection) {
 
 					fmt.Printf("%v joined %v.\n", ps.Name, ps.Team)
 				}
+			case packet.PlayerWasHitType:
+				var r = packet.PlayerWasHit{TcpHeader: tcpHeader}
+				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
+				if err != nil {
+					panic(err)
+				}
+				err = binary.Read(buf, binary.BigEndian, &r.PlayerId)
+				if err != nil {
+					panic(err)
+				}
+				err = binary.Read(buf, binary.BigEndian, &r.HealthGiven)
+				if err != nil {
+					panic(err)
+				}
+
+				fmt.Fprintf(os.Stderr, "[weapons] Player %v was hit for %v.\n", r.PlayerId, r.HealthGiven)
+				// TODO: Implement.
 			default:
 				fmt.Println("[client] got unsupported tcp packet type:", tcpHeader.Type)
 			}
