@@ -23,24 +23,25 @@ var pongSentTimes = make(map[uint32]time.Time) // PingData -> Time.
 var clientToServerConn *Connection
 
 type client struct {
-	// TODO:
-	//id int // Own player ID.
-}
+	playerId uint8
 
-var components_client_id uint8
+	ZOffset float32
+}
 
 func startClient() *client {
 	if components.logic != nil {
-		components.logic.Input <- func() packet.Move { return packet.Move{MoveDirection: -1} }
+		components.logic.Input <- func() packet.Move {
+			return packet.Move{
+				MoveDirection: -1,
+				Z:             playersState[components.client.playerId].LatestPredicted().Z,
+			}
+		}
 	}
-
 	clientToServerConn = newConnection()
-
 	clientToServerConn.dialServer()
-
-	connectToServer(clientToServerConn)
-
-	return &client{}
+	c := &client{}
+	c.connectToServer(clientToServerConn)
+	return c
 }
 
 var sentTimeRequestPacketTimes = make(map[uint8]float64)
@@ -50,7 +51,7 @@ var shortestLatencyLocalTime float64
 var shortestLatencyRemoteTime float64
 var finishedSyncingClock = make(chan struct{})
 
-func connectToServer(s *Connection) {
+func (c *client) connectToServer(s *Connection) {
 	s.Signature = uint64(time.Now().UnixNano())
 
 	{
@@ -89,7 +90,7 @@ func connectToServer(s *Connection) {
 		goon.Dump(r)
 
 		state.Lock()
-		components_client_id = r.YourPlayerId
+		c.playerId = r.YourPlayerId
 		state.TotalPlayerCount = r.TotalPlayerCount + 1
 		s.JoinStatus = ACCEPTED
 		state.Unlock()
@@ -443,7 +444,7 @@ func connectToServer(s *Connection) {
 				state.Lock()
 				playersStateMu.Lock()
 				logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(startedProcess).Seconds(), components_client_id, playersState[components_client_id].Name, r.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(startedProcess).Seconds(), c.playerId, playersState[c.playerId].Name, r.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
 				playersStateMu.Unlock()
 				state.Unlock()
 
@@ -467,6 +468,9 @@ func connectToServer(s *Connection) {
 							},
 							SequenceNumber: r.State.CommandSequenceNumber,
 						})
+						if r.PlayerId == c.playerId {
+							c.ZOffset = 0
+						}
 					}
 					ps.Team = r.Team
 					playersState[r.PlayerId] = ps

@@ -121,7 +121,7 @@ func (ps *playerState) NewSeries() {
 func (ps playerState) Interpolated(playerId uint8) playerPosVel {
 	desiredAStateSN := state.session.GlobalStateSequenceNumberTEST - 1
 
-	if components.client == nil || components_client_id != playerId {
+	if components.client == nil || components.client.playerId != playerId {
 		desiredAStateSN -= 2 // HACK: Assumes command rate of 20, this puts us 100 ms in the past (2 * 1s/20 = 100 ms).
 	}
 
@@ -167,9 +167,15 @@ func (ps playerState) Interpolated(playerId uint8) playerPosVel {
 	interpDistance := float32(b.SequenceNumber - a.SequenceNumber)
 	interp = interp / interpDistance
 
+	var z float32
+	if components.client != nil && components.client.playerId == playerId && b.SequenceNumber == state.session.GlobalStateSequenceNumberTEST {
+		z = b.playerPosVel.Z + components.client.ZOffset
+	} else {
+		z = (1-interp)*a.playerPosVel.Z + interp*b.playerPosVel.Z
+	}
 	return playerPosVel{
 		X: (1-interp)*a.playerPosVel.X + interp*b.playerPosVel.X,
 		Y: (1-interp)*a.playerPosVel.Y + interp*b.playerPosVel.Y,
-		Z: (1-interp)*a.playerPosVel.Z + interp*b.playerPosVel.Z,
+		Z: z,
 	}
 }

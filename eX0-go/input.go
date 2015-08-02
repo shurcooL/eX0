@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/go-gl/mathgl/mgl32"
 	"github.com/goxjs/glfw"
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
@@ -10,8 +9,9 @@ func inputCommand(window *glfw.Window) packet.Move {
 	//playersStateMu.Lock()
 	var move = packet.Move{
 		MoveDirection: -1,
-		//Z:             playersState[components_client_id].LatestAuthed().Z,
+		Z:             playersState[components.client.playerId].LatestPredicted().Z + components.client.ZOffset,
 	}
+	components.client.ZOffset = 0
 	//playersStateMu.Unlock()
 
 	var direction [2]int8
@@ -42,12 +42,6 @@ func inputCommand(window *glfw.Window) packet.Move {
 		move.MoveDirection = 6
 	case direction[0] == -1 && direction[1] == -1:
 		move.MoveDirection = 7
-	}
-
-	if (window.GetKey(glfw.KeyLeft) != glfw.Release) && !(window.GetKey(glfw.KeyRight) != glfw.Release) {
-		move.Z -= mgl32.DegToRad(3)
-	} else if (window.GetKey(glfw.KeyRight) != glfw.Release) && !(window.GetKey(glfw.KeyLeft) != glfw.Release) {
-		move.Z += mgl32.DegToRad(3)
 	}
 
 	if window.GetKey(glfw.KeyLeftShift) != glfw.Release || window.GetKey(glfw.KeyRightShift) != glfw.Release {

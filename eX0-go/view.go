@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/goxjs/gl"
 	"github.com/goxjs/glfw"
@@ -26,7 +28,7 @@ func view(gameLogicInput bool) {
 	}
 	window.MakeContextCurrent()
 
-	glfw.SwapInterval(1)
+	glfw.SwapInterval(1) // Vsync.
 
 	gl.ClearColor(227/255.0, 189/255.0, 162/255.0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
@@ -62,8 +64,21 @@ func view(gameLogicInput bool) {
 		components.logic.Input <- func() packet.Move { return inputCommand(window) }
 	}
 
+	frameStarted := time.Now()
+
 	for !window.ShouldClose() {
+		timePassed := time.Since(frameStarted)
+		frameStarted = time.Now()
+
 		glfw.PollEvents()
+
+		if gameLogicInput {
+			if (window.GetKey(glfw.KeyLeft) != glfw.Release) && !(window.GetKey(glfw.KeyRight) != glfw.Release) {
+				components.client.ZOffset -= 2 * float32(timePassed.Seconds())
+			} else if (window.GetKey(glfw.KeyRight) != glfw.Release) && !(window.GetKey(glfw.KeyLeft) != glfw.Release) {
+				components.client.ZOffset += 2 * float32(timePassed.Seconds())
+			}
+		}
 
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 

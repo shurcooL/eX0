@@ -16,8 +16,7 @@ const Tau = 2 * math.Pi
 type logic struct {
 	quit chan struct{} // Receiving a value on this channel results in sending a response, and quitting.
 
-	Input   chan func() packet.Move
-	doInput func() packet.Move
+	Input chan func() packet.Move
 }
 
 func startLogic() *logic {
@@ -60,21 +59,21 @@ func (l *logic) gameLogic() {
 		}
 		state.Unlock()
 
-		if debugFirstJoin {
+		if debugFirstJoin && components.client != nil {
 			playersStateMu.Lock()
-			ps, ok := playersState[components_client_id]
+			ps, ok := playersState[components.client.playerId]
 			if ok && ps.Team != packet.Spectator {
 				debugFirstJoin = false
 				logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(startedProcess).Seconds()-state.session.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(startedProcess).Seconds(), components_client_id, playersState[components_client_id].Name, ps.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(startedProcess).Seconds(), components.client.playerId, playersState[components.client.playerId].Name, ps.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
 			}
 			playersStateMu.Unlock()
 		}
 
-		if tick {
+		if tick && components.client != nil {
 			if doInput != nil {
 				playersStateMu.Lock()
-				ps, ok := playersState[components_client_id]
+				ps, ok := playersState[components.client.playerId]
 				if ok && ps.Team != packet.Spectator {
 					// Fill all missing commands (from last authed until one we're supposed to be by now (based on GlobalStateSequenceNumberTEST time).
 					for lastState := ps.LatestPredicted(); int8(lastState.SequenceNumber-state.session.GlobalStateSequenceNumberTEST) < 0; lastState = ps.LatestPredicted() {
@@ -87,32 +86,13 @@ func (l *logic) gameLogic() {
 							predicted: newState,
 						})
 					}
-					playersState[components_client_id] = ps
-
-					// Fill all missing commands (from last authed until one we're supposed to be by now (based on GlobalStateSequenceNumberTEST time).
-					/*for {
-						lastState := ps.LatestPredicted()
-						if lastState.SequenceNumber == state.session.GlobalStateSequenceNumberTEST {
-							break
-						}
-
-						move := doInput()
-
-						newState := nextState(lastState, move)
-
-						ps.unconfirmed = append(ps.unconfirmed, predictedMove{
-							move:      move,
-							predicted: newState,
-						})
-
-						playersState[components_client_id] = ps
-					}*/
+					playersState[components.client.playerId] = ps
 				}
 				playersStateMu.Unlock()
 			}
 
 			playersStateMu.Lock()
-			ps, ok := playersState[components_client_id]
+			ps, ok := playersState[components.client.playerId]
 			playersStateMu.Unlock()
 
 			if ok && ps.Team != packet.Spectator && len(ps.unconfirmed) > 0 {
