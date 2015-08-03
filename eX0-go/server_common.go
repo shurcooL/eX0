@@ -19,8 +19,6 @@ var state = struct {
 		GlobalStateSequenceNumberTEST uint8
 		NextTickTime                  float64
 	}
-
-	connections []*Connection
 }{
 	TotalPlayerCount: 16,
 }
@@ -28,7 +26,7 @@ var state = struct {
 const commandRate = 20
 
 // TODO: I think this should be moved into logic component (not server), yeah?
-//       There's also some overlap with state.connections, shouldn't that be resolved?
+//       There's also some overlap with server.connections, shouldn't that be resolved?
 var playersStateMu sync.Mutex
 var playersState = map[uint8]playerState{} // Player Id -> Player State.
 

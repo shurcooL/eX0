@@ -19,6 +19,8 @@ import (
 )
 
 type server struct {
+	connections []*Connection
+
 	lastPingData uint32
 	//pingSentTimes = make(map[uint32]time.Time) // TODO: Use.
 
@@ -32,9 +34,9 @@ func startServer() *server {
 		chanListenerReply: make(chan struct{}),
 	}
 
-	go listenAndHandleTcp()
-	go listenAndHandleUdp()
-	go listenAndHandleWebSocket()
+	go s.listenAndHandleTcp()
+	go s.listenAndHandleUdp()
+	go s.listenAndHandleWebSocket()
 	go s.listenAndHandleChan()
 
 	go s.broadcastPingPacket()
@@ -45,7 +47,7 @@ func startServer() *server {
 	return s
 }
 
-func listenAndHandleTcp() {
+func (s *server) listenAndHandleTcp() {
 	ln, err := net.Listen("tcp", ":25045")
 	if err != nil {
 		panic(err)
@@ -62,17 +64,30 @@ func listenAndHandleTcp() {
 		client.JoinStatus = TCP_CONNECTED
 		client.dialedClient()
 		state.Lock()
-		state.connections = append(state.connections, client)
+		s.connections = append(s.connections, client)
 		state.Unlock()
 
 		if shouldHandleUdpDirectly {
-			go handleUdp(client)
+			go s.handleUdp(client)
 		}
-		go handleTcpConnection(client)
+		go s.handleTcpConnection(client)
 	}
 }
+func (s *server) listenAndHandleUdp() {
+	udpAddr, err := net.ResolveUDPAddr("udp", ":25045")
+	if err != nil {
+		panic(err)
+	}
+	ln, err := net.ListenUDP("udp", udpAddr)
+	if err != nil {
+		panic(err)
+	}
+	mux := &Connection{udp: ln}
 
-func listenAndHandleWebSocket() {
+	s.handleUdp(mux)
+}
+
+func (s *server) listenAndHandleWebSocket() {
 	h := websocket.Handler(func(conn *websocket.Conn) {
 		// Why is this exported field undocumented?
 		//
@@ -85,13 +100,13 @@ func listenAndHandleWebSocket() {
 		client.JoinStatus = TCP_CONNECTED
 		client.dialedClient()
 		state.Lock()
-		state.connections = append(state.connections, client)
+		s.connections = append(s.connections, client)
 		state.Unlock()
 
 		if shouldHandleUdpDirectly {
-			go handleUdp(client)
+			go s.handleUdp(client)
 		}
-		handleTcpConnection(client)
+		s.handleTcpConnection(client)
 		// Do not return until handleTcpConnection does, else WebSocket gets closed.
 	})
 	err := http.ListenAndServe(":25046", h)
@@ -112,33 +127,19 @@ func (s *server) listenAndHandleChan() {
 		serverToClientConn.JoinStatus = TCP_CONNECTED
 
 		state.Lock()
-		state.connections = append(state.connections, serverToClientConn)
+		s.connections = append(s.connections, serverToClientConn)
 		state.Unlock()
 
 		if shouldHandleUdpDirectly {
-			go handleUdp(serverToClientConn)
+			go s.handleUdp(serverToClientConn)
 		}
-		go handleTcpConnection(serverToClientConn)
+		go s.handleTcpConnection(serverToClientConn)
 
 		s.chanListenerReply <- struct{}{}
 	}
 }
 
-func listenAndHandleUdp() {
-	udpAddr, err := net.ResolveUDPAddr("udp", ":25045")
-	if err != nil {
-		panic(err)
-	}
-	ln, err := net.ListenUDP("udp", udpAddr)
-	if err != nil {
-		panic(err)
-	}
-	mux := &Connection{udp: ln}
-
-	handleUdp(mux)
-}
-
-func handleUdp(mux *Connection) {
+func (s *server) handleUdp(mux *Connection) {
 	for {
 		buf, c, udpAddr, err := receiveUdpPacketFrom(mux)
 		if err != nil {
@@ -149,7 +150,7 @@ func handleUdp(mux *Connection) {
 			panic(err)
 		}
 
-		err = processUdpPacket(buf, c, udpAddr, mux)
+		err = s.processUdpPacket(buf, c, udpAddr, mux)
 		if err != nil {
 			fmt.Println("handleUdpPacket:", err)
 			if c != nil {
@@ -159,7 +160,7 @@ func handleUdp(mux *Connection) {
 	}
 }
 
-func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *Connection) error {
+func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *Connection) error {
 	var udpHeader packet.UdpHeader
 	err := binary.Read(buf, binary.BigEndian, &udpHeader)
 	if err != nil {
@@ -184,7 +185,7 @@ func processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *C
 		}
 
 		state.Lock()
-		for _, connection := range state.connections {
+		for _, connection := range s.connections {
 			if connection.Signature == r.Signature {
 				connection.JoinStatus = UDP_CONNECTED
 				connection.udp = mux.udp
@@ -399,7 +400,7 @@ func (s *server) broadcastPingPacket() {
 		// Broadcast the packet to all connections with at least IN_GAME.
 		var cs []*Connection
 		state.Lock()
-		for _, c := range state.connections {
+		for _, c := range s.connections {
 			if c.JoinStatus < IN_GAME {
 				continue
 			}
@@ -417,8 +418,8 @@ func (s *server) broadcastPingPacket() {
 	}
 }
 
-func handleTcpConnection(client *Connection) {
-	err := handleTcpConnection2(client)
+func (s *server) handleTcpConnection(client *Connection) {
+	err := s.handleTcpConnection2(client)
 	fmt.Println("tcp conn ended with:", err)
 
 	if client.JoinStatus >= PUBLIC_CLIENT {
@@ -444,7 +445,7 @@ func handleTcpConnection(client *Connection) {
 			// Broadcast the packet to all other connections with at least PUBLIC_CLIENT.
 			var cs []*Connection
 			state.Lock()
-			for _, c := range state.connections {
+			for _, c := range s.connections {
 				if c.JoinStatus < PUBLIC_CLIENT || c == client {
 					continue
 				}
@@ -466,10 +467,10 @@ func handleTcpConnection(client *Connection) {
 	}
 
 	state.Lock()
-	for i, connection := range state.connections {
+	for i, connection := range s.connections {
 		if connection == client {
 			// Delete without preserving order.
-			state.connections[i], state.connections[len(state.connections)-1], state.connections = state.connections[len(state.connections)-1], nil, state.connections[:len(state.connections)-1]
+			s.connections[i], s.connections[len(s.connections)-1], s.connections = s.connections[len(s.connections)-1], nil, s.connections[:len(s.connections)-1]
 			break
 		}
 	}
@@ -487,7 +488,7 @@ func handleTcpConnection(client *Connection) {
 	client.tcp.Close()
 }
 
-func handleTcpConnection2(client *Connection) error {
+func (s *server) handleTcpConnection2(client *Connection) error {
 	var playerId uint8
 
 	{
@@ -670,7 +671,7 @@ func handleTcpConnection2(client *Connection) error {
 		state.Lock()
 		playersStateMu.Lock()
 		p.Length += uint16(state.TotalPlayerCount)
-		for _, c := range state.connections {
+		for _, c := range s.connections {
 			if c.JoinStatus < PUBLIC_CLIENT {
 				continue
 			}
@@ -767,7 +768,7 @@ func handleTcpConnection2(client *Connection) error {
 		// Broadcast the packet to all other connections with at least PUBLIC_CLIENT.
 		var cs []*Connection
 		state.Lock()
-		for _, c := range state.connections {
+		for _, c := range s.connections {
 			if c.JoinStatus < PUBLIC_CLIENT || c == client {
 				continue
 			}
@@ -927,7 +928,7 @@ func handleTcpConnection2(client *Connection) error {
 				// Broadcast the packet to all connections with at least PUBLIC_CLIENT.
 				var cs []*Connection
 				state.Lock()
-				for _, c := range state.connections {
+				for _, c := range s.connections {
 					if c.JoinStatus < PUBLIC_CLIENT {
 						continue
 					}

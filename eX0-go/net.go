@@ -111,12 +111,8 @@ func receiveUdpPacketFrom(mux *Connection) (io.Reader, *Connection, *net.UDPAddr
 
 	var from *Connection
 	state.Lock()
-	for _, connection := range state.connections {
-		if connection.UdpAddr != nil &&
-			connection.UdpAddr.IP.Equal(udpAddr.IP) &&
-			connection.UdpAddr.Port == udpAddr.Port &&
-			connection.UdpAddr.Zone == udpAddr.Zone {
-
+	for _, connection := range components.server.connections {
+		if connection.UdpAddr != nil && udpAddrEqual(connection.UdpAddr, udpAddr) {
 			from = connection
 			break
 		}
@@ -124,4 +120,11 @@ func receiveUdpPacketFrom(mux *Connection) (io.Reader, *Connection, *net.UDPAddr
 	state.Unlock()
 
 	return bytes.NewReader(b[:n]), from, udpAddr, nil
+}
+
+// udpAddrEqual returns true if non-nil a and b are the same UDP address.
+func udpAddrEqual(a, b *net.UDPAddr) bool {
+	return a.IP.Equal(b.IP) &&
+		a.Port == b.Port &&
+		a.Zone == b.Zone
 }
