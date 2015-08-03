@@ -13,6 +13,7 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
+// Tau is the constant τ, which equals to 6.283185... or 2π.
 const Tau = 2 * math.Pi
 
 type logic struct {
