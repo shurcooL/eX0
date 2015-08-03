@@ -191,7 +191,7 @@ func receiveUdpPacket(c *Connection) (io.Reader, error) {
 	return bytes.NewReader(b), nil
 }
 
-func receiveUdpPacketFrom(mux *Connection) (io.Reader, *Connection, *net.UDPAddr, error) {
+func receiveUdpPacketFrom(_ *server, mux *Connection) (io.Reader, *Connection, *net.UDPAddr, error) {
 	b, ok := <-mux.recvUdp
 	if !ok {
 		return nil, nil, nil, errors.New("conn prob")

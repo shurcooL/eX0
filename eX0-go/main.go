@@ -38,6 +38,7 @@ func main() {
 	case len(args) == 1 && args[0] == "client-view":
 		components.logic = startLogic()
 		components.client = startClient()
+		components.logic.client <- components.client // TODO: Do this in a nicer way.
 		components.view = runView(true)
 		components.logic.quit <- struct{}{}
 		<-components.logic.quit
@@ -45,6 +46,7 @@ func main() {
 		components.logic = startLogic()
 		components.server = startServer()
 		components.client = startClient()
+		components.logic.client <- components.client // TODO: Do this in a nicer way.
 		components.view = runView(true)
 		components.logic.quit <- struct{}{}
 		<-components.logic.quit

@@ -16,7 +16,8 @@ const Tau = 2 * math.Pi
 type logic struct {
 	quit chan struct{} // Receiving a value on this channel results in sending a response, and quitting.
 
-	Input chan func() packet.Move
+	Input  chan func() packet.Move
+	client chan *client
 
 	started                   time.Time
 	GlobalStateSequenceNumber uint8
@@ -29,12 +30,11 @@ func startLogic() *logic {
 	l := &logic{
 		quit:                      make(chan struct{}),
 		Input:                     make(chan func() packet.Move),
+		client:                    make(chan *client),
 		started:                   time.Now(),
 		GlobalStateSequenceNumber: 0,
 		NextTickTime:              0,
 	}
-	state.Lock()
-	state.Unlock()
 	go l.gameLogic()
 	return l
 }
@@ -42,6 +42,7 @@ func startLogic() *logic {
 func (l *logic) gameLogic() {
 	var debugFirstJoin = true
 	var doInput func() packet.Move
+	var client *client // TODO: This is used instead of reading components.client pointer directly. Find a better way to resolve a data race with components struct.
 
 	for {
 		select {
@@ -49,6 +50,7 @@ func (l *logic) gameLogic() {
 			l.quit <- struct{}{}
 			return
 		case doInput = <-l.Input:
+		case client = <-l.client:
 		default:
 		}
 
@@ -65,21 +67,21 @@ func (l *logic) gameLogic() {
 		}
 		state.Unlock()
 
-		if debugFirstJoin && components.client != nil {
+		if debugFirstJoin && client != nil {
 			playersStateMu.Lock()
-			ps, ok := playersState[components.client.playerId]
+			ps, ok := playersState[client.playerId]
 			if ok && ps.Team != packet.Spectator {
 				debugFirstJoin = false
 				logicTime := float64(l.GlobalStateSequenceNumber) + (time.Since(l.started).Seconds()-l.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(l.started).Seconds(), components.client.playerId, playersState[components.client.playerId].Name, ps.Team, logicTime, l.GlobalStateSequenceNumber)
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(l.started).Seconds(), client.playerId, playersState[client.playerId].Name, ps.Team, logicTime, l.GlobalStateSequenceNumber)
 			}
 			playersStateMu.Unlock()
 		}
 
-		if tick && components.client != nil {
+		if tick && client != nil {
 			if doInput != nil {
 				playersStateMu.Lock()
-				ps, ok := playersState[components.client.playerId]
+				ps, ok := playersState[client.playerId]
 				if ok && ps.Team != packet.Spectator {
 					// Fill all missing commands (from last authed until one we're supposed to be by now (based on GlobalStateSequenceNumberTEST time).
 					for lastState := ps.LatestPredicted(); int8(lastState.SequenceNumber-l.GlobalStateSequenceNumber) < 0; lastState = ps.LatestPredicted() {
@@ -92,13 +94,13 @@ func (l *logic) gameLogic() {
 							predicted: newState,
 						})
 					}
-					playersState[components.client.playerId] = ps
+					playersState[client.playerId] = ps
 				}
 				playersStateMu.Unlock()
 			}
 
 			playersStateMu.Lock()
-			ps, ok := playersState[components.client.playerId]
+			ps, ok := playersState[client.playerId]
 			playersStateMu.Unlock()
 
 			if ok && ps.Team != packet.Spectator && len(ps.unconfirmed) > 0 {
@@ -110,7 +112,7 @@ func (l *logic) gameLogic() {
 
 				// TODO: This should be done via Local/Network State Auther. This currently hardcodes network state auther.
 				// Send a ClientCommand packet to server.
-				if components.client != nil && components.client.serverConn != nil && components.client.serverConn.JoinStatus >= IN_GAME {
+				if client != nil && client.serverConn != nil && client.serverConn.JoinStatus >= IN_GAME {
 					var p packet.ClientCommand
 					p.Type = packet.ClientCommandType
 					state.Lock()
@@ -148,7 +150,7 @@ func (l *logic) gameLogic() {
 						}
 					}
 
-					err = sendUdpPacket(components.client.serverConn, buf.Bytes())
+					err = sendUdpPacket(client.serverConn, buf.Bytes())
 					if err != nil {
 						panic(err)
 					}

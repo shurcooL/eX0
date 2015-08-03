@@ -82,7 +82,7 @@ func receiveUdpPacket(c *Connection) (io.Reader, error) {
 	return bytes.NewReader(b), nil
 }
 
-func receiveUdpPacketFrom(mux *Connection) (io.Reader, *Connection, *net.UDPAddr, error) {
+func receiveUdpPacketFrom(_ *server, mux *Connection) (io.Reader, *Connection, *net.UDPAddr, error) {
 	b := <-mux.recvUdp
 	return bytes.NewReader(b), mux, nil, nil // HACK.
 }

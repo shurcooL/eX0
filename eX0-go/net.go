@@ -102,7 +102,7 @@ func receiveUdpPacket(c *Connection) (io.Reader, error) {
 	return bytes.NewReader(b[:n]), nil
 }
 
-func receiveUdpPacketFrom(mux *Connection) (io.Reader, *Connection, *net.UDPAddr, error) {
+func receiveUdpPacketFrom(s *server, mux *Connection) (io.Reader, *Connection, *net.UDPAddr, error) {
 	var b [packet.MAX_UDP_SIZE]byte
 	n, udpAddr, err := mux.udp.ReadFromUDP(b[:])
 	if err != nil {
@@ -110,14 +110,14 @@ func receiveUdpPacketFrom(mux *Connection) (io.Reader, *Connection, *net.UDPAddr
 	}
 
 	var from *Connection
-	state.Lock()
-	for _, connection := range components.server.connections {
+	s.connectionsMu.Lock()
+	for _, connection := range s.connections {
 		if connection.UdpAddr != nil && udpAddrEqual(connection.UdpAddr, udpAddr) {
 			from = connection
 			break
 		}
 	}
-	state.Unlock()
+	s.connectionsMu.Unlock()
 
 	return bytes.NewReader(b[:n]), from, udpAddr, nil
 }

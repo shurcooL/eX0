@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
@@ -19,7 +20,8 @@ import (
 )
 
 type server struct {
-	connections []*Connection
+	connectionsMu sync.Mutex
+	connections   []*Connection
 
 	lastPingData uint32
 	//pingSentTimes = make(map[uint32]time.Time) // TODO: Use.
@@ -65,9 +67,9 @@ func (s *server) listenAndHandleTcp() {
 		client.tcp = tcp
 		client.JoinStatus = TCP_CONNECTED
 		client.dialedClient()
-		state.Lock()
+		s.connectionsMu.Lock()
 		s.connections = append(s.connections, client)
-		state.Unlock()
+		s.connectionsMu.Unlock()
 
 		if shouldHandleUdpDirectly {
 			go s.handleUdp(client)
@@ -101,9 +103,9 @@ func (s *server) listenAndHandleWebSocket() {
 		client.tcp = conn
 		client.JoinStatus = TCP_CONNECTED
 		client.dialedClient()
-		state.Lock()
+		s.connectionsMu.Lock()
 		s.connections = append(s.connections, client)
-		state.Unlock()
+		s.connectionsMu.Unlock()
 
 		if shouldHandleUdpDirectly {
 			go s.handleUdp(client)
@@ -128,9 +130,9 @@ func (s *server) listenAndHandleChan() {
 		serverToClientConn.recvUdp = clientToServerConn.sendUdp
 		serverToClientConn.JoinStatus = TCP_CONNECTED
 
-		state.Lock()
+		s.connectionsMu.Lock()
 		s.connections = append(s.connections, serverToClientConn)
-		state.Unlock()
+		s.connectionsMu.Unlock()
 
 		if shouldHandleUdpDirectly {
 			go s.handleUdp(serverToClientConn)
@@ -143,7 +145,7 @@ func (s *server) listenAndHandleChan() {
 
 func (s *server) handleUdp(mux *Connection) {
 	for {
-		buf, c, udpAddr, err := receiveUdpPacketFrom(mux)
+		buf, c, udpAddr, err := receiveUdpPacketFrom(s, mux)
 		if err != nil {
 			if shouldHandleUdpDirectly { // HACK: This isn't a real mux but rather the client directly, so return.
 				fmt.Println("udp conn ended with:", err)
@@ -186,7 +188,7 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 			goon.Dump(r2)
 		}
 
-		state.Lock()
+		s.connectionsMu.Lock()
 		for _, connection := range s.connections {
 			if connection.Signature == r.Signature {
 				connection.JoinStatus = UDP_CONNECTED
@@ -197,7 +199,7 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 				break
 			}
 		}
-		state.Unlock()
+		s.connectionsMu.Unlock()
 
 		if c != nil {
 			var p packet.UdpConnectionEstablished
@@ -401,14 +403,14 @@ func (s *server) broadcastPingPacket() {
 
 		// Broadcast the packet to all connections with at least IN_GAME.
 		var cs []*Connection
-		state.Lock()
+		s.connectionsMu.Lock()
 		for _, c := range s.connections {
 			if c.JoinStatus < IN_GAME {
 				continue
 			}
 			cs = append(cs, c)
 		}
-		state.Unlock()
+		s.connectionsMu.Unlock()
 		for _, c := range cs {
 			err = sendUdpPacket(c, buf.Bytes())
 			if err != nil {
@@ -446,14 +448,14 @@ func (s *server) handleTcpConnection(client *Connection) {
 
 			// Broadcast the packet to all other connections with at least PUBLIC_CLIENT.
 			var cs []*Connection
-			state.Lock()
+			s.connectionsMu.Lock()
 			for _, c := range s.connections {
 				if c.JoinStatus < PUBLIC_CLIENT || c == client {
 					continue
 				}
 				cs = append(cs, c)
 			}
-			state.Unlock()
+			s.connectionsMu.Unlock()
 			for _, c := range cs {
 				err = sendTcpPacket(c, buf.Bytes())
 				if err != nil {
@@ -468,7 +470,7 @@ func (s *server) handleTcpConnection(client *Connection) {
 		}
 	}
 
-	state.Lock()
+	s.connectionsMu.Lock()
 	for i, connection := range s.connections {
 		if connection == client {
 			// Delete without preserving order.
@@ -476,7 +478,7 @@ func (s *server) handleTcpConnection(client *Connection) {
 			break
 		}
 	}
-	state.Unlock()
+	s.connectionsMu.Unlock()
 
 	playersStateMu.Lock()
 	for id, ps := range playersState {
@@ -533,7 +535,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 			}
 		}
 
-		state.Lock()
+		s.connectionsMu.Lock()
 		playersStateMu.Lock()
 		playerId = func /* allocatePlayerId */ () uint8 {
 			for id := uint8(0); ; id++ {
@@ -550,7 +552,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 			client.JoinStatus = ACCEPTED
 		}
 		playersStateMu.Unlock()
-		state.Unlock()
+		s.connectionsMu.Unlock()
 
 		if serverFull {
 			{
@@ -630,7 +632,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 			r.Name = []byte("Unnamed Player")
 		}
 
-		state.Lock()
+		s.connectionsMu.Lock()
 		playersStateMu.Lock()
 		{
 			ps := playersState[playerId]
@@ -640,7 +642,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		}
 		client.JoinStatus = PUBLIC_CLIENT
 		playersStateMu.Unlock()
-		state.Unlock()
+		s.connectionsMu.Unlock()
 	}
 
 	{
@@ -769,14 +771,14 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 
 		// Broadcast the packet to all other connections with at least PUBLIC_CLIENT.
 		var cs []*Connection
-		state.Lock()
+		s.connectionsMu.Lock()
 		for _, c := range s.connections {
 			if c.JoinStatus < PUBLIC_CLIENT || c == client {
 				continue
 			}
 			cs = append(cs, c)
 		}
-		state.Unlock()
+		s.connectionsMu.Unlock()
 		for _, c := range cs {
 			err = sendTcpPacket(c, buf.Bytes())
 			if err != nil {
@@ -814,9 +816,9 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		}
 		goon.Dump(r)
 
-		state.Lock()
+		s.connectionsMu.Lock()
 		client.JoinStatus = IN_GAME
-		state.Unlock()
+		s.connectionsMu.Unlock()
 
 		// TODO: Who is responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way.
 		go sendServerUpdates(client)
@@ -891,7 +893,6 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 				playersStateMu.Unlock()
 				state.Unlock()
 
-				state.Lock()
 				if p.Team != packet.Spectator {
 					p.State = &packet.State{
 						CommandSequenceNumber: ps.LatestAuthed().SequenceNumber,
@@ -900,7 +901,6 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 						Z: ps.LatestAuthed().Z,
 					}
 				}
-				state.Unlock()
 
 				p.Length = 2
 				if p.State != nil {
@@ -929,14 +929,14 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 
 				// Broadcast the packet to all connections with at least PUBLIC_CLIENT.
 				var cs []*Connection
-				state.Lock()
+				s.connectionsMu.Lock()
 				for _, c := range s.connections {
 					if c.JoinStatus < PUBLIC_CLIENT {
 						continue
 					}
 					cs = append(cs, c)
 				}
-				state.Unlock()
+				s.connectionsMu.Unlock()
 				for _, c := range cs {
 					err = sendTcpPacket(c, buf.Bytes())
 					if err != nil {
