@@ -21,6 +21,8 @@ type logic struct {
 	started                   time.Time
 	GlobalStateSequenceNumber uint8
 	NextTickTime              float64
+
+	TotalPlayerCount uint8
 }
 
 func startLogic() *logic {

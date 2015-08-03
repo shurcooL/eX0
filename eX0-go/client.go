@@ -99,7 +99,7 @@ func (c *client) connectToServer() {
 
 		state.Lock()
 		c.playerId = r.YourPlayerId
-		state.TotalPlayerCount = r.TotalPlayerCount + 1
+		components.logic.TotalPlayerCount = r.TotalPlayerCount + 1
 		s.JoinStatus = ACCEPTED
 		state.Unlock()
 	}
@@ -245,7 +245,7 @@ func (c *client) connectToServer() {
 		if err != nil {
 			panic(err)
 		}
-		r.Players = make([]packet.PlayerInfo, state.TotalPlayerCount)
+		r.Players = make([]packet.PlayerInfo, components.logic.TotalPlayerCount)
 		for i := range r.Players {
 			var playerInfo packet.PlayerInfo
 			err = binary.Read(buf, binary.BigEndian, &playerInfo.NameLength)
@@ -574,7 +574,7 @@ func (c *client) handleUdp(s *Connection) {
 			if err != nil {
 				panic(err)
 			}
-			r.LastLatencies = make([]uint16, state.TotalPlayerCount)
+			r.LastLatencies = make([]uint16, components.logic.TotalPlayerCount)
 			err = binary.Read(buf, binary.BigEndian, &r.LastLatencies)
 			if err != nil {
 				panic(err)
@@ -626,7 +626,7 @@ func (c *client) handleUdp(s *Connection) {
 			if err != nil {
 				panic(err)
 			}
-			r.PlayerUpdates = make([]packet.PlayerUpdate, state.TotalPlayerCount)
+			r.PlayerUpdates = make([]packet.PlayerUpdate, components.logic.TotalPlayerCount)
 			for i := range r.PlayerUpdates {
 				var playerUpdate packet.PlayerUpdate
 				err = binary.Read(buf, binary.BigEndian, &playerUpdate.ActivePlayer)

@@ -10,13 +10,7 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
-var state = struct {
-	sync.Mutex
-
-	TotalPlayerCount uint8
-}{
-	TotalPlayerCount: 16,
-}
+var state sync.Mutex // TODO: Remove in favor of more specific mutexes.
 
 const commandRate = 20
 

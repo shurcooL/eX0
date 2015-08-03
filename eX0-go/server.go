@@ -29,6 +29,8 @@ type server struct {
 }
 
 func startServer() *server {
+	components.logic.TotalPlayerCount = 16
+
 	s := &server{
 		chanListener:      make(chan *Connection),
 		chanListenerReply: make(chan struct{}),
@@ -323,7 +325,7 @@ func sendServerUpdates(c *Connection) {
 		p.Type = packet.ServerUpdateType
 		p.CurrentUpdateSequenceNumber = lastServerUpdateSequenceNumber
 		state.Lock()
-		p.PlayerUpdates = make([]packet.PlayerUpdate, state.TotalPlayerCount)
+		p.PlayerUpdates = make([]packet.PlayerUpdate, components.logic.TotalPlayerCount)
 		state.Unlock()
 		playersStateMu.Lock()
 		for id, ps := range playersState {
@@ -381,7 +383,7 @@ func (s *server) broadcastPingPacket() {
 		var p packet.Ping
 		p.Type = packet.PingType
 		p.PingData = s.lastPingData
-		p.LastLatencies = make([]uint16, state.TotalPlayerCount)
+		p.LastLatencies = make([]uint16, components.logic.TotalPlayerCount)
 
 		var buf bytes.Buffer
 		err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
@@ -540,7 +542,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 				}
 			}
 		}()
-		serverFull := playerId >= state.TotalPlayerCount
+		serverFull := playerId >= components.logic.TotalPlayerCount
 		if !serverFull {
 			playersState[playerId] = playerState{conn: client}
 			client.Signature = r.Signature
@@ -578,7 +580,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		p.Type = packet.JoinServerAcceptType
 		p.YourPlayerId = playerId
 		state.Lock()
-		p.TotalPlayerCount = state.TotalPlayerCount - 1
+		p.TotalPlayerCount = components.logic.TotalPlayerCount - 1
 		state.Unlock()
 
 		p.Length = 2
@@ -667,10 +669,10 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 	{
 		var p packet.CurrentPlayersInfo
 		p.Type = packet.CurrentPlayersInfoType
-		p.Players = make([]packet.PlayerInfo, state.TotalPlayerCount)
+		p.Players = make([]packet.PlayerInfo, components.logic.TotalPlayerCount)
 		state.Lock()
 		playersStateMu.Lock()
-		p.Length += uint16(state.TotalPlayerCount)
+		p.Length += uint16(components.logic.TotalPlayerCount)
 		for _, c := range s.connections {
 			if c.JoinStatus < PUBLIC_CLIENT {
 				continue
