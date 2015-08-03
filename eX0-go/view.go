@@ -10,13 +10,16 @@ import (
 )
 
 type view struct {
+	logic *logic
+
 	windowSize [2]int
 
 	cameraPos [2]float32
 }
 
-func runView(gameLogicInput bool) *view {
+func runView(logic *logic, gameLogicInput bool) *view {
 	v := &view{
+		logic:      logic,
 		windowSize: [2]int{640, 480},
 		cameraPos:  [2]float32{362, 340},
 	}
@@ -72,7 +75,7 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 	}
 
 	if gameLogicInput {
-		components.logic.Input <- func() packet.Move { return inputCommand(window) }
+		v.logic.Input <- func(logic *logic) packet.Move { return inputCommand(logic, window) }
 	}
 
 	frameStarted := time.Now()
@@ -102,8 +105,8 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 		l.render()
 
 		state.Lock()
-		components.logic.playersStateMu.Lock()
-		for id, ps := range components.logic.playersState {
+		v.logic.playersStateMu.Lock()
+		for id, ps := range v.logic.playersState {
 			if ps.conn != nil && ps.conn.JoinStatus < IN_GAME {
 				continue
 			}
@@ -111,7 +114,7 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 				continue
 			}
 
-			pos := ps.Interpolated(uint8(id))
+			pos := ps.Interpolated(v.logic, uint8(id))
 
 			mvMatrix = mgl32.Translate3D(v.cameraPos[0], v.cameraPos[1], 0)
 			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(pos.X, pos.Y, 0))
@@ -122,7 +125,7 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 			gl.UniformMatrix4fv(c.mvMatrixUniform, mvMatrix[:])
 			c.render(ps.Team)
 		}
-		components.logic.playersStateMu.Unlock()
+		v.logic.playersStateMu.Unlock()
 		state.Unlock()
 
 		window.SwapBuffers()

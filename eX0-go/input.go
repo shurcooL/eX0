@@ -5,11 +5,11 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
-func inputCommand(window *glfw.Window) packet.Move {
+func inputCommand(logic *logic, window *glfw.Window) packet.Move {
 	//playersStateMu.Lock()
 	var move = packet.Move{
 		MoveDirection: -1,
-		Z:             components.logic.playersState[components.client.playerId].LatestPredicted().Z + components.client.ZOffset,
+		Z:             logic.playersState[components.client.playerId].LatestPredicted().Z + components.client.ZOffset,
 	}
 	components.client.ZOffset = 0
 	//playersStateMu.Unlock()

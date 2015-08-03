@@ -13,13 +13,9 @@ func ExampleFullConnection() {
 		}
 	}()
 
-	components.logic = startLogic()
 	components.server = startServer() // Wait for server to start listening.
 	components.client = startClient()
-	components.logic.client <- components.client // TODO: Do this in a nicer way.
-	time.Sleep(10 * time.Second)                 // Wait 10 seconds before exiting.
-	components.logic.quit <- struct{}{}
-	<-components.logic.quit
+	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 
 	// Output:
 	// Started server.
@@ -262,6 +258,7 @@ func ExampleFullConnection() {
 	// 		Z: (float32)(3),
 	// 	}),
 	// })
+	// Unnamed Player joined team Red.
 }
 
 // Requires an empty server to be running.

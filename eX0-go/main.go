@@ -19,7 +19,6 @@ var state sync.Mutex // TODO: Remove in favor of more specific mutexes.
 
 // THINK: Is this the best way?
 var components struct {
-	logic  *logic
 	server *server
 	client *client
 	view   *view
@@ -33,28 +32,18 @@ func main() {
 		components.client = startClient()
 		time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 	case len(args) == 1 && args[0] == "server":
-		components.logic = startLogic()
 		components.server = startServer()
 		select {}
 	case len(args) == 1 && args[0] == "server-view":
-		components.logic = startLogic()
 		components.server = startServer()
-		components.view = runView(false)
+		components.view = runView(components.server.logic, false)
 	case len(args) == 1 && args[0] == "client-view":
-		components.logic = startLogic()
 		components.client = startClient()
-		components.logic.client <- components.client // TODO: Do this in a nicer way.
-		components.view = runView(true)
-		components.logic.quit <- struct{}{}
-		<-components.logic.quit
+		components.view = runView(components.client.logic, true)
 	case len(args) == 1 && (args[0] == "client-server-view" || args[0] == "server-client-view"):
-		components.logic = startLogic()
 		components.server = startServer()
 		components.client = startClient()
-		components.logic.client <- components.client // TODO: Do this in a nicer way.
-		components.view = runView(true)
-		components.logic.quit <- struct{}{}
-		<-components.logic.quit
+		components.view = runView(components.client.logic, true)
 	default:
 		fmt.Fprintf(os.Stderr, "invalid usage: %q\n", args)
 		os.Exit(2)

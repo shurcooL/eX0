@@ -19,6 +19,8 @@ var hostFlag = flag.String("host", "localhost", "Server host (without port) for 
 var nameFlag = flag.String("name", "Unnamed Player", "Local client player name.")
 
 type client struct {
+	logic *logic
+
 	playerId uint8
 
 	ZOffset float32
@@ -36,14 +38,6 @@ type client struct {
 }
 
 func startClient() *client {
-	if components.logic != nil {
-		components.logic.Input <- func() packet.Move {
-			return packet.Move{
-				MoveDirection: -1,
-				Z:             components.logic.playersState[components.client.playerId].LatestPredicted().Z,
-			}
-		}
-	}
 	c := &client{
 		serverConn:                 newConnection(),
 		sentTimeRequestPacketTimes: make(map[uint8]float64),
@@ -51,7 +45,15 @@ func startClient() *client {
 		finishedSyncingClock:       make(chan struct{}),
 		pongSentTimes:              make(map[uint32]time.Time),
 	}
+	c.logic = startLogic()
+	c.logic.Input <- func(logic *logic) packet.Move {
+		return packet.Move{
+			MoveDirection: -1,
+			Z:             logic.playersState[components.client.playerId].LatestAuthed().Z,
+		}
+	}
 	c.connectToServer()
+	c.logic.client <- c // TODO: Do this in a nicer way.
 	return c
 }
 
@@ -99,7 +101,7 @@ func (c *client) connectToServer() {
 
 		state.Lock()
 		c.playerId = r.YourPlayerId
-		components.logic.TotalPlayerCount = r.TotalPlayerCount + 1
+		c.logic.TotalPlayerCount = r.TotalPlayerCount + 1
 		s.JoinStatus = ACCEPTED
 		state.Unlock()
 	}
@@ -159,7 +161,7 @@ func (c *client) connectToServer() {
 				sn++
 
 				state.Lock()
-				c.sentTimeRequestPacketTimes[p.SequenceNumber] = time.Since(components.logic.started).Seconds()
+				c.sentTimeRequestPacketTimes[p.SequenceNumber] = time.Since(c.logic.started).Seconds()
 				state.Unlock()
 
 				var buf bytes.Buffer
@@ -245,7 +247,7 @@ func (c *client) connectToServer() {
 		if err != nil {
 			panic(err)
 		}
-		r.Players = make([]packet.PlayerInfo, components.logic.TotalPlayerCount)
+		r.Players = make([]packet.PlayerInfo, c.logic.TotalPlayerCount)
 		for i := range r.Players {
 			var playerInfo packet.PlayerInfo
 			err = binary.Read(buf, binary.BigEndian, &playerInfo.NameLength)
@@ -278,32 +280,30 @@ func (c *client) connectToServer() {
 		}
 		goon.Dump(r)
 
-		if components.server == nil {
-			state.Lock()
-			components.logic.playersStateMu.Lock()
-			for id, p := range r.Players {
-				if p.NameLength == 0 {
-					continue
-				}
-				ps := playerState{
-					Name: string(p.Name),
-					Team: p.Team,
-				}
-				if p.State != nil {
-					ps.PushAuthed(sequencedPlayerPosVel{
-						playerPosVel: playerPosVel{
-							X: p.State.X,
-							Y: p.State.Y,
-							Z: p.State.Z,
-						},
-						SequenceNumber: p.State.CommandSequenceNumber,
-					})
-				}
-				components.logic.playersState[uint8(id)] = ps
+		state.Lock()
+		c.logic.playersStateMu.Lock()
+		for id, p := range r.Players {
+			if p.NameLength == 0 {
+				continue
 			}
-			components.logic.playersStateMu.Unlock()
-			state.Unlock()
+			ps := playerState{
+				Name: string(p.Name),
+				Team: p.Team,
+			}
+			if p.State != nil {
+				ps.PushAuthed(sequencedPlayerPosVel{
+					playerPosVel: playerPosVel{
+						X: p.State.X,
+						Y: p.State.Y,
+						Z: p.State.Z,
+					},
+					SequenceNumber: p.State.CommandSequenceNumber,
+				})
+			}
+			c.logic.playersState[uint8(id)] = ps
 		}
+		c.logic.playersStateMu.Unlock()
+		state.Unlock()
 	}
 
 	{
@@ -397,17 +397,15 @@ func (c *client) connectToServer() {
 					panic(err)
 				}
 
-				if components.server == nil {
-					ps := playerState{
-						Name: string(r.Name),
-						Team: 2,
-					}
-					components.logic.playersStateMu.Lock()
-					components.logic.playersState[r.PlayerId] = ps
-					components.logic.playersStateMu.Unlock()
-
-					fmt.Printf("%v is entering the game.\n", ps.Name)
+				ps := playerState{
+					Name: string(r.Name),
+					Team: 2,
 				}
+				c.logic.playersStateMu.Lock()
+				c.logic.playersState[r.PlayerId] = ps
+				c.logic.playersStateMu.Unlock()
+
+				fmt.Printf("%v is entering the game.\n", ps.Name)
 			case packet.PlayerLeftServerType:
 				var r = packet.PlayerLeftServer{TcpHeader: tcpHeader}
 				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
@@ -419,14 +417,12 @@ func (c *client) connectToServer() {
 					panic(err)
 				}
 
-				if components.server == nil {
-					components.logic.playersStateMu.Lock()
-					ps := components.logic.playersState[r.PlayerId]
-					delete(components.logic.playersState, r.PlayerId)
-					components.logic.playersStateMu.Unlock()
+				c.logic.playersStateMu.Lock()
+				ps := c.logic.playersState[r.PlayerId]
+				delete(c.logic.playersState, r.PlayerId)
+				c.logic.playersStateMu.Unlock()
 
-					fmt.Printf("%v left the game.\n", ps.Name)
-				}
+				fmt.Printf("%v left the game.\n", ps.Name)
 			case packet.PlayerJoinedTeamType:
 				var r = packet.PlayerJoinedTeam{TcpHeader: tcpHeader}
 				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
@@ -450,10 +446,10 @@ func (c *client) connectToServer() {
 				}
 
 				state.Lock()
-				components.logic.playersStateMu.Lock()
-				logicTime := float64(components.logic.GlobalStateSequenceNumber) + (time.Since(components.logic.started).Seconds()-components.logic.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(components.logic.started).Seconds(), r.PlayerId, components.logic.playersState[r.PlayerId].Name, r.Team, logicTime, components.logic.GlobalStateSequenceNumber)
-				components.logic.playersStateMu.Unlock()
+				c.logic.playersStateMu.Lock()
+				logicTime := float64(c.logic.GlobalStateSequenceNumber) + (time.Since(c.logic.started).Seconds()-c.logic.NextTickTime)*commandRate
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(c.logic.started).Seconds(), r.PlayerId, c.logic.playersState[r.PlayerId].Name, r.Team, logicTime, c.logic.GlobalStateSequenceNumber)
+				c.logic.playersStateMu.Unlock()
 				state.Unlock()
 
 				if debugFirstJoin {
@@ -463,29 +459,27 @@ func (c *client) connectToServer() {
 					goon.Dump(r2)
 				}
 
-				if components.server == nil {
-					components.logic.playersStateMu.Lock()
-					ps := components.logic.playersState[r.PlayerId]
-					if r.State != nil {
-						ps.NewSeries()
-						ps.PushAuthed(sequencedPlayerPosVel{
-							playerPosVel: playerPosVel{
-								X: r.State.X,
-								Y: r.State.Y,
-								Z: r.State.Z,
-							},
-							SequenceNumber: r.State.CommandSequenceNumber,
-						})
-						if r.PlayerId == c.playerId {
-							c.ZOffset = 0
-						}
+				c.logic.playersStateMu.Lock()
+				ps := c.logic.playersState[r.PlayerId]
+				if r.State != nil {
+					ps.NewSeries()
+					ps.PushAuthed(sequencedPlayerPosVel{
+						playerPosVel: playerPosVel{
+							X: r.State.X,
+							Y: r.State.Y,
+							Z: r.State.Z,
+						},
+						SequenceNumber: r.State.CommandSequenceNumber,
+					})
+					if r.PlayerId == c.playerId {
+						c.ZOffset = 0
 					}
-					ps.Team = r.Team
-					components.logic.playersState[r.PlayerId] = ps
-					components.logic.playersStateMu.Unlock()
-
-					fmt.Printf("%v joined %v.\n", ps.Name, ps.Team)
 				}
+				ps.Team = r.Team
+				c.logic.playersState[r.PlayerId] = ps
+				c.logic.playersStateMu.Unlock()
+
+				fmt.Printf("%v joined %v.\n", ps.Name, ps.Team)
 			case packet.PlayerWasHitType:
 				var r = packet.PlayerWasHit{TcpHeader: tcpHeader}
 				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
@@ -525,7 +519,7 @@ func (c *client) handleUdp(s *Connection) {
 
 		switch udpHeader.Type {
 		case packet.TimeResponseType:
-			logicTimeAtReceive := time.Since(components.logic.started).Seconds()
+			logicTimeAtReceive := time.Since(c.logic.started).Seconds()
 
 			var r packet.TimeResponse
 			err = binary.Read(buf, binary.BigEndian, &r.SequenceNumber)
@@ -551,20 +545,18 @@ func (c *client) handleUdp(s *Connection) {
 			}
 
 			if c.trpReceived == 30 {
-				if components.server == nil { // TODO: This check should be more like "if !components.logic.authoritative", and logic timer should be inside components.logic. Better yet, each of server and client components should have a pointer to logic component that they own.
-					// Adjust logic clock.
-					delta := c.shortestLatencyLocalTime - c.shortestLatencyRemoteTime
-					state.Lock()
-					components.logic.started = components.logic.started.Add(time.Duration(delta * float64(time.Second)))
-					fmt.Fprintf(os.Stderr, "delta: %.3f seconds, started: %v\n", delta, components.logic.started)
-					logicTime := time.Since(components.logic.started).Seconds()
-					components.logic.GlobalStateSequenceNumber = uint8(logicTime * commandRate) // TODO: Adjust this.
-					components.logic.NextTickTime = 0                                           // TODO: Adjust this.
-					for components.logic.NextTickTime+1.0/commandRate < logicTime {
-						components.logic.NextTickTime += 1.0 / commandRate
-					}
-					state.Unlock()
+				// Adjust our logic clock.
+				delta := c.shortestLatencyLocalTime - c.shortestLatencyRemoteTime
+				state.Lock()
+				c.logic.started = c.logic.started.Add(time.Duration(delta * float64(time.Second)))
+				fmt.Fprintf(os.Stderr, "delta: %.3f seconds, started: %v\n", delta, c.logic.started)
+				logicTime := time.Since(c.logic.started).Seconds()
+				c.logic.GlobalStateSequenceNumber = uint8(logicTime * commandRate) // TODO: Adjust this.
+				c.logic.NextTickTime = 0                                           // TODO: Adjust this.
+				for c.logic.NextTickTime+1.0/commandRate < logicTime {
+					c.logic.NextTickTime += 1.0 / commandRate
 				}
+				state.Unlock()
 
 				close(c.finishedSyncingClock)
 			}
@@ -574,7 +566,7 @@ func (c *client) handleUdp(s *Connection) {
 			if err != nil {
 				panic(err)
 			}
-			r.LastLatencies = make([]uint16, components.logic.TotalPlayerCount)
+			r.LastLatencies = make([]uint16, c.logic.TotalPlayerCount)
 			err = binary.Read(buf, binary.BigEndian, &r.LastLatencies)
 			if err != nil {
 				panic(err)
@@ -626,7 +618,7 @@ func (c *client) handleUdp(s *Connection) {
 			if err != nil {
 				panic(err)
 			}
-			r.PlayerUpdates = make([]packet.PlayerUpdate, components.logic.TotalPlayerCount)
+			r.PlayerUpdates = make([]packet.PlayerUpdate, c.logic.TotalPlayerCount)
 			for i := range r.PlayerUpdates {
 				var playerUpdate packet.PlayerUpdate
 				err = binary.Read(buf, binary.BigEndian, &playerUpdate.ActivePlayer)
@@ -647,24 +639,22 @@ func (c *client) handleUdp(s *Connection) {
 
 			// TODO: Verify r.CurrentUpdateSequenceNumber.
 
-			if components.server == nil {
-				components.logic.playersStateMu.Lock()
-				for id, pu := range r.PlayerUpdates {
-					if pu.ActivePlayer != 0 {
-						ps := components.logic.playersState[uint8(id)]
-						ps.PushAuthed(sequencedPlayerPosVel{
-							playerPosVel: playerPosVel{
-								X: pu.State.X,
-								Y: pu.State.Y,
-								Z: pu.State.Z,
-							},
-							SequenceNumber: pu.State.CommandSequenceNumber,
-						})
-						components.logic.playersState[uint8(id)] = ps
-					}
+			c.logic.playersStateMu.Lock()
+			for id, pu := range r.PlayerUpdates {
+				if pu.ActivePlayer != 0 {
+					ps := c.logic.playersState[uint8(id)]
+					ps.PushAuthed(sequencedPlayerPosVel{
+						playerPosVel: playerPosVel{
+							X: pu.State.X,
+							Y: pu.State.Y,
+							Z: pu.State.Z,
+						},
+						SequenceNumber: pu.State.CommandSequenceNumber,
+					})
+					c.logic.playersState[uint8(id)] = ps
 				}
-				components.logic.playersStateMu.Unlock()
 			}
+			c.logic.playersStateMu.Unlock()
 		}
 	}
 }

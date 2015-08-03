@@ -17,9 +17,10 @@ import (
 const Tau = 2 * math.Pi
 
 type logic struct {
+	// TODO: Remove quit since it's not used anymore, if it's really not needed.
 	quit chan struct{} // Receiving a value on this channel results in sending a response, and quitting.
 
-	Input  chan func() packet.Move
+	Input  chan func(logic *logic) packet.Move
 	client chan *client
 
 	started                   time.Time
@@ -36,7 +37,7 @@ type logic struct {
 func startLogic() *logic {
 	l := &logic{
 		quit:                      make(chan struct{}),
-		Input:                     make(chan func() packet.Move),
+		Input:                     make(chan func(logic *logic) packet.Move),
 		client:                    make(chan *client),
 		started:                   time.Now(),
 		GlobalStateSequenceNumber: 0,
@@ -50,7 +51,7 @@ func startLogic() *logic {
 
 func (l *logic) gameLogic() {
 	var debugFirstJoin = true
-	var doInput func() packet.Move
+	var doInput func(logic *logic) packet.Move
 	var client *client // TODO: This is used instead of reading components.client pointer directly. Find a better way to resolve a data race with components struct.
 
 	for {
@@ -93,7 +94,7 @@ func (l *logic) gameLogic() {
 				if ok && ps.Team != packet.Spectator {
 					// Fill all missing commands (from last authed until one we're supposed to be by now (based on GlobalStateSequenceNumberTEST time).
 					for lastState := ps.LatestPredicted(); int8(lastState.SequenceNumber-l.GlobalStateSequenceNumber) < 0; lastState = ps.LatestPredicted() {
-						move := doInput()
+						move := doInput(l)
 
 						newState := nextState(lastState, move)
 
@@ -254,9 +255,10 @@ func (ps *playerState) NewSeries() {
 	ps.unconfirmed = nil
 }
 
-func (ps playerState) Interpolated(playerId uint8) playerPosVel {
-	desiredAStateSN := components.logic.GlobalStateSequenceNumber - 1
+func (ps playerState) Interpolated(logic *logic, playerId uint8) playerPosVel {
+	desiredAStateSN := logic.GlobalStateSequenceNumber - 1
 
+	// When we don't have perfect information about present, return position 100 ms in the past.
 	if components.client == nil || components.client.playerId != playerId {
 		desiredAStateSN -= 2 // HACK: Assumes command rate of 20, this puts us 100 ms in the past (2 * 1s/20 = 100 ms).
 	}
@@ -300,12 +302,12 @@ func (ps playerState) Interpolated(playerId uint8) playerPosVel {
 	}
 	b := states[bi]
 
-	interp := float32(desiredAStateSN-a.SequenceNumber) + float32((time.Since(components.logic.started).Seconds()-components.logic.NextTickTime+1.0/commandRate)*commandRate)
+	interp := float32(desiredAStateSN-a.SequenceNumber) + float32((time.Since(logic.started).Seconds()-logic.NextTickTime+1.0/commandRate)*commandRate)
 	interpDistance := float32(b.SequenceNumber - a.SequenceNumber)
 	interp = interp / interpDistance
 
 	var z float32
-	if components.client != nil && components.client.playerId == playerId && b.SequenceNumber == components.logic.GlobalStateSequenceNumber {
+	if components.client != nil && components.client.playerId == playerId && b.SequenceNumber == logic.GlobalStateSequenceNumber {
 		z = b.playerPosVel.Z + components.client.ZOffset
 	} else {
 		z = (1-interp)*a.playerPosVel.Z + interp*b.playerPosVel.Z
