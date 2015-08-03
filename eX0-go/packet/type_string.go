@@ -11,8 +11,9 @@ const (
 	_Type_name_3 = "LoadLevelTypeCurrentPlayersInfoType"
 	_Type_name_4 = "PlayerJoinedServerTypePlayerLeftServerTypeJoinTeamRequestTypePlayerJoinedTeamType"
 	_Type_name_5 = "LocalPlayerInfoType"
-	_Type_name_6 = "HandshakeType"
-	_Type_name_7 = "TimeRequestTypeTimeResponseType"
+	_Type_name_6 = "PlayerWasHitType"
+	_Type_name_7 = "HandshakeType"
+	_Type_name_8 = "TimeRequestTypeTimeResponseType"
 )
 
 var (
@@ -22,8 +23,9 @@ var (
 	_Type_index_3 = [...]uint8{0, 13, 35}
 	_Type_index_4 = [...]uint8{0, 22, 42, 61, 81}
 	_Type_index_5 = [...]uint8{0, 19}
-	_Type_index_6 = [...]uint8{0, 13}
-	_Type_index_7 = [...]uint8{0, 15, 31}
+	_Type_index_6 = [...]uint8{0, 16}
+	_Type_index_7 = [...]uint8{0, 13}
+	_Type_index_8 = [...]uint8{0, 15, 31}
 )
 
 func (i Type) String() string {
@@ -45,11 +47,13 @@ func (i Type) String() string {
 		return _Type_name_4[_Type_index_4[i]:_Type_index_4[i+1]]
 	case i == 30:
 		return _Type_name_5
-	case i == 100:
+	case i == 40:
 		return _Type_name_6
+	case i == 100:
+		return _Type_name_7
 	case 105 <= i && i <= 106:
 		i -= 105
-		return _Type_name_7[_Type_index_7[i]:_Type_index_7[i+1]]
+		return _Type_name_8[_Type_index_8[i]:_Type_index_8[i+1]]
 	default:
 		return fmt.Sprintf("Type(%d)", i)
 	}
