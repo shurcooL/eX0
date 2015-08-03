@@ -856,8 +856,8 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 
 			state.Lock()
 			playersStateMu.Lock()
-			logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(components.logic.started).Seconds()-state.session.NextTickTime)*commandRate
-			fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(components.logic.started).Seconds(), playerId, playersState[playerId].Name, team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+			logicTime := float64(components.logic.GlobalStateSequenceNumber) + (time.Since(components.logic.started).Seconds()-components.logic.NextTickTime)*commandRate
+			fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(components.logic.started).Seconds(), playerId, playersState[playerId].Name, team, logicTime, components.logic.GlobalStateSequenceNumber)
 			playersStateMu.Unlock()
 			state.Unlock()
 
@@ -882,7 +882,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 					ps.NewSeries()
 					ps.PushAuthed(sequencedPlayerPosVel{
 						playerPosVel:   playerSpawn,
-						SequenceNumber: state.session.GlobalStateSequenceNumberTEST - 1,
+						SequenceNumber: components.logic.GlobalStateSequenceNumber - 1,
 					})
 				}
 				playersState[playerId] = ps

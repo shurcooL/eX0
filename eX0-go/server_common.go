@@ -14,11 +14,6 @@ var state = struct {
 	sync.Mutex
 
 	TotalPlayerCount uint8
-
-	session struct {
-		GlobalStateSequenceNumberTEST uint8
-		NextTickTime                  float64
-	}
 }{
 	TotalPlayerCount: 16,
 }
@@ -115,7 +110,7 @@ func (ps *playerState) NewSeries() {
 }
 
 func (ps playerState) Interpolated(playerId uint8) playerPosVel {
-	desiredAStateSN := state.session.GlobalStateSequenceNumberTEST - 1
+	desiredAStateSN := components.logic.GlobalStateSequenceNumber - 1
 
 	if components.client == nil || components.client.playerId != playerId {
 		desiredAStateSN -= 2 // HACK: Assumes command rate of 20, this puts us 100 ms in the past (2 * 1s/20 = 100 ms).
@@ -159,12 +154,12 @@ func (ps playerState) Interpolated(playerId uint8) playerPosVel {
 	}
 	b := states[bi]
 
-	interp := float32(desiredAStateSN-a.SequenceNumber) + float32((time.Since(components.logic.started).Seconds()-state.session.NextTickTime+1.0/commandRate)*commandRate)
+	interp := float32(desiredAStateSN-a.SequenceNumber) + float32((time.Since(components.logic.started).Seconds()-components.logic.NextTickTime+1.0/commandRate)*commandRate)
 	interpDistance := float32(b.SequenceNumber - a.SequenceNumber)
 	interp = interp / interpDistance
 
 	var z float32
-	if components.client != nil && components.client.playerId == playerId && b.SequenceNumber == state.session.GlobalStateSequenceNumberTEST {
+	if components.client != nil && components.client.playerId == playerId && b.SequenceNumber == components.logic.GlobalStateSequenceNumber {
 		z = b.playerPosVel.Z + components.client.ZOffset
 	} else {
 		z = (1-interp)*a.playerPosVel.Z + interp*b.playerPosVel.Z

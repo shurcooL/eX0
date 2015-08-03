@@ -18,18 +18,20 @@ type logic struct {
 
 	Input chan func() packet.Move
 
-	started time.Time
+	started                   time.Time
+	GlobalStateSequenceNumber uint8
+	NextTickTime              float64
 }
 
 func startLogic() *logic {
 	l := &logic{
-		quit:    make(chan struct{}),
-		Input:   make(chan func() packet.Move),
-		started: time.Now(),
+		quit:                      make(chan struct{}),
+		Input:                     make(chan func() packet.Move),
+		started:                   time.Now(),
+		GlobalStateSequenceNumber: 0,
+		NextTickTime:              0,
 	}
 	state.Lock()
-	state.session.GlobalStateSequenceNumberTEST = 0
-	state.session.NextTickTime = 0
 	state.Unlock()
 	go l.gameLogic()
 	return l
@@ -52,12 +54,12 @@ func (l *logic) gameLogic() {
 		sleep := time.Millisecond
 
 		state.Lock()
-		if now := time.Since(l.started).Seconds(); now >= state.session.NextTickTime {
-			state.session.NextTickTime += 1.0 / commandRate
-			state.session.GlobalStateSequenceNumberTEST++
-			//fmt.Fprintln(os.Stderr, "GlobalStateSequenceNumberTEST++:", state.session.GlobalStateSequenceNumberTEST)
+		if now := time.Since(l.started).Seconds(); now >= l.NextTickTime {
+			l.NextTickTime += 1.0 / commandRate
+			l.GlobalStateSequenceNumber++
+			//fmt.Fprintln(os.Stderr, "GlobalStateSequenceNumber++:", l.GlobalStateSequenceNumber)
 			tick = true
-			//sleep = time.Duration((state.session.NextTickTime - now) * float64(time.Second))
+			//sleep = time.Duration((l.NextTickTime - now) * float64(time.Second))
 		}
 		state.Unlock()
 
@@ -66,8 +68,8 @@ func (l *logic) gameLogic() {
 			ps, ok := playersState[components.client.playerId]
 			if ok && ps.Team != packet.Spectator {
 				debugFirstJoin = false
-				logicTime := float64(state.session.GlobalStateSequenceNumberTEST) + (time.Since(l.started).Seconds()-state.session.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(l.started).Seconds(), components.client.playerId, playersState[components.client.playerId].Name, ps.Team, logicTime, state.session.GlobalStateSequenceNumberTEST)
+				logicTime := float64(l.GlobalStateSequenceNumber) + (time.Since(l.started).Seconds()-l.NextTickTime)*commandRate
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(l.started).Seconds(), components.client.playerId, playersState[components.client.playerId].Name, ps.Team, logicTime, l.GlobalStateSequenceNumber)
 			}
 			playersStateMu.Unlock()
 		}
@@ -78,7 +80,7 @@ func (l *logic) gameLogic() {
 				ps, ok := playersState[components.client.playerId]
 				if ok && ps.Team != packet.Spectator {
 					// Fill all missing commands (from last authed until one we're supposed to be by now (based on GlobalStateSequenceNumberTEST time).
-					for lastState := ps.LatestPredicted(); int8(lastState.SequenceNumber-state.session.GlobalStateSequenceNumberTEST) < 0; lastState = ps.LatestPredicted() {
+					for lastState := ps.LatestPredicted(); int8(lastState.SequenceNumber-l.GlobalStateSequenceNumber) < 0; lastState = ps.LatestPredicted() {
 						move := doInput()
 
 						newState := nextState(lastState, move)
@@ -110,11 +112,11 @@ func (l *logic) gameLogic() {
 					var p packet.ClientCommand
 					p.Type = packet.ClientCommandType
 					state.Lock()
-					p.CommandSequenceNumber = state.session.GlobalStateSequenceNumberTEST - 1
+					p.CommandSequenceNumber = l.GlobalStateSequenceNumber - 1
 					state.Unlock()
 					p.CommandSeriesNumber = 1 // TODO: Don't hardcode this.
 					p.Moves = moves
-					//fmt.Printf("%.3f: sending ClientCommand with %v moves, clientLastAckedCSN=%v, G-1=%v\n", time.Since(l.started).Seconds(), len(p.Moves), clientLastAckedCmdSequenceNumber, state.session.GlobalStateSequenceNumberTEST-1)
+					//fmt.Printf("%.3f: sending ClientCommand with %v moves, clientLastAckedCSN=%v, G-1=%v\n", time.Since(l.started).Seconds(), len(p.Moves), clientLastAckedCmdSequenceNumber, l.GlobalStateSequenceNumber-1)
 					/*for i, unconfirmed := range ps.unconfirmed {
 						fmt.Println(i, "unconfirmed.predicted.SequenceNumber:", unconfirmed.predicted.SequenceNumber, "dir:", unconfirmed.move.MoveDirection)
 					}*/
