@@ -17,9 +17,6 @@ import (
 const Tau = 2 * math.Pi
 
 type logic struct {
-	// TODO: Remove quit since it's not used anymore, if it's really not needed.
-	quit chan struct{} // Receiving a value on this channel results in sending a response, and quitting.
-
 	Input  chan func(logic *logic) packet.Move
 	client chan *client
 
@@ -36,7 +33,6 @@ type logic struct {
 
 func startLogic() *logic {
 	l := &logic{
-		quit:                      make(chan struct{}),
 		Input:                     make(chan func(logic *logic) packet.Move),
 		client:                    make(chan *client),
 		started:                   time.Now(),
@@ -56,9 +52,6 @@ func (l *logic) gameLogic() {
 
 	for {
 		select {
-		case <-l.quit:
-			l.quit <- struct{}{}
-			return
 		case doInput = <-l.Input:
 		case client = <-l.client:
 		default:
