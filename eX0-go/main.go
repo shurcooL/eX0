@@ -7,10 +7,15 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 )
 
 const debugValidation = true
+
+const commandRate = 20
+
+var state sync.Mutex // TODO: Remove in favor of more specific mutexes.
 
 // THINK: Is this the best way?
 var components struct {
