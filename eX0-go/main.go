@@ -7,18 +7,22 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 )
 
 const debugValidation = true
 
-var startedProcess = time.Now()
+const commandRate = 20
+
+var state sync.Mutex // TODO: Remove in favor of more specific mutexes.
 
 // THINK: Is this the best way?
 var components struct {
 	logic  *logic
 	server *server
 	client *client
+	view   *view
 }
 
 func main() {
@@ -35,18 +39,20 @@ func main() {
 	case len(args) == 1 && args[0] == "server-view":
 		components.logic = startLogic()
 		components.server = startServer()
-		view(false)
+		components.view = runView(false)
 	case len(args) == 1 && args[0] == "client-view":
 		components.logic = startLogic()
 		components.client = startClient()
-		view(true)
+		components.logic.client <- components.client // TODO: Do this in a nicer way.
+		components.view = runView(true)
 		components.logic.quit <- struct{}{}
 		<-components.logic.quit
 	case len(args) == 1 && (args[0] == "client-server-view" || args[0] == "server-client-view"):
 		components.logic = startLogic()
 		components.server = startServer()
 		components.client = startClient()
-		view(true)
+		components.logic.client <- components.client // TODO: Do this in a nicer way.
+		components.view = runView(true)
 		components.logic.quit <- struct{}{}
 		<-components.logic.quit
 	default:
