@@ -40,7 +40,7 @@ func startClient() *client {
 		components.logic.Input <- func() packet.Move {
 			return packet.Move{
 				MoveDirection: -1,
-				Z:             playersState[components.client.playerId].LatestPredicted().Z,
+				Z:             components.logic.playersState[components.client.playerId].LatestPredicted().Z,
 			}
 		}
 	}
@@ -280,7 +280,7 @@ func (c *client) connectToServer() {
 
 		if components.server == nil {
 			state.Lock()
-			playersStateMu.Lock()
+			components.logic.playersStateMu.Lock()
 			for id, p := range r.Players {
 				if p.NameLength == 0 {
 					continue
@@ -299,9 +299,9 @@ func (c *client) connectToServer() {
 						SequenceNumber: p.State.CommandSequenceNumber,
 					})
 				}
-				playersState[uint8(id)] = ps
+				components.logic.playersState[uint8(id)] = ps
 			}
-			playersStateMu.Unlock()
+			components.logic.playersStateMu.Unlock()
 			state.Unlock()
 		}
 	}
@@ -402,9 +402,9 @@ func (c *client) connectToServer() {
 						Name: string(r.Name),
 						Team: 2,
 					}
-					playersStateMu.Lock()
-					playersState[r.PlayerId] = ps
-					playersStateMu.Unlock()
+					components.logic.playersStateMu.Lock()
+					components.logic.playersState[r.PlayerId] = ps
+					components.logic.playersStateMu.Unlock()
 
 					fmt.Printf("%v is entering the game.\n", ps.Name)
 				}
@@ -420,10 +420,10 @@ func (c *client) connectToServer() {
 				}
 
 				if components.server == nil {
-					playersStateMu.Lock()
-					ps := playersState[r.PlayerId]
-					delete(playersState, r.PlayerId)
-					playersStateMu.Unlock()
+					components.logic.playersStateMu.Lock()
+					ps := components.logic.playersState[r.PlayerId]
+					delete(components.logic.playersState, r.PlayerId)
+					components.logic.playersStateMu.Unlock()
 
 					fmt.Printf("%v left the game.\n", ps.Name)
 				}
@@ -450,10 +450,10 @@ func (c *client) connectToServer() {
 				}
 
 				state.Lock()
-				playersStateMu.Lock()
+				components.logic.playersStateMu.Lock()
 				logicTime := float64(components.logic.GlobalStateSequenceNumber) + (time.Since(components.logic.started).Seconds()-components.logic.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(components.logic.started).Seconds(), r.PlayerId, playersState[r.PlayerId].Name, r.Team, logicTime, components.logic.GlobalStateSequenceNumber)
-				playersStateMu.Unlock()
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(components.logic.started).Seconds(), r.PlayerId, components.logic.playersState[r.PlayerId].Name, r.Team, logicTime, components.logic.GlobalStateSequenceNumber)
+				components.logic.playersStateMu.Unlock()
 				state.Unlock()
 
 				if debugFirstJoin {
@@ -464,8 +464,8 @@ func (c *client) connectToServer() {
 				}
 
 				if components.server == nil {
-					playersStateMu.Lock()
-					ps := playersState[r.PlayerId]
+					components.logic.playersStateMu.Lock()
+					ps := components.logic.playersState[r.PlayerId]
 					if r.State != nil {
 						ps.NewSeries()
 						ps.PushAuthed(sequencedPlayerPosVel{
@@ -481,8 +481,8 @@ func (c *client) connectToServer() {
 						}
 					}
 					ps.Team = r.Team
-					playersState[r.PlayerId] = ps
-					playersStateMu.Unlock()
+					components.logic.playersState[r.PlayerId] = ps
+					components.logic.playersStateMu.Unlock()
 
 					fmt.Printf("%v joined %v.\n", ps.Name, ps.Team)
 				}
@@ -648,10 +648,10 @@ func (c *client) handleUdp(s *Connection) {
 			// TODO: Verify r.CurrentUpdateSequenceNumber.
 
 			if components.server == nil {
-				playersStateMu.Lock()
+				components.logic.playersStateMu.Lock()
 				for id, pu := range r.PlayerUpdates {
 					if pu.ActivePlayer != 0 {
-						ps := playersState[uint8(id)]
+						ps := components.logic.playersState[uint8(id)]
 						ps.PushAuthed(sequencedPlayerPosVel{
 							playerPosVel: playerPosVel{
 								X: pu.State.X,
@@ -660,10 +660,10 @@ func (c *client) handleUdp(s *Connection) {
 							},
 							SequenceNumber: pu.State.CommandSequenceNumber,
 						})
-						playersState[uint8(id)] = ps
+						components.logic.playersState[uint8(id)] = ps
 					}
 				}
-				playersStateMu.Unlock()
+				components.logic.playersStateMu.Unlock()
 			}
 		}
 	}

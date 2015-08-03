@@ -102,8 +102,8 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 		l.render()
 
 		state.Lock()
-		playersStateMu.Lock()
-		for id, ps := range playersState {
+		components.logic.playersStateMu.Lock()
+		for id, ps := range components.logic.playersState {
 			if ps.conn != nil && ps.conn.JoinStatus < IN_GAME {
 				continue
 			}
@@ -122,7 +122,7 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 			gl.UniformMatrix4fv(c.mvMatrixUniform, mvMatrix[:])
 			c.render(ps.Team)
 		}
-		playersStateMu.Unlock()
+		components.logic.playersStateMu.Unlock()
 		state.Unlock()
 
 		window.SwapBuffers()

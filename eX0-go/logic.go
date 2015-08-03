@@ -26,6 +26,10 @@ type logic struct {
 	NextTickTime              float64
 
 	TotalPlayerCount uint8
+
+	// TODO: There's also some overlap with server.connections, shouldn't that be resolved?
+	playersStateMu sync.Mutex
+	playersState   map[uint8]playerState // Player Id -> Player State.
 }
 
 func startLogic() *logic {
@@ -36,6 +40,8 @@ func startLogic() *logic {
 		started:                   time.Now(),
 		GlobalStateSequenceNumber: 0,
 		NextTickTime:              0,
+
+		playersState: make(map[uint8]playerState),
 	}
 	go l.gameLogic()
 	return l
@@ -69,20 +75,20 @@ func (l *logic) gameLogic() {
 		state.Unlock()
 
 		if debugFirstJoin && client != nil {
-			playersStateMu.Lock()
-			ps, ok := playersState[client.playerId]
+			l.playersStateMu.Lock()
+			ps, ok := l.playersState[client.playerId]
 			if ok && ps.Team != packet.Spectator {
 				debugFirstJoin = false
 				logicTime := float64(l.GlobalStateSequenceNumber) + (time.Since(l.started).Seconds()-l.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(l.started).Seconds(), client.playerId, playersState[client.playerId].Name, ps.Team, logicTime, l.GlobalStateSequenceNumber)
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(l.started).Seconds(), client.playerId, l.playersState[client.playerId].Name, ps.Team, logicTime, l.GlobalStateSequenceNumber)
 			}
-			playersStateMu.Unlock()
+			l.playersStateMu.Unlock()
 		}
 
 		if tick && client != nil {
 			if doInput != nil {
-				playersStateMu.Lock()
-				ps, ok := playersState[client.playerId]
+				l.playersStateMu.Lock()
+				ps, ok := l.playersState[client.playerId]
 				if ok && ps.Team != packet.Spectator {
 					// Fill all missing commands (from last authed until one we're supposed to be by now (based on GlobalStateSequenceNumberTEST time).
 					for lastState := ps.LatestPredicted(); int8(lastState.SequenceNumber-l.GlobalStateSequenceNumber) < 0; lastState = ps.LatestPredicted() {
@@ -95,14 +101,14 @@ func (l *logic) gameLogic() {
 							predicted: newState,
 						})
 					}
-					playersState[client.playerId] = ps
+					l.playersState[client.playerId] = ps
 				}
-				playersStateMu.Unlock()
+				l.playersStateMu.Unlock()
 			}
 
-			playersStateMu.Lock()
-			ps, ok := playersState[client.playerId]
-			playersStateMu.Unlock()
+			l.playersStateMu.Lock()
+			ps, ok := l.playersState[client.playerId]
+			l.playersStateMu.Unlock()
 
 			if ok && ps.Team != packet.Spectator && len(ps.unconfirmed) > 0 {
 
@@ -162,11 +168,6 @@ func (l *logic) gameLogic() {
 		time.Sleep(sleep)
 	}
 }
-
-// TODO: I think this should be moved into logic component (not server), yeah?
-//       There's also some overlap with server.connections, shouldn't that be resolved?
-var playersStateMu sync.Mutex
-var playersState = map[uint8]playerState{} // Player Id -> Player State.
 
 type playerPosVel struct {
 	X, Y, Z    float32
@@ -259,6 +260,7 @@ func (ps playerState) Interpolated(playerId uint8) playerPosVel {
 		desiredAStateSN -= 2 // HACK: Assumes command rate of 20, this puts us 100 ms in the past (2 * 1s/20 = 100 ms).
 	}
 
+	// TODO: See if copying ps.authed slic is needed, maybe not.
 	states := append([]sequencedPlayerPosVel(nil), ps.authed...)
 	for _, unconfirmed := range ps.unconfirmed {
 		states = append(states, unconfirmed.predicted)

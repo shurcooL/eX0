@@ -289,9 +289,9 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 
 		// TODO: Properly process and authenticate new result states.
 		{
-			playersStateMu.Lock()
-			lastState := playersState[c.PlayerId].LatestAuthed()
-			playersStateMu.Unlock()
+			components.logic.playersStateMu.Lock()
+			lastState := components.logic.playersState[c.PlayerId].LatestAuthed()
+			components.logic.playersStateMu.Unlock()
 
 			lastMove := r.Moves[len(r.Moves)-1] // There's always at least one move in a ClientCommand packet.
 
@@ -299,11 +299,11 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 			lastState.SequenceNumber = r.CommandSequenceNumber // HACK.
 			newState := nextState(lastState, lastMove)
 
-			playersStateMu.Lock()
-			ps := playersState[c.PlayerId]
+			components.logic.playersStateMu.Lock()
+			ps := components.logic.playersState[c.PlayerId]
 			ps.PushAuthed(newState)
-			playersState[c.PlayerId] = ps
-			playersStateMu.Unlock()
+			components.logic.playersState[c.PlayerId] = ps
+			components.logic.playersStateMu.Unlock()
 		}
 	}
 	return nil
@@ -311,15 +311,15 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 
 func sendServerUpdates(c *Connection) {
 	for ; true; time.Sleep(time.Second / 20) {
-		playersStateMu.Lock()
-		if _, ok := playersState[c.PlayerId]; !ok { // HACK.
-			playersStateMu.Unlock()
+		components.logic.playersStateMu.Lock()
+		if _, ok := components.logic.playersState[c.PlayerId]; !ok { // HACK.
+			components.logic.playersStateMu.Unlock()
 			return
 		}
-		ps := playersState[c.PlayerId]
+		ps := components.logic.playersState[c.PlayerId]
 		ps.lastServerUpdateSequenceNumber++ // First update sent should have sequence number 1.
-		playersState[c.PlayerId] = ps
-		playersStateMu.Unlock()
+		components.logic.playersState[c.PlayerId] = ps
+		components.logic.playersStateMu.Unlock()
 		lastServerUpdateSequenceNumber := ps.lastServerUpdateSequenceNumber
 
 		// Prepare a ServerUpdate packet.
@@ -329,8 +329,8 @@ func sendServerUpdates(c *Connection) {
 		state.Lock()
 		p.PlayerUpdates = make([]packet.PlayerUpdate, components.logic.TotalPlayerCount)
 		state.Unlock()
-		playersStateMu.Lock()
-		for id, ps := range playersState {
+		components.logic.playersStateMu.Lock()
+		for id, ps := range components.logic.playersState {
 			if ps.conn == nil || ps.conn.JoinStatus < IN_GAME || ps.Team == packet.Spectator {
 				continue
 			}
@@ -344,7 +344,7 @@ func sendServerUpdates(c *Connection) {
 				},
 			}
 		}
-		playersStateMu.Unlock()
+		components.logic.playersStateMu.Unlock()
 
 		var buf bytes.Buffer
 		err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
@@ -480,14 +480,14 @@ func (s *server) handleTcpConnection(client *Connection) {
 	}
 	s.connectionsMu.Unlock()
 
-	playersStateMu.Lock()
-	for id, ps := range playersState {
+	components.logic.playersStateMu.Lock()
+	for id, ps := range components.logic.playersState {
 		if ps.conn == client {
-			delete(playersState, id)
+			delete(components.logic.playersState, id)
 			break
 		}
 	}
-	playersStateMu.Unlock()
+	components.logic.playersStateMu.Unlock()
 
 	client.tcp.Close()
 }
@@ -536,22 +536,22 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		}
 
 		s.connectionsMu.Lock()
-		playersStateMu.Lock()
+		components.logic.playersStateMu.Lock()
 		playerId = func /* allocatePlayerId */ () uint8 {
 			for id := uint8(0); ; id++ {
-				if _, taken := playersState[id]; !taken {
+				if _, taken := components.logic.playersState[id]; !taken {
 					return id
 				}
 			}
 		}()
 		serverFull := playerId >= components.logic.TotalPlayerCount
 		if !serverFull {
-			playersState[playerId] = playerState{conn: client}
+			components.logic.playersState[playerId] = playerState{conn: client}
 			client.Signature = r.Signature
 			client.PlayerId = playerId
 			client.JoinStatus = ACCEPTED
 		}
-		playersStateMu.Unlock()
+		components.logic.playersStateMu.Unlock()
 		s.connectionsMu.Unlock()
 
 		if serverFull {
@@ -633,15 +633,15 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		}
 
 		s.connectionsMu.Lock()
-		playersStateMu.Lock()
+		components.logic.playersStateMu.Lock()
 		{
-			ps := playersState[playerId]
+			ps := components.logic.playersState[playerId]
 			ps.Name = string(r.Name)
 			ps.Team = packet.Spectator
-			playersState[playerId] = ps
+			components.logic.playersState[playerId] = ps
 		}
 		client.JoinStatus = PUBLIC_CLIENT
-		playersStateMu.Unlock()
+		components.logic.playersStateMu.Unlock()
 		s.connectionsMu.Unlock()
 	}
 
@@ -673,13 +673,13 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		p.Type = packet.CurrentPlayersInfoType
 		p.Players = make([]packet.PlayerInfo, components.logic.TotalPlayerCount)
 		state.Lock()
-		playersStateMu.Lock()
+		components.logic.playersStateMu.Lock()
 		p.Length += uint16(components.logic.TotalPlayerCount)
 		for _, c := range s.connections {
 			if c.JoinStatus < PUBLIC_CLIENT {
 				continue
 			}
-			ps := playersState[c.PlayerId]
+			ps := components.logic.playersState[c.PlayerId]
 			var playerInfo packet.PlayerInfo
 			playerInfo.NameLength = uint8(len(ps.Name))
 			if playerInfo.NameLength > 0 {
@@ -699,7 +699,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 			}
 			p.Players[c.PlayerId] = playerInfo
 		}
-		playersStateMu.Unlock()
+		components.logic.playersStateMu.Unlock()
 		state.Unlock()
 
 		var buf bytes.Buffer
@@ -741,9 +741,9 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		var p packet.PlayerJoinedServer
 		p.Type = packet.PlayerJoinedServerType
 
-		playersStateMu.Lock()
-		ps := playersState[playerId]
-		playersStateMu.Unlock()
+		components.logic.playersStateMu.Lock()
+		ps := components.logic.playersState[playerId]
+		components.logic.playersStateMu.Unlock()
 
 		p.PlayerId = playerId
 		p.NameLength = uint8(len(ps.Name))
@@ -850,19 +850,19 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 				team = r.Team
 			}
 
-			playersStateMu.Lock()
+			components.logic.playersStateMu.Lock()
 			{
-				ps := playersState[playerId]
+				ps := components.logic.playersState[playerId]
 				ps.Team = team
-				playersState[playerId] = ps
+				components.logic.playersState[playerId] = ps
 			}
-			playersStateMu.Unlock()
+			components.logic.playersStateMu.Unlock()
 
 			state.Lock()
-			playersStateMu.Lock()
+			components.logic.playersStateMu.Lock()
 			logicTime := float64(components.logic.GlobalStateSequenceNumber) + (time.Since(components.logic.started).Seconds()-components.logic.NextTickTime)*commandRate
-			fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(components.logic.started).Seconds(), playerId, playersState[playerId].Name, team, logicTime, components.logic.GlobalStateSequenceNumber)
-			playersStateMu.Unlock()
+			fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(components.logic.started).Seconds(), playerId, components.logic.playersState[playerId].Name, team, logicTime, components.logic.GlobalStateSequenceNumber)
+			components.logic.playersStateMu.Unlock()
 			state.Unlock()
 
 			{
@@ -872,8 +872,8 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 				p.Team = team
 
 				state.Lock()
-				playersStateMu.Lock()
-				ps := playersState[playerId]
+				components.logic.playersStateMu.Lock()
+				ps := components.logic.playersState[playerId]
 				{
 					// TODO: Proper spawn location calculation.
 					playerSpawn := playerPosVel{
@@ -889,8 +889,8 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 						SequenceNumber: components.logic.GlobalStateSequenceNumber - 1,
 					})
 				}
-				playersState[playerId] = ps
-				playersStateMu.Unlock()
+				components.logic.playersState[playerId] = ps
+				components.logic.playersStateMu.Unlock()
 				state.Unlock()
 
 				if p.Team != packet.Spectator {
