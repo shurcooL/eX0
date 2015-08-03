@@ -58,13 +58,12 @@ func (l *logic) gameLogic() {
 		sleep := time.Millisecond
 
 		state.Lock()
-		if now := time.Since(l.started).Seconds(); now >= l.NextTickTime {
+		for now := time.Since(l.started).Seconds(); now >= l.NextTickTime; {
 			l.NextTickTime += 1.0 / commandRate
 			l.GlobalStateSequenceNumber++
-			//fmt.Fprintln(os.Stderr, "GlobalStateSequenceNumber++:", l.GlobalStateSequenceNumber)
 			tick = true
-			//sleep = time.Duration((l.NextTickTime - now) * float64(time.Second))
 		}
+		//sleep = time.Duration((l.NextTickTime - now) * float64(time.Second))
 		state.Unlock()
 
 		if debugFirstJoin && client != nil {
