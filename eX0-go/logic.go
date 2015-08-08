@@ -14,6 +14,7 @@ import (
 )
 
 // Tau is the constant τ, which equals to 6.283185... or 2π.
+// Reference: https://oeis.org/A019692
 const Tau = 2 * math.Pi
 
 type logic struct {
