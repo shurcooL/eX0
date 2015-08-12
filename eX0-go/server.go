@@ -283,8 +283,8 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 		if err != nil {
 			return err
 		}
-		r.MovesCount += 1 // De-normalize back to 1 (min value).
-		r.Moves = make([]packet.Move, r.MovesCount)
+		movesCount := uint16(r.MovesCount) + 1 // De-normalize back to 1 (min value), prevent overflow to 0.
+		r.Moves = make([]packet.Move, movesCount)
 		err = binary.Read(buf, binary.BigEndian, &r.Moves)
 		if err != nil {
 			return err
