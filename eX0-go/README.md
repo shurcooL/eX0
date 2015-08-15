@@ -11,7 +11,10 @@ You'll need to have OpenGL headers (see [here](https://github.com/go-gl/glfw#ins
 
 ```bash
 go get -u github.com/shurcooL/eX0/eX0-go
-go get -u -d -tags=js github.com/shurcooL/eX0/eX0-go
+
+# Get additional dependencies for tcp and js build tags.
+go get -u -d -tags="tcp" github.com/shurcooL/eX0/eX0-go
+go get -u -d -tags="tcp js" github.com/shurcooL/eX0/eX0-go
 ```
 
 Use this folder as the current working directory when running `eX0-go` binary.
