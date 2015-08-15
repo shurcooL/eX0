@@ -35,6 +35,7 @@ type client struct {
 	finishedSyncingClock       chan struct{}
 
 	pongSentTimes map[uint32]time.Time // PingData -> Time.
+	lastLatencies []uint16             // Index is Player Id. Units are 0.1 ms.
 }
 
 func startClient() *client {
@@ -102,6 +103,7 @@ func (c *client) connectToServer() {
 		state.Lock()
 		c.playerId = r.YourPlayerId
 		c.logic.TotalPlayerCount = r.TotalPlayerCount + 1
+		c.lastLatencies = make([]uint16, c.logic.TotalPlayerCount)
 		s.JoinStatus = ACCEPTED
 		state.Unlock()
 	}
@@ -572,6 +574,8 @@ func (c *client) handleUdp(s *Connection) {
 				panic(err)
 			}
 
+			copy(c.lastLatencies, r.LastLatencies)
+
 			{
 				var p packet.Pong
 				p.Type = packet.PongType
@@ -609,7 +613,7 @@ func (c *client) handleUdp(s *Connection) {
 
 					// Calculate own latency and update it on the scoreboard.
 					latency := localTimeAtPungReceive.Sub(localTimeAtPongSend)
-					log.Printf("Own latency is %.5f ms.\n", latency.Seconds()*1000)
+					log.Printf("Latency %.5f ms %v.\n", latency.Seconds()*1000, c.lastLatencies)
 				}
 			}
 		case packet.ServerUpdateType:

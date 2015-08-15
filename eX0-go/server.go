@@ -26,7 +26,13 @@ type server struct {
 	connections   []*Connection
 
 	lastPingData uint32
-	//pingSentTimes = make(map[uint32]time.Time) // TODO: Use.
+
+	// TODO: Consider moving these into *Connection or Player or something that will "go away" when that connection dies.
+	//       That way no need to clear/remove these entries manually when that player is gone.
+	pingSentTimesMu sync.Mutex
+	pingSentTimes   []map[uint32]time.Time // Player Id -> (PingData -> Time).
+	lastLatenciesMu sync.Mutex
+	lastLatencies   []uint16 // Index is Player Id. Units are 0.1 ms.
 
 	chanListener      chan *Connection
 	chanListenerReply chan struct{}
@@ -40,6 +46,8 @@ func startServer() *server {
 	s.logic = startLogic()
 	state.Lock()
 	s.logic.TotalPlayerCount = 16
+	s.pingSentTimes = make([]map[uint32]time.Time, s.logic.TotalPlayerCount)
+	s.lastLatencies = make([]uint16, s.logic.TotalPlayerCount)
 	state.Unlock()
 
 	go s.listenAndHandleTcp()
@@ -247,11 +255,25 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 			}
 		}
 	case packet.PongType:
+		localTimeAtPongReceive := time.Now()
+
 		var r packet.Pong
 		err = binary.Read(buf, binary.BigEndian, &r.PingData)
 		if err != nil {
 			return err
 		}
+
+		s.pingSentTimesMu.Lock()
+		// Get the time sent of the matching Pong packet.
+		if localTimeAtPingSend, ok := s.pingSentTimes[c.PlayerId][r.PingData]; ok {
+			delete(s.pingSentTimes[c.PlayerId], r.PingData)
+
+			latency := uint16(localTimeAtPongReceive.Sub(localTimeAtPingSend).Seconds() * 10000) // Units are 0.1 ms.
+			s.lastLatenciesMu.Lock()
+			s.lastLatencies[c.PlayerId] = latency
+			s.lastLatenciesMu.Unlock()
+		}
+		s.pingSentTimesMu.Unlock()
 
 		{
 			var p packet.Pung
@@ -390,6 +412,7 @@ func (s *server) broadcastPingPacket() {
 		p.Type = packet.PingType
 		p.PingData = s.lastPingData
 		p.LastLatencies = make([]uint16, s.logic.TotalPlayerCount)
+		copy(p.LastLatencies, s.lastLatencies)
 
 		var buf bytes.Buffer
 		err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
@@ -416,6 +439,10 @@ func (s *server) broadcastPingPacket() {
 		}
 		s.connectionsMu.Unlock()
 		for _, c := range cs {
+			s.pingSentTimesMu.Lock()
+			s.pingSentTimes[c.PlayerId][p.PingData] = time.Now()
+			s.pingSentTimesMu.Unlock()
+
 			err = sendUdpPacket(c, buf.Bytes())
 			if err != nil {
 				panic(err)
@@ -472,6 +499,19 @@ func (s *server) handleTcpConnection(client *Connection) {
 		if err != nil {
 			fmt.Println("error while broadcasting PlayerLeftServer packet:", err)
 		}
+	}
+
+	if client.JoinStatus >= ACCEPTED {
+		s.pingSentTimesMu.Lock()
+		// Clear the map.
+		for k := range s.pingSentTimes[client.PlayerId] {
+			delete(s.pingSentTimes[client.PlayerId], k)
+		}
+		s.pingSentTimesMu.Unlock()
+
+		s.lastLatenciesMu.Lock()
+		s.lastLatencies[client.PlayerId] = 0
+		s.lastLatenciesMu.Unlock()
 	}
 
 	s.connectionsMu.Lock()
@@ -554,6 +594,10 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 			client.Signature = r.Signature
 			client.PlayerId = playerId
 			client.JoinStatus = ACCEPTED
+
+			s.pingSentTimesMu.Lock()
+			s.pingSentTimes[client.PlayerId] = make(map[uint32]time.Time)
+			s.pingSentTimesMu.Unlock()
 		}
 		s.logic.playersStateMu.Unlock()
 		s.connectionsMu.Unlock()
