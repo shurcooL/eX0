@@ -30,6 +30,8 @@ type logic struct {
 	// TODO: There's also some overlap with server.connections, shouldn't that be resolved?
 	playersStateMu sync.Mutex
 	playersState   map[uint8]playerState // Player Id -> Player State.
+
+	level *level
 }
 
 func startLogic() *logic {

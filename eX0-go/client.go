@@ -237,6 +237,12 @@ func (c *client) connectToServer() {
 		}
 		goon.Dump(r)
 		goon.Dump(string(r.LevelFilename))
+
+		if level, err := newLevel(string(r.LevelFilename) + ".wwl"); err != nil {
+			log.Fatalln("failed to load level:", err)
+		} else {
+			c.logic.level = level
+		}
 	}
 
 	{

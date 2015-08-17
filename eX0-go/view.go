@@ -64,7 +64,7 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 	}
 	window.SetFramebufferSizeCallback(framebufferSizeCallback)
 
-	l, err := newLevel("test3.wwl")
+	err = v.logic.level.initGraphics()
 	if err != nil {
 		panic(err)
 	}
@@ -99,10 +99,10 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 		pMatrix := mgl32.Ortho2D(0, float32(v.windowSize[0]), 0, float32(v.windowSize[1]))
 		mvMatrix := mgl32.Translate3D(v.cameraPos[0], v.cameraPos[1], 0)
 
-		l.setup()
-		gl.UniformMatrix4fv(l.pMatrixUniform, pMatrix[:])
-		gl.UniformMatrix4fv(l.mvMatrixUniform, mvMatrix[:])
-		l.render()
+		v.logic.level.setup()
+		gl.UniformMatrix4fv(v.logic.level.pMatrixUniform, pMatrix[:])
+		gl.UniformMatrix4fv(v.logic.level.mvMatrixUniform, mvMatrix[:])
+		v.logic.level.render()
 
 		state.Lock()
 		v.logic.playersStateMu.Lock()

@@ -13,29 +13,16 @@ import (
 )
 
 func newLevel(name string) (*level, error) {
-	l := new(level)
-
-	err := l.initShaders()
+	f, err := glfw.Open(name)
 	if err != nil {
 		return nil, err
 	}
-	{
-		f, err := glfw.Open(name)
-		if err != nil {
-			return nil, err
-		}
-		l.polygon, err = gist6545684.ReadGpcFromReader(f)
-		f.Close()
-		if err != nil {
-			return nil, err
-		}
-	}
-	err = l.createVbo()
+	polygon, err := gist6545684.ReadGpcFromReader(f)
+	f.Close()
 	if err != nil {
 		return nil, err
 	}
-
-	return l, nil
+	return &level{polygon: polygon}, nil
 }
 
 type level struct {
@@ -46,6 +33,17 @@ type level struct {
 	mvMatrixUniform         gl.Uniform
 	vertexPositionBuffer    gl.Buffer
 	vertexPositionAttribute gl.Attrib
+}
+
+// initGraphics prepares level for rendering.
+func (l *level) initGraphics() error {
+	if err := l.initShaders(); err != nil {
+		return err
+	}
+	if err := l.createVbo(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (l *level) initShaders() error {

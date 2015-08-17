@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -38,6 +39,8 @@ type server struct {
 	chanListenerReply chan struct{}
 }
 
+const serverLevelFilename = "test3"
+
 func startServer() *server {
 	s := &server{
 		chanListener:      make(chan *Connection),
@@ -49,6 +52,12 @@ func startServer() *server {
 	s.pingSentTimes = make([]map[uint32]time.Time, s.logic.TotalPlayerCount)
 	s.lastLatencies = make([]uint16, s.logic.TotalPlayerCount)
 	state.Unlock()
+
+	if level, err := newLevel(string(serverLevelFilename) + ".wwl"); err != nil {
+		log.Fatalln("failed to load level:", err)
+	} else {
+		s.logic.level = level
+	}
 
 	go s.listenAndHandleTcp()
 	go s.listenAndHandleUdp()
@@ -696,7 +705,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 	{
 		var p packet.LoadLevel
 		p.Type = packet.LoadLevelType
-		p.LevelFilename = []byte("test3")
+		p.LevelFilename = []byte(serverLevelFilename)
 
 		p.Length = uint16(len(p.LevelFilename))
 
