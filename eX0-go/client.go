@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"time"
 
@@ -42,7 +43,7 @@ func startClient() *client {
 	c := &client{
 		serverConn:                 newConnection(),
 		sentTimeRequestPacketTimes: make(map[uint8]float64),
-		shortestLatency:            1000,
+		shortestLatency:            math.MaxFloat64,
 		finishedSyncingClock:       make(chan struct{}),
 		pongSentTimes:              make(map[uint32]time.Time),
 	}
@@ -299,7 +300,7 @@ func (c *client) connectToServer() {
 				Team: p.Team,
 			}
 			if p.State != nil {
-				ps.PushAuthed(sequencedPlayerPosVel{
+				ps.PushAuthed(c.logic, sequencedPlayerPosVel{
 					playerPosVel: playerPosVel{
 						X: p.State.X,
 						Y: p.State.Y,
@@ -471,7 +472,7 @@ func (c *client) connectToServer() {
 				ps := c.logic.playersState[r.PlayerId]
 				if r.State != nil {
 					ps.NewSeries()
-					ps.PushAuthed(sequencedPlayerPosVel{
+					ps.PushAuthed(c.logic, sequencedPlayerPosVel{
 						playerPosVel: playerPosVel{
 							X: r.State.X,
 							Y: r.State.Y,
@@ -653,7 +654,7 @@ func (c *client) handleUdp(s *Connection) {
 			for id, pu := range r.PlayerUpdates {
 				if pu.ActivePlayer != 0 {
 					ps := c.logic.playersState[uint8(id)]
-					ps.PushAuthed(sequencedPlayerPosVel{
+					ps.PushAuthed(c.logic, sequencedPlayerPosVel{
 						playerPosVel: playerPosVel{
 							X: pu.State.X,
 							Y: pu.State.Y,

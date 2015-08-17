@@ -332,11 +332,11 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 
 			// TODO: Check that state sn == command sn, etc.
 			lastState.SequenceNumber = r.CommandSequenceNumber // HACK.
-			newState := nextState(lastState, lastMove)
+			newState := s.logic.nextState(lastState, lastMove)
 
 			s.logic.playersStateMu.Lock()
 			ps := s.logic.playersState[c.PlayerId]
-			ps.PushAuthed(newState)
+			ps.PushAuthed(s.logic, newState)
 			s.logic.playersState[c.PlayerId] = ps
 			s.logic.playersStateMu.Unlock()
 		}
@@ -934,14 +934,14 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 				{
 					// TODO: Proper spawn location calculation.
 					playerSpawn := playerPosVel{
-						X: 25,
-						Y: -220,
+						X: -25,
+						Y: -160,
 						Z: 6.0,
 					}
 					playerSpawn.X += float32(playerId) * 20
 
 					ps.NewSeries()
-					ps.PushAuthed(sequencedPlayerPosVel{
+					ps.PushAuthed(s.logic, sequencedPlayerPosVel{
 						playerPosVel:   playerSpawn,
 						SequenceNumber: s.logic.GlobalStateSequenceNumber - 1,
 					})

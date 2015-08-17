@@ -92,7 +92,7 @@ func (l *logic) gameLogic() {
 					for lastState := ps.LatestPredicted(); int8(lastState.SequenceNumber-l.GlobalStateSequenceNumber) < 0; lastState = ps.LatestPredicted() {
 						move := doInput(l)
 
-						newState := nextState(lastState, move)
+						newState := l.nextState(lastState, move)
 
 						ps.unconfirmed = append(ps.unconfirmed, predictedMove{
 							move:      move,
@@ -206,7 +206,7 @@ func (ps playerState) LatestPredicted() sequencedPlayerPosVel {
 	return ps.authed[len(ps.authed)-1]
 }
 
-func (ps *playerState) PushAuthed(newState sequencedPlayerPosVel) {
+func (ps *playerState) PushAuthed(logic *logic, newState sequencedPlayerPosVel) {
 	if len(ps.authed) > 0 && newState.SequenceNumber == ps.authed[len(ps.authed)-1].SequenceNumber {
 		// Skip updates that are not newer.
 		return
@@ -240,7 +240,7 @@ func (ps *playerState) PushAuthed(newState sequencedPlayerPosVel) {
 	// Replay remaining ones.
 	prevState := newState
 	for i := range ps.unconfirmed {
-		ps.unconfirmed[i].predicted = nextState(prevState, ps.unconfirmed[i].move)
+		ps.unconfirmed[i].predicted = logic.nextState(prevState, ps.unconfirmed[i].move)
 		prevState = ps.unconfirmed[i].predicted
 	}
 }
