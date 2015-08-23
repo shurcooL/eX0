@@ -106,9 +106,9 @@ func colHandCheckPlayerPos(polygon *gist6545684.Polygon, fX, fY float32) (noColl
 			oVector[1] = fY
 
 			// make sure the distance we're looking for is possible
-			/*if !ColHandIsSegmentCloseToCircle(oVector[0], oVector[1], PLAYER_HALF_WIDTH + PLAYER_COL_DET_TOLERANCE, oSegment) {
-				continue;
-			}*/
+			if !ColHandIsSegmentCloseToCircle2(oVector[0], oVector[1], PLAYER_HALF_WIDTH+PLAYER_COL_DET_TOLERANCE, &oSegment) {
+				continue
+			}
 
 			// Calculate the distance.
 			oDistance = distance(oVector, oSegment, &oParam)
@@ -134,9 +134,9 @@ func colHandCheckPlayerPos(polygon *gist6545684.Polygon, fX, fY float32) (noColl
 		oVector[1] = fY
 
 		// make sure the distance we're looking for is possible
-		/*if !ColHandIsSegmentCloseToCircle(oVector[0], oVector[1], PLAYER_HALF_WIDTH + PLAYER_COL_DET_TOLERANCE, oSegment) {
-			continue;
-		}*/
+		if !ColHandIsSegmentCloseToCircle2(oVector[0], oVector[1], PLAYER_HALF_WIDTH+PLAYER_COL_DET_TOLERANCE, &oSegment) {
+			continue
+		}
 
 		// Calculate the distance.
 		oDistance = distance(oVector, oSegment, &oParam)
@@ -189,4 +189,31 @@ func distance(point mgl32.Vec2, segment Seg2, param *float32) float32 {
 	}
 
 	return kDiff.Len()
+}
+
+// returns whether a segment is close to a circle
+func ColHandIsSegmentCloseToCircle(fX, fY, fRadius float32, oSegment Seg2) bool {
+	return colHandIsSegmentCloseToCircle(fX, fY, fRadius,
+		oSegment.Origin.X(), oSegment.Origin.Y(),
+		oSegment.Origin.Add(oSegment.Direction).X(), oSegment.Origin.Add(oSegment.Direction).Y())
+}
+func colHandIsSegmentCloseToCircle(fX, fY, fRadius, fStartX, fStartY, fEndX, fEndY float32) bool {
+	return !((fStartX < fX-fRadius && fEndX < fX-fRadius) ||
+		(fStartX > fX+fRadius && fEndX > fX+fRadius) ||
+		(fStartY < fY-fRadius && fEndY < fY-fRadius) ||
+		(fStartY > fY+fRadius && fEndY > fY+fRadius))
+}
+
+func ColHandIsSegmentCloseToCircle2(fX, fY, fRadius float32, oSegment *Seg2) bool {
+	var (
+		fStartX = oSegment.Origin[0]
+		fStartY = oSegment.Origin[1]
+		fEndX   = oSegment.Origin[0] + oSegment.Direction[0]
+		fEndY   = oSegment.Origin[1] + oSegment.Direction[1]
+	)
+
+	return !((fStartX < fX-fRadius && fEndX < fX-fRadius) ||
+		(fStartX > fX+fRadius && fEndX > fX+fRadius) ||
+		(fStartY < fY-fRadius && fEndY < fY-fRadius) ||
+		(fStartY > fY+fRadius && fEndY > fY+fRadius))
 }
