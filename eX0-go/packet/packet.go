@@ -13,7 +13,7 @@ const (
 	JoinServerRequestType        Type = 1
 	JoinServerAcceptType         Type = 2
 	JoinServerRefuseType         Type = 3
-	UdpConnectionEstablishedType Type = 5
+	UDPConnectionEstablishedType Type = 5
 	EnterGamePermissionType      Type = 6
 	EnteredGameNotificationType  Type = 7
 	LoadLevelType                Type = 20
@@ -38,22 +38,22 @@ const (
 
 //go:generate stringer -type=Type
 
-type TcpHeader struct {
+type TCPHeader struct {
 	Length uint16
 	Type   Type
 }
 
-// TcpHeaderSize is the size in bytes of the TCP packet header.
-const TcpHeaderSize = 3
+// TCPHeaderSize is the size in bytes of the TCP packet header.
+const TCPHeaderSize = 3
 
 func init() {
-	if TcpHeaderSize != binary.Size(TcpHeader{}) {
-		panic("TcpHeaderSize != binary.Size(TcpHeader{})")
+	if TCPHeaderSize != binary.Size(TCPHeader{}) {
+		panic("TCPHeaderSize != binary.Size(TCPHeader{})")
 	}
 }
 
 type JoinServerRequest struct {
-	TcpHeader
+	TCPHeader
 
 	Version    uint16
 	Passphrase [16]byte
@@ -61,30 +61,30 @@ type JoinServerRequest struct {
 }
 
 type JoinServerAccept struct {
-	TcpHeader
+	TCPHeader
 
-	YourPlayerId     uint8
+	YourPlayerID     uint8
 	TotalPlayerCount uint8
 }
 
 type JoinServerRefuse struct {
-	TcpHeader
+	TCPHeader
 
 	RefuseReason uint8
 }
 
-type UdpConnectionEstablished struct {
-	TcpHeader
+type UDPConnectionEstablished struct {
+	TCPHeader
 }
 
 type LoadLevel struct {
-	TcpHeader
+	TCPHeader
 
 	LevelFilename []byte
 }
 
 type CurrentPlayersInfo struct {
-	TcpHeader
+	TCPHeader
 
 	Players []PlayerInfo
 }
@@ -104,44 +104,44 @@ type State struct {
 }
 
 type PlayerJoinedServer struct {
-	TcpHeader
+	TCPHeader
 
-	PlayerId   uint8
+	PlayerID   uint8
 	NameLength uint8
 	Name       []byte
 }
 
 type PlayerLeftServer struct {
-	TcpHeader
+	TCPHeader
 
-	PlayerId uint8
+	PlayerID uint8
 }
 
 type JoinTeamRequest struct {
-	TcpHeader
+	TCPHeader
 
 	PlayerNumber *uint8 // If > 1 players per connection, player index within the connection.
 	Team         Team
 }
 
 type PlayerJoinedTeam struct {
-	TcpHeader
+	TCPHeader
 
-	PlayerId uint8
+	PlayerID uint8
 	Team     Team
 	State    *State // If Team != 2.
 }
 
 type EnterGamePermission struct {
-	TcpHeader
+	TCPHeader
 }
 
 type EnteredGameNotification struct {
-	TcpHeader
+	TCPHeader
 }
 
 type LocalPlayerInfo struct {
-	TcpHeader
+	TCPHeader
 
 	NameLength  uint8
 	Name        []byte
@@ -150,18 +150,18 @@ type LocalPlayerInfo struct {
 }
 
 type PlayerWasHit struct {
-	TcpHeader
+	TCPHeader
 
-	PlayerId    uint8
+	PlayerID    uint8
 	HealthGiven float32
 }
 
-type UdpHeader struct {
+type UDPHeader struct {
 	Type Type
 }
 
 type ClientCommand struct {
-	UdpHeader
+	UDPHeader
 
 	CommandSequenceNumber uint8 // Latest command sequence number (i.e., last one in the slice).
 	CommandSeriesNumber   uint8
@@ -176,7 +176,7 @@ type Move struct {
 }
 
 type ServerUpdate struct {
-	UdpHeader
+	UDPHeader
 
 	CurrentUpdateSequenceNumber uint8
 	PlayerUpdates               []PlayerUpdate
@@ -188,39 +188,39 @@ type PlayerUpdate struct {
 }
 
 type Ping struct {
-	UdpHeader
+	UDPHeader
 
 	PingData      uint32
 	LastLatencies []uint16
 }
 
 type Pong struct {
-	UdpHeader
+	UDPHeader
 
 	PingData uint32
 }
 
 type Pung struct {
-	UdpHeader
+	UDPHeader
 
 	PingData uint32
 	Time     float64
 }
 
 type Handshake struct {
-	UdpHeader
+	UDPHeader
 
 	Signature uint64
 }
 
 type TimeRequest struct {
-	UdpHeader
+	UDPHeader
 
 	SequenceNumber uint8
 }
 
 type TimeResponse struct {
-	UdpHeader
+	UDPHeader
 
 	SequenceNumber uint8
 	Time           float64

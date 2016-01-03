@@ -31,9 +31,9 @@ type server struct {
 	// TODO: Consider moving these into *Connection or Player or something that will "go away" when that connection dies.
 	//       That way no need to clear/remove these entries manually when that player is gone.
 	pingSentTimesMu sync.Mutex
-	pingSentTimes   []map[uint32]time.Time // Player Id -> (PingData -> Time).
+	pingSentTimes   []map[uint32]time.Time // Player ID -> (PingData -> Time).
 	lastLatenciesMu sync.Mutex
-	lastLatencies   []uint16 // Index is Player Id. Units are 0.1 ms.
+	lastLatencies   []uint16 // Index is Player ID. Units are 0.1 ms.
 
 	chanListener      chan *Connection
 	chanListenerReply chan struct{}
@@ -59,8 +59,8 @@ func startServer() *server {
 		s.logic.level = level
 	}
 
-	go s.listenAndHandleTcp()
-	go s.listenAndHandleUdp()
+	go s.listenAndHandleTCP()
+	go s.listenAndHandleUDP()
 	go s.listenAndHandleWebSocket()
 	go s.listenAndHandleChan()
 
@@ -72,7 +72,7 @@ func startServer() *server {
 	return s
 }
 
-func (s *server) listenAndHandleTcp() {
+func (s *server) listenAndHandleTCP() {
 	ln, err := net.Listen("tcp", ":25045")
 	if err != nil {
 		panic(err)
@@ -92,13 +92,13 @@ func (s *server) listenAndHandleTcp() {
 		s.connections = append(s.connections, client)
 		s.connectionsMu.Unlock()
 
-		if shouldHandleUdpDirectly {
-			go s.handleUdp(client)
+		if shouldHandleUDPDirectly {
+			go s.handleUDP(client)
 		}
-		go s.handleTcpConnection(client)
+		go s.handleTCPConnection(client)
 	}
 }
-func (s *server) listenAndHandleUdp() {
+func (s *server) listenAndHandleUDP() {
 	udpAddr, err := net.ResolveUDPAddr("udp", ":25045")
 	if err != nil {
 		panic(err)
@@ -109,7 +109,7 @@ func (s *server) listenAndHandleUdp() {
 	}
 	mux := &Connection{udp: ln}
 
-	s.handleUdp(mux)
+	s.handleUDP(mux)
 }
 
 func (s *server) listenAndHandleWebSocket() {
@@ -128,11 +128,11 @@ func (s *server) listenAndHandleWebSocket() {
 		s.connections = append(s.connections, client)
 		s.connectionsMu.Unlock()
 
-		if shouldHandleUdpDirectly {
-			go s.handleUdp(client)
+		if shouldHandleUDPDirectly {
+			go s.handleUDP(client)
 		}
-		s.handleTcpConnection(client)
-		// Do not return until handleTcpConnection does, else WebSocket gets closed.
+		s.handleTCPConnection(client)
+		// Do not return until handleTCPConnection does, else WebSocket gets closed.
 	})
 	err := http.ListenAndServe(":25046", h)
 	if err != nil {
@@ -145,39 +145,39 @@ func (s *server) listenAndHandleChan() {
 
 		serverToClientConn := newConnection()
 		// Join server <-> client channel ends together.
-		serverToClientConn.sendTcp = clientToServerConn.recvTcp
-		serverToClientConn.recvTcp = clientToServerConn.sendTcp
-		serverToClientConn.sendUdp = clientToServerConn.recvUdp
-		serverToClientConn.recvUdp = clientToServerConn.sendUdp
+		serverToClientConn.sendTCP = clientToServerConn.recvTCP
+		serverToClientConn.recvTCP = clientToServerConn.sendTCP
+		serverToClientConn.sendUDP = clientToServerConn.recvUDP
+		serverToClientConn.recvUDP = clientToServerConn.sendUDP
 		serverToClientConn.JoinStatus = TCP_CONNECTED
 
 		s.connectionsMu.Lock()
 		s.connections = append(s.connections, serverToClientConn)
 		s.connectionsMu.Unlock()
 
-		if shouldHandleUdpDirectly {
-			go s.handleUdp(serverToClientConn)
+		if shouldHandleUDPDirectly {
+			go s.handleUDP(serverToClientConn)
 		}
-		go s.handleTcpConnection(serverToClientConn)
+		go s.handleTCPConnection(serverToClientConn)
 
 		s.chanListenerReply <- struct{}{}
 	}
 }
 
-func (s *server) handleUdp(mux *Connection) {
+func (s *server) handleUDP(mux *Connection) {
 	for {
-		buf, c, udpAddr, err := receiveUdpPacketFrom(s, mux)
+		buf, c, udpAddr, err := receiveUDPPacketFrom(s, mux)
 		if err != nil {
-			if shouldHandleUdpDirectly { // HACK: This isn't a real mux but rather the client directly, so return.
+			if shouldHandleUDPDirectly { // HACK: This isn't a real mux but rather the client directly, so return.
 				fmt.Println("udp conn ended with:", err)
 				return
 			}
 			panic(err)
 		}
 
-		err = s.processUdpPacket(buf, c, udpAddr, mux)
+		err = s.processUDPPacket(buf, c, udpAddr, mux)
 		if err != nil {
-			fmt.Println("handleUdpPacket:", err)
+			fmt.Println("handleUDPPacket:", err)
 			if c != nil {
 				c.tcp.Close()
 			}
@@ -185,8 +185,8 @@ func (s *server) handleUdp(mux *Connection) {
 	}
 }
 
-func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *Connection) error {
-	var udpHeader packet.UdpHeader
+func (s *server) processUDPPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *Connection) error {
+	var udpHeader packet.UDPHeader
 	err := binary.Read(buf, binary.BigEndian, &udpHeader)
 	if err != nil {
 		return err
@@ -214,7 +214,7 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 			if connection.Signature == r.Signature {
 				connection.JoinStatus = UDP_CONNECTED
 				connection.udp = mux.udp
-				connection.UdpAddr = udpAddr
+				connection.UDPAddr = udpAddr
 
 				c = connection
 				break
@@ -223,8 +223,8 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 		s.connectionsMu.Unlock()
 
 		if c != nil {
-			var p packet.UdpConnectionEstablished
-			p.Type = packet.UdpConnectionEstablishedType
+			var p packet.UDPConnectionEstablished
+			p.Type = packet.UDPConnectionEstablishedType
 
 			p.Length = 0
 
@@ -233,7 +233,7 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 			if err != nil {
 				return err
 			}
-			err = sendTcpPacket(c, buf.Bytes())
+			err = sendTCPPacket(c, buf.Bytes())
 			if err != nil {
 				return err
 			}
@@ -258,7 +258,7 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 			if err != nil {
 				return err
 			}
-			err = sendUdpPacket(c, buf.Bytes())
+			err = sendUDPPacket(c, buf.Bytes())
 			if err != nil {
 				return err
 			}
@@ -274,12 +274,12 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 
 		s.pingSentTimesMu.Lock()
 		// Get the time sent of the matching Pong packet.
-		if localTimeAtPingSend, ok := s.pingSentTimes[c.PlayerId][r.PingData]; ok {
-			delete(s.pingSentTimes[c.PlayerId], r.PingData)
+		if localTimeAtPingSend, ok := s.pingSentTimes[c.PlayerID][r.PingData]; ok {
+			delete(s.pingSentTimes[c.PlayerID], r.PingData)
 
 			latency := uint16(localTimeAtPongReceive.Sub(localTimeAtPingSend).Seconds() * 10000) // Units are 0.1 ms.
 			s.lastLatenciesMu.Lock()
-			s.lastLatencies[c.PlayerId] = latency
+			s.lastLatencies[c.PlayerID] = latency
 			s.lastLatenciesMu.Unlock()
 		}
 		s.pingSentTimesMu.Unlock()
@@ -295,7 +295,7 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 			if err != nil {
 				return err
 			}
-			err = sendUdpPacket(c, buf.Bytes())
+			err = sendUDPPacket(c, buf.Bytes())
 			if err != nil {
 				return err
 			}
@@ -325,7 +325,7 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 		// TODO: Properly process and authenticate new result states.
 		{
 			s.logic.playersStateMu.Lock()
-			lastState := s.logic.playersState[c.PlayerId].LatestAuthed()
+			lastState := s.logic.playersState[c.PlayerID].LatestAuthed()
 			s.logic.playersStateMu.Unlock()
 
 			lastMove := r.Moves[len(r.Moves)-1] // There's always at least one move in a ClientCommand packet.
@@ -335,9 +335,9 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 			newState := s.logic.nextState(lastState, lastMove)
 
 			s.logic.playersStateMu.Lock()
-			ps := s.logic.playersState[c.PlayerId]
+			ps := s.logic.playersState[c.PlayerID]
 			ps.PushAuthed(s.logic, newState)
-			s.logic.playersState[c.PlayerId] = ps
+			s.logic.playersState[c.PlayerID] = ps
 			s.logic.playersStateMu.Unlock()
 		}
 	}
@@ -347,13 +347,13 @@ func (s *server) processUdpPacket(buf io.Reader, c *Connection, udpAddr *net.UDP
 func (s *server) sendServerUpdates(c *Connection) {
 	for ; true; time.Sleep(time.Second / 20) {
 		s.logic.playersStateMu.Lock()
-		if _, ok := s.logic.playersState[c.PlayerId]; !ok { // HACK: Who should be responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way.
+		if _, ok := s.logic.playersState[c.PlayerID]; !ok { // HACK: Who should be responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way.
 			s.logic.playersStateMu.Unlock()
 			return
 		}
-		ps := s.logic.playersState[c.PlayerId]
+		ps := s.logic.playersState[c.PlayerID]
 		ps.lastServerUpdateSequenceNumber++ // First update sent should have sequence number 1.
-		s.logic.playersState[c.PlayerId] = ps
+		s.logic.playersState[c.PlayerID] = ps
 		s.logic.playersStateMu.Unlock()
 		lastServerUpdateSequenceNumber := ps.lastServerUpdateSequenceNumber
 
@@ -382,7 +382,7 @@ func (s *server) sendServerUpdates(c *Connection) {
 		s.logic.playersStateMu.Unlock()
 
 		var buf bytes.Buffer
-		err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
+		err := binary.Write(&buf, binary.BigEndian, &p.UDPHeader)
 		if err != nil {
 			panic(err)
 		}
@@ -405,7 +405,7 @@ func (s *server) sendServerUpdates(c *Connection) {
 		}
 
 		// Send the packet to this client.
-		err = sendUdpPacket(c, buf.Bytes())
+		err = sendUDPPacket(c, buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
@@ -424,7 +424,7 @@ func (s *server) broadcastPingPacket() {
 		copy(p.LastLatencies, s.lastLatencies)
 
 		var buf bytes.Buffer
-		err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
+		err := binary.Write(&buf, binary.BigEndian, &p.UDPHeader)
 		if err != nil {
 			panic(err)
 		}
@@ -449,10 +449,10 @@ func (s *server) broadcastPingPacket() {
 		s.connectionsMu.Unlock()
 		for _, c := range cs {
 			s.pingSentTimesMu.Lock()
-			s.pingSentTimes[c.PlayerId][p.PingData] = time.Now()
+			s.pingSentTimes[c.PlayerID][p.PingData] = time.Now()
 			s.pingSentTimesMu.Unlock()
 
-			err = sendUdpPacket(c, buf.Bytes())
+			err = sendUDPPacket(c, buf.Bytes())
 			if err != nil {
 				panic(err)
 			}
@@ -462,8 +462,8 @@ func (s *server) broadcastPingPacket() {
 	}
 }
 
-func (s *server) handleTcpConnection(client *Connection) {
-	err := s.handleTcpConnection2(client)
+func (s *server) handleTCPConnection(client *Connection) {
+	err := s.handleTCPConnection2(client)
 	fmt.Println("tcp conn ended with:", err)
 
 	if client.JoinStatus >= PUBLIC_CLIENT {
@@ -474,14 +474,14 @@ func (s *server) handleTcpConnection(client *Connection) {
 
 			p.Length = 1
 
-			p.PlayerId = client.PlayerId
+			p.PlayerID = client.PlayerID
 
 			var buf bytes.Buffer
-			err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
+			err := binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
 			if err != nil {
 				return err
 			}
-			err = binary.Write(&buf, binary.BigEndian, &p.PlayerId)
+			err = binary.Write(&buf, binary.BigEndian, &p.PlayerID)
 			if err != nil {
 				return err
 			}
@@ -497,7 +497,7 @@ func (s *server) handleTcpConnection(client *Connection) {
 			}
 			s.connectionsMu.Unlock()
 			for _, c := range cs {
-				err = sendTcpPacket(c, buf.Bytes())
+				err = sendTCPPacket(c, buf.Bytes())
 				if err != nil {
 					// TODO: This error handling is wrong. If fail to send to one client, should still send to others, etc.
 					return err
@@ -513,13 +513,13 @@ func (s *server) handleTcpConnection(client *Connection) {
 	if client.JoinStatus >= ACCEPTED {
 		s.pingSentTimesMu.Lock()
 		// Clear the map.
-		for k := range s.pingSentTimes[client.PlayerId] {
-			delete(s.pingSentTimes[client.PlayerId], k)
+		for k := range s.pingSentTimes[client.PlayerID] {
+			delete(s.pingSentTimes[client.PlayerID], k)
 		}
 		s.pingSentTimesMu.Unlock()
 
 		s.lastLatenciesMu.Lock()
-		s.lastLatencies[client.PlayerId] = 0
+		s.lastLatencies[client.PlayerID] = 0
 		s.lastLatenciesMu.Unlock()
 	}
 
@@ -545,11 +545,11 @@ func (s *server) handleTcpConnection(client *Connection) {
 	client.tcp.Close()
 }
 
-func (s *server) handleTcpConnection2(client *Connection) error {
-	var playerId uint8
+func (s *server) handleTCPConnection2(client *Connection) error {
+	var playerID uint8
 
 	{
-		buf, _, err := receiveTcpPacket(client)
+		buf, _, err := receiveTCPPacket(client)
 		if err != nil {
 			return err
 		}
@@ -579,7 +579,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 				if err != nil {
 					return err
 				}
-				err = sendTcpPacket(client, buf.Bytes())
+				err = sendTCPPacket(client, buf.Bytes())
 				if err != nil {
 					return err
 				}
@@ -590,22 +590,22 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 
 		s.connectionsMu.Lock()
 		s.logic.playersStateMu.Lock()
-		playerId = func /* allocatePlayerId */ () uint8 {
+		playerID = func /* allocatePlayerID */ () uint8 {
 			for id := uint8(0); ; id++ {
 				if _, taken := s.logic.playersState[id]; !taken {
 					return id
 				}
 			}
 		}()
-		serverFull := playerId >= s.logic.TotalPlayerCount
+		serverFull := playerID >= s.logic.TotalPlayerCount
 		if !serverFull {
-			s.logic.playersState[playerId] = playerState{conn: client}
+			s.logic.playersState[playerID] = playerState{conn: client}
 			client.Signature = r.Signature
-			client.PlayerId = playerId
+			client.PlayerID = playerID
 			client.JoinStatus = ACCEPTED
 
 			s.pingSentTimesMu.Lock()
-			s.pingSentTimes[client.PlayerId] = make(map[uint32]time.Time)
+			s.pingSentTimes[client.PlayerID] = make(map[uint32]time.Time)
 			s.pingSentTimesMu.Unlock()
 		}
 		s.logic.playersStateMu.Unlock()
@@ -624,7 +624,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 				if err != nil {
 					return err
 				}
-				err = sendTcpPacket(client, buf.Bytes())
+				err = sendTCPPacket(client, buf.Bytes())
 				if err != nil {
 					return err
 				}
@@ -637,7 +637,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 	{
 		var p packet.JoinServerAccept
 		p.Type = packet.JoinServerAcceptType
-		p.YourPlayerId = playerId
+		p.YourPlayerID = playerID
 		state.Lock()
 		p.TotalPlayerCount = s.logic.TotalPlayerCount - 1
 		state.Unlock()
@@ -649,19 +649,19 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		if err != nil {
 			return err
 		}
-		err = sendTcpPacket(client, buf.Bytes())
+		err = sendTCPPacket(client, buf.Bytes())
 		if err != nil {
 			return err
 		}
 	}
 
 	{
-		buf, _, err := receiveTcpPacket(client)
+		buf, _, err := receiveTCPPacket(client)
 		if err != nil {
 			return err
 		}
 		var r packet.LocalPlayerInfo
-		err = binary.Read(buf, binary.BigEndian, &r.TcpHeader)
+		err = binary.Read(buf, binary.BigEndian, &r.TCPHeader)
 		if err != nil {
 			return err
 		}
@@ -692,10 +692,10 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		s.connectionsMu.Lock()
 		s.logic.playersStateMu.Lock()
 		{
-			ps := s.logic.playersState[playerId]
+			ps := s.logic.playersState[playerID]
 			ps.Name = string(r.Name)
 			ps.Team = packet.Spectator
-			s.logic.playersState[playerId] = ps
+			s.logic.playersState[playerID] = ps
 		}
 		client.JoinStatus = PUBLIC_CLIENT
 		s.logic.playersStateMu.Unlock()
@@ -710,7 +710,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		p.Length = uint16(len(p.LevelFilename))
 
 		var buf bytes.Buffer
-		err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
+		err := binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
 		if err != nil {
 			return err
 		}
@@ -718,7 +718,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		if err != nil {
 			return err
 		}
-		err = sendTcpPacket(client, buf.Bytes())
+		err = sendTCPPacket(client, buf.Bytes())
 		if err != nil {
 			return err
 		}
@@ -736,7 +736,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 			if c.JoinStatus < PUBLIC_CLIENT {
 				continue
 			}
-			ps := s.logic.playersState[c.PlayerId]
+			ps := s.logic.playersState[c.PlayerID]
 			var playerInfo packet.PlayerInfo
 			playerInfo.NameLength = uint8(len(ps.Name))
 			if playerInfo.NameLength > 0 {
@@ -754,13 +754,13 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 					p.Length += 1 + 4 + 4 + 4
 				}
 			}
-			p.Players[c.PlayerId] = playerInfo
+			p.Players[c.PlayerID] = playerInfo
 		}
 		s.logic.playersStateMu.Unlock()
 		state.Unlock()
 
 		var buf bytes.Buffer
-		err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
+		err := binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
 		if err != nil {
 			return err
 		}
@@ -788,7 +788,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 				}
 			}
 		}
-		err = sendTcpPacket(client, buf.Bytes())
+		err = sendTCPPacket(client, buf.Bytes())
 		if err != nil {
 			return err
 		}
@@ -799,21 +799,21 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		p.Type = packet.PlayerJoinedServerType
 
 		s.logic.playersStateMu.Lock()
-		ps := s.logic.playersState[playerId]
+		ps := s.logic.playersState[playerID]
 		s.logic.playersStateMu.Unlock()
 
-		p.PlayerId = playerId
+		p.PlayerID = playerID
 		p.NameLength = uint8(len(ps.Name))
 		p.Name = []byte(ps.Name)
 
 		p.Length = 2 + uint16(len(p.Name))
 
 		var buf bytes.Buffer
-		err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
+		err := binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
 		if err != nil {
 			return err
 		}
-		err = binary.Write(&buf, binary.BigEndian, &p.PlayerId)
+		err = binary.Write(&buf, binary.BigEndian, &p.PlayerID)
 		if err != nil {
 			return err
 		}
@@ -837,7 +837,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		}
 		s.connectionsMu.Unlock()
 		for _, c := range cs {
-			err = sendTcpPacket(c, buf.Bytes())
+			err = sendTCPPacket(c, buf.Bytes())
 			if err != nil {
 				return err
 			}
@@ -855,14 +855,14 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 		if err != nil {
 			return err
 		}
-		err = sendTcpPacket(client, buf.Bytes())
+		err = sendTCPPacket(client, buf.Bytes())
 		if err != nil {
 			return err
 		}
 	}
 
 	{
-		buf, _, err := receiveTcpPacket(client)
+		buf, _, err := receiveTCPPacket(client)
 		if err != nil {
 			return err
 		}
@@ -882,7 +882,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 	}
 
 	for {
-		buf, tcpHeader, err := receiveTcpPacket(client)
+		buf, tcpHeader, err := receiveTCPPacket(client)
 		if err != nil {
 			return err
 		}
@@ -892,8 +892,8 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 			var team packet.Team
 
 			{
-				var r = packet.JoinTeamRequest{TcpHeader: tcpHeader}
-				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
+				var r = packet.JoinTeamRequest{TCPHeader: tcpHeader}
+				_, err = io.CopyN(ioutil.Discard, buf, packet.TCPHeaderSize)
 				if err != nil {
 					return err
 				}
@@ -909,28 +909,28 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 
 			s.logic.playersStateMu.Lock()
 			{
-				ps := s.logic.playersState[playerId]
+				ps := s.logic.playersState[playerID]
 				ps.Team = team
-				s.logic.playersState[playerId] = ps
+				s.logic.playersState[playerID] = ps
 			}
 			s.logic.playersStateMu.Unlock()
 
 			state.Lock()
 			s.logic.playersStateMu.Lock()
 			logicTime := float64(s.logic.GlobalStateSequenceNumber) + (time.Since(s.logic.started).Seconds()-s.logic.NextTickTime)*commandRate
-			fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(s.logic.started).Seconds(), playerId, s.logic.playersState[playerId].Name, team, logicTime, s.logic.GlobalStateSequenceNumber)
+			fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [server].\n", time.Since(s.logic.started).Seconds(), playerID, s.logic.playersState[playerID].Name, team, logicTime, s.logic.GlobalStateSequenceNumber)
 			s.logic.playersStateMu.Unlock()
 			state.Unlock()
 
 			{
 				var p packet.PlayerJoinedTeam
 				p.Type = packet.PlayerJoinedTeamType
-				p.PlayerId = playerId
+				p.PlayerID = playerID
 				p.Team = team
 
 				state.Lock()
 				s.logic.playersStateMu.Lock()
-				ps := s.logic.playersState[playerId]
+				ps := s.logic.playersState[playerID]
 				{
 					// TODO: Proper spawn location calculation.
 					playerSpawn := playerPosVel{
@@ -938,7 +938,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 						Y: -160,
 						Z: 6.0,
 					}
-					playerSpawn.X += float32(playerId) * 20
+					playerSpawn.X += float32(playerID) * 20
 
 					ps.NewSeries()
 					ps.PushAuthed(s.logic, sequencedPlayerPosVel{
@@ -946,7 +946,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 						SequenceNumber: s.logic.GlobalStateSequenceNumber - 1,
 					})
 				}
-				s.logic.playersState[playerId] = ps
+				s.logic.playersState[playerID] = ps
 				s.logic.playersStateMu.Unlock()
 				state.Unlock()
 
@@ -965,11 +965,11 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 				}
 
 				var buf bytes.Buffer
-				err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
+				err := binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
 				if err != nil {
 					return err
 				}
-				err = binary.Write(&buf, binary.BigEndian, &p.PlayerId)
+				err = binary.Write(&buf, binary.BigEndian, &p.PlayerID)
 				if err != nil {
 					return err
 				}
@@ -995,7 +995,7 @@ func (s *server) handleTcpConnection2(client *Connection) error {
 				}
 				s.connectionsMu.Unlock()
 				for _, c := range cs {
-					err = sendTcpPacket(c, buf.Bytes())
+					err = sendTCPPacket(c, buf.Bytes())
 					if err != nil {
 						return err
 					}

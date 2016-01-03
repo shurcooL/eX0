@@ -20,10 +20,10 @@ import (
 
 func newConnection() *Connection {
 	c := &Connection{
-		sendTcp: make(chan []byte),
-		recvTcp: make(chan []byte, 128),
-		sendUdp: make(chan []byte),
-		recvUdp: make(chan []byte, 128),
+		sendTCP: make(chan []byte),
+		recvTCP: make(chan []byte, 128),
+		sendUDP: make(chan []byte),
+		recvUDP: make(chan []byte, 128),
 
 		start: make(chan struct{}),
 	}
@@ -33,10 +33,10 @@ func newConnection() *Connection {
 		<-c.start
 		for {
 			select {
-			case b := <-c.sendTcp:
+			case b := <-c.sendTCP:
 				_, err := c.tcp.Write(append([]byte{0, 0}, b...))
 				_ = err
-			case b := <-c.sendUdp:
+			case b := <-c.sendUDP:
 				var buf = bytes.NewBuffer(make([]byte, 0, 2))
 				err := binary.Write(buf, binary.LittleEndian, uint16(len(b)))
 				if err != nil {
@@ -55,47 +55,47 @@ func newConnection() *Connection {
 			var udpSize uint16
 			err := binary.Read(c.tcp, binary.LittleEndian, &udpSize)
 			if err != nil {
-				close(c.recvTcp)
-				close(c.recvUdp)
+				close(c.recvTCP)
+				close(c.recvUDP)
 				return
 			}
 
 			if udpSize == 0 {
 				var b = make([]byte, packet.MAX_TCP_SIZE)
-				_, err := io.ReadFull(c.tcp, b[:packet.TcpHeaderSize])
+				_, err := io.ReadFull(c.tcp, b[:packet.TCPHeaderSize])
 				if err != nil {
-					close(c.recvTcp)
-					close(c.recvUdp)
+					close(c.recvTCP)
+					close(c.recvUDP)
 					return
 				}
-				var tcpHeader packet.TcpHeader
-				err = binary.Read(bytes.NewReader(b[:packet.TcpHeaderSize]), binary.BigEndian, &tcpHeader)
+				var tcpHeader packet.TCPHeader
+				err = binary.Read(bytes.NewReader(b[:packet.TCPHeaderSize]), binary.BigEndian, &tcpHeader)
 				if err != nil {
-					close(c.recvTcp)
-					close(c.recvUdp)
+					close(c.recvTCP)
+					close(c.recvUDP)
 					return
 				}
-				if packet.TcpHeaderSize+tcpHeader.Length > packet.MAX_TCP_SIZE {
-					close(c.recvTcp)
-					close(c.recvUdp)
+				if packet.TCPHeaderSize+tcpHeader.Length > packet.MAX_TCP_SIZE {
+					close(c.recvTCP)
+					close(c.recvUDP)
 					return
 				}
-				_, err = io.ReadFull(c.tcp, b[packet.TcpHeaderSize:packet.TcpHeaderSize+tcpHeader.Length])
+				_, err = io.ReadFull(c.tcp, b[packet.TCPHeaderSize:packet.TCPHeaderSize+tcpHeader.Length])
 				if err != nil {
-					close(c.recvTcp)
-					close(c.recvUdp)
+					close(c.recvTCP)
+					close(c.recvUDP)
 					return
 				}
-				c.recvTcp <- b[:packet.TcpHeaderSize+tcpHeader.Length]
+				c.recvTCP <- b[:packet.TCPHeaderSize+tcpHeader.Length]
 			} else {
 				var b = make([]byte, udpSize, udpSize)
 				_, err := io.ReadFull(c.tcp, b)
 				if err != nil {
-					close(c.recvTcp)
-					close(c.recvUdp)
+					close(c.recvTCP)
+					close(c.recvUDP)
 					return
 				}
-				c.recvUdp <- b
+				c.recvUDP <- b
 			}
 		}
 	}(c)
@@ -130,7 +130,7 @@ func (c *Connection) dialedClient() {
 }
 
 // tcp-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
-const shouldHandleUdpDirectly = true
+const shouldHandleUDPDirectly = true
 
 type Connection struct {
 	tcp net.Conn
@@ -140,59 +140,59 @@ type Connection struct {
 
 	// Common.
 	Signature uint64
-	PlayerId  uint8 // TODO: Unsure if this should be here, experimental.
+	PlayerID  uint8 // TODO: Unsure if this should be here, experimental.
 
-	sendTcp chan []byte
-	recvTcp chan []byte
-	sendUdp chan []byte
-	recvUdp chan []byte
+	sendTCP chan []byte
+	recvTCP chan []byte
+	sendUDP chan []byte
+	recvUDP chan []byte
 
 	start chan struct{}
 
 	// Unused.
 	udp     *net.UDPConn
-	UdpAddr *net.UDPAddr
+	UDPAddr *net.UDPAddr
 }
 
-func sendTcpPacket2(c *Connection, b []byte) error {
-	c.sendTcp <- b
+func sendTCPPacket2(c *Connection, b []byte) error {
+	c.sendTCP <- b
 	return nil
 }
 
-func receiveTcpPacket(c *Connection) (io.Reader, packet.TcpHeader, error) {
-	b, ok := <-c.recvTcp
+func receiveTCPPacket(c *Connection) (io.Reader, packet.TCPHeader, error) {
+	b, ok := <-c.recvTCP
 	if !ok {
-		return nil, packet.TcpHeader{}, errors.New("conn prob")
+		return nil, packet.TCPHeader{}, errors.New("conn prob")
 	}
-	if len(b) < packet.TcpHeaderSize {
-		return nil, packet.TcpHeader{}, fmt.Errorf("tcp packet size %v less than tcp header size %v", len(b), packet.TcpHeaderSize)
+	if len(b) < packet.TCPHeaderSize {
+		return nil, packet.TCPHeader{}, fmt.Errorf("tcp packet size %v less than tcp header size %v", len(b), packet.TCPHeaderSize)
 	}
-	var tcpHeader packet.TcpHeader
-	err := binary.Read(bytes.NewReader(b[:packet.TcpHeaderSize]), binary.BigEndian, &tcpHeader)
+	var tcpHeader packet.TCPHeader
+	err := binary.Read(bytes.NewReader(b[:packet.TCPHeaderSize]), binary.BigEndian, &tcpHeader)
 	if err != nil {
-		return nil, packet.TcpHeader{}, err
+		return nil, packet.TCPHeader{}, err
 	}
-	if packet.TcpHeaderSize+tcpHeader.Length > packet.MAX_TCP_SIZE {
-		return nil, packet.TcpHeader{}, fmt.Errorf("tcp packet size %v greater than max %v", packet.TcpHeaderSize+tcpHeader.Length, packet.MAX_TCP_SIZE)
+	if packet.TCPHeaderSize+tcpHeader.Length > packet.MAX_TCP_SIZE {
+		return nil, packet.TCPHeader{}, fmt.Errorf("tcp packet size %v greater than max %v", packet.TCPHeaderSize+tcpHeader.Length, packet.MAX_TCP_SIZE)
 	}
 	return bytes.NewReader(b), tcpHeader, nil
 }
 
-func sendUdpPacket(c *Connection, b []byte) error {
-	c.sendUdp <- b
+func sendUDPPacket(c *Connection, b []byte) error {
+	c.sendUDP <- b
 	return nil
 }
 
-func receiveUdpPacket(c *Connection) (io.Reader, error) {
-	b, ok := <-c.recvUdp
+func receiveUDPPacket(c *Connection) (io.Reader, error) {
+	b, ok := <-c.recvUDP
 	if !ok {
 		return nil, errors.New("conn prob")
 	}
 	return bytes.NewReader(b), nil
 }
 
-func receiveUdpPacketFrom(_ *server, mux *Connection) (io.Reader, *Connection, *net.UDPAddr, error) {
-	b, ok := <-mux.recvUdp
+func receiveUDPPacketFrom(_ *server, mux *Connection) (io.Reader, *Connection, *net.UDPAddr, error) {
+	b, ok := <-mux.recvUDP
 	if !ok {
 		return nil, nil, nil, errors.New("conn prob")
 	}

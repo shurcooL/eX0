@@ -20,7 +20,7 @@ func ExampleFullConnection() {
 	// Output:
 	// Started server.
 	// (packet.JoinServerRequest)(packet.JoinServerRequest{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(26),
 	// 		Type:   (packet.Type)(1),
 	// 	}),
@@ -46,27 +46,27 @@ func ExampleFullConnection() {
 	// 	Signature: (uint64)(123),
 	// })
 	// (packet.JoinServerAccept)(packet.JoinServerAccept{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(2),
 	// 		Type:   (packet.Type)(2),
 	// 	}),
-	// 	YourPlayerId:     (uint8)(0),
+	// 	YourPlayerID:     (uint8)(0),
 	// 	TotalPlayerCount: (uint8)(15),
 	// })
 	// (packet.Handshake)(packet.Handshake{
-	// 	UdpHeader: (packet.UdpHeader)(packet.UdpHeader{
+	// 	UDPHeader: (packet.UDPHeader)(packet.UDPHeader{
 	// 		Type: (packet.Type)(0),
 	// 	}),
 	// 	Signature: (uint64)(123),
 	// })
-	// (packet.UdpConnectionEstablished)(packet.UdpConnectionEstablished{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// (packet.UDPConnectionEstablished)(packet.UDPConnectionEstablished{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(0),
 	// 		Type:   (packet.Type)(5),
 	// 	}),
 	// })
 	// (packet.LocalPlayerInfo)(packet.LocalPlayerInfo{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(17),
 	// 		Type:   (packet.Type)(30),
 	// 	}),
@@ -91,7 +91,7 @@ func ExampleFullConnection() {
 	// 	UpdateRate:  (uint8)(20),
 	// })
 	// (packet.LoadLevel)(packet.LoadLevel{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(5),
 	// 		Type:   (packet.Type)(20),
 	// 	}),
@@ -105,7 +105,7 @@ func ExampleFullConnection() {
 	// })
 	// (string)("test3")
 	// (packet.CurrentPlayersInfo)(packet.CurrentPlayersInfo{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(31),
 	// 		Type:   (packet.Type)(21),
 	// 	}),
@@ -224,20 +224,20 @@ func ExampleFullConnection() {
 	// 	}),
 	// })
 	// (packet.EnterGamePermission)(packet.EnterGamePermission{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(0),
 	// 		Type:   (packet.Type)(6),
 	// 	}),
 	// })
 	// (packet.EnteredGameNotification)(packet.EnteredGameNotification{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(0),
 	// 		Type:   (packet.Type)(7),
 	// 	}),
 	// })
 	// Client connected and joining team.
 	// (packet.JoinTeamRequest)(packet.JoinTeamRequest{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(1),
 	// 		Type:   (packet.Type)(27),
 	// 	}),
@@ -245,11 +245,11 @@ func ExampleFullConnection() {
 	// 	Team:         (packet.Team)(0),
 	// })
 	// (packet.PlayerJoinedTeam)(packet.PlayerJoinedTeam{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(15),
 	// 		Type:   (packet.Type)(28),
 	// 	}),
-	// 	PlayerId: (uint8)(0),
+	// 	PlayerID: (uint8)(0),
 	// 	Team:     (packet.Team)(0),
 	// 	State: (*packet.State)(&packet.State{
 	// 		CommandSequenceNumber: (uint8)(123),
@@ -275,21 +275,21 @@ func disabledExampleConnectToEmptyRealServer() {
 
 	// Output:
 	// (packet.JoinServerAccept)(packet.JoinServerAccept{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(2),
 	// 		Type:   (packet.Type)(2),
 	// 	}),
-	// 	YourPlayerId:     (uint8)(0),
+	// 	YourPlayerID:     (uint8)(0),
 	// 	TotalPlayerCount: (uint8)(15),
 	// })
-	// (packet.UdpConnectionEstablished)(packet.UdpConnectionEstablished{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// (packet.UDPConnectionEstablished)(packet.UDPConnectionEstablished{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(0),
 	// 		Type:   (packet.Type)(5),
 	// 	}),
 	// })
 	// (packet.LoadLevel)(packet.LoadLevel{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(5),
 	// 		Type:   (packet.Type)(20),
 	// 	}),
@@ -303,7 +303,7 @@ func disabledExampleConnectToEmptyRealServer() {
 	// })
 	// (string)("test3")
 	// (packet.CurrentPlayersInfo)(packet.CurrentPlayersInfo{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(31),
 	// 		Type:   (packet.Type)(21),
 	// 	}),
@@ -422,17 +422,17 @@ func disabledExampleConnectToEmptyRealServer() {
 	// 	}),
 	// })
 	// (packet.EnterGamePermission)(packet.EnterGamePermission{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(0),
 	// 		Type:   (packet.Type)(6),
 	// 	}),
 	// })
 	// (packet.PlayerJoinedTeam)(packet.PlayerJoinedTeam{
-	// 	TcpHeader: (packet.TcpHeader)(packet.TcpHeader{
+	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(15),
 	// 		Type:   (packet.Type)(28),
 	// 	}),
-	// 	PlayerId: (uint8)(0),
+	// 	PlayerID: (uint8)(0),
 	// 	Team:     (packet.Team)(0),
 	// 	State: (*packet.State)(&packet.State{
 	// 		CommandSequenceNumber: (uint8)(123),

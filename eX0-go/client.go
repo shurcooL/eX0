@@ -22,7 +22,7 @@ var nameFlag = flag.String("name", "Unnamed Player", "Local client player name."
 type client struct {
 	logic *logic
 
-	playerId uint8
+	playerID uint8
 
 	ZOffset float32
 
@@ -36,7 +36,7 @@ type client struct {
 	finishedSyncingClock       chan struct{}
 
 	pongSentTimes map[uint32]time.Time // PingData -> Time.
-	lastLatencies []uint16             // Index is Player Id. Units are 0.1 ms.
+	lastLatencies []uint16             // Index is Player ID. Units are 0.1 ms.
 }
 
 func startClient() *client {
@@ -51,7 +51,7 @@ func startClient() *client {
 	c.logic.Input <- func(logic *logic) packet.Move {
 		return packet.Move{
 			MoveDirection: -1,
-			Z:             logic.playersState[components.client.playerId].LatestAuthed().Z,
+			Z:             logic.playersState[components.client.playerID].LatestAuthed().Z,
 		}
 	}
 	c.connectToServer()
@@ -68,7 +68,7 @@ func (c *client) connectToServer() {
 
 	{
 		var p = packet.JoinServerRequest{
-			TcpHeader: packet.TcpHeader{
+			TCPHeader: packet.TCPHeader{
 				Type: packet.JoinServerRequestType,
 			},
 			Version:    1,
@@ -83,14 +83,14 @@ func (c *client) connectToServer() {
 		if err != nil {
 			panic(err)
 		}
-		err = sendTcpPacket(s, buf.Bytes())
+		err = sendTCPPacket(s, buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	{
-		buf, _, err := receiveTcpPacket(s)
+		buf, _, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -102,7 +102,7 @@ func (c *client) connectToServer() {
 		goon.Dump(r)
 
 		state.Lock()
-		c.playerId = r.YourPlayerId
+		c.playerID = r.YourPlayerID
 		c.logic.TotalPlayerCount = r.TotalPlayerCount + 1
 		c.lastLatencies = make([]uint16, c.logic.TotalPlayerCount)
 		s.JoinStatus = ACCEPTED
@@ -110,7 +110,7 @@ func (c *client) connectToServer() {
 	}
 
 	// Upgrade connection to UDP at this point, start listening for UDP packets.
-	go c.handleUdp(s)
+	go c.handleUDP(s)
 
 	{
 		// TODO: Try sending multiple times, else it might not get received.
@@ -123,18 +123,18 @@ func (c *client) connectToServer() {
 		if err != nil {
 			panic(err)
 		}
-		err = sendUdpPacket(s, buf.Bytes())
+		err = sendUDPPacket(s, buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	{
-		buf, _, err := receiveTcpPacket(s)
+		buf, _, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
-		var r packet.UdpConnectionEstablished
+		var r packet.UDPConnectionEstablished
 		err = binary.Read(buf, binary.BigEndian, &r)
 		if err != nil {
 			panic(err)
@@ -172,7 +172,7 @@ func (c *client) connectToServer() {
 				if err != nil {
 					panic(err)
 				}
-				err = sendUdpPacket(s, buf.Bytes())
+				err = sendUDPPacket(s, buf.Bytes())
 				if err != nil {
 					panic(err)
 				}
@@ -191,7 +191,7 @@ func (c *client) connectToServer() {
 		p.Length = 3 + uint16(len(*nameFlag))
 
 		var buf bytes.Buffer
-		err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
+		err := binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
 		if err != nil {
 			panic(err)
 		}
@@ -211,7 +211,7 @@ func (c *client) connectToServer() {
 		if err != nil {
 			panic(err)
 		}
-		err = sendTcpPacket(s, buf.Bytes())
+		err = sendTCPPacket(s, buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
@@ -222,12 +222,12 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		buf, _, err := receiveTcpPacket(s)
+		buf, _, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
 		var r packet.LoadLevel
-		err = binary.Read(buf, binary.BigEndian, &r.TcpHeader)
+		err = binary.Read(buf, binary.BigEndian, &r.TCPHeader)
 		if err != nil {
 			panic(err)
 		}
@@ -247,12 +247,12 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		buf, _, err := receiveTcpPacket(s)
+		buf, _, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
 		var r packet.CurrentPlayersInfo
-		err = binary.Read(buf, binary.BigEndian, &r.TcpHeader)
+		err = binary.Read(buf, binary.BigEndian, &r.TCPHeader)
 		if err != nil {
 			panic(err)
 		}
@@ -316,7 +316,7 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		buf, _, err := receiveTcpPacket(s)
+		buf, _, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -345,7 +345,7 @@ func (c *client) connectToServer() {
 		if err != nil {
 			panic(err)
 		}
-		err = sendTcpPacket(s, buf.Bytes())
+		err = sendTCPPacket(s, buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
@@ -364,7 +364,7 @@ func (c *client) connectToServer() {
 		p.Length = 1
 
 		var buf bytes.Buffer
-		err := binary.Write(&buf, binary.BigEndian, &p.TcpHeader)
+		err := binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
 		if err != nil {
 			panic(err)
 		}
@@ -372,7 +372,7 @@ func (c *client) connectToServer() {
 		if err != nil {
 			panic(err)
 		}
-		err = sendTcpPacket(s, buf.Bytes())
+		err = sendTCPPacket(s, buf.Bytes())
 		if err != nil {
 			panic(err)
 		}
@@ -380,19 +380,19 @@ func (c *client) connectToServer() {
 
 	go func() {
 		for {
-			buf, tcpHeader, err := receiveTcpPacket(s)
+			buf, tcpHeader, err := receiveTCPPacket(s)
 			if err != nil {
 				panic(err)
 			}
 
 			switch tcpHeader.Type {
 			case packet.PlayerJoinedServerType:
-				var r = packet.PlayerJoinedServer{TcpHeader: tcpHeader}
-				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
+				var r = packet.PlayerJoinedServer{TCPHeader: tcpHeader}
+				_, err = io.CopyN(ioutil.Discard, buf, packet.TCPHeaderSize)
 				if err != nil {
 					panic(err)
 				}
-				err = binary.Read(buf, binary.BigEndian, &r.PlayerId)
+				err = binary.Read(buf, binary.BigEndian, &r.PlayerID)
 				if err != nil {
 					panic(err)
 				}
@@ -411,34 +411,34 @@ func (c *client) connectToServer() {
 					Team: 2,
 				}
 				c.logic.playersStateMu.Lock()
-				c.logic.playersState[r.PlayerId] = ps
+				c.logic.playersState[r.PlayerID] = ps
 				c.logic.playersStateMu.Unlock()
 
 				fmt.Printf("%v is entering the game.\n", ps.Name)
 			case packet.PlayerLeftServerType:
-				var r = packet.PlayerLeftServer{TcpHeader: tcpHeader}
-				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
+				var r = packet.PlayerLeftServer{TCPHeader: tcpHeader}
+				_, err = io.CopyN(ioutil.Discard, buf, packet.TCPHeaderSize)
 				if err != nil {
 					panic(err)
 				}
-				err = binary.Read(buf, binary.BigEndian, &r.PlayerId)
+				err = binary.Read(buf, binary.BigEndian, &r.PlayerID)
 				if err != nil {
 					panic(err)
 				}
 
 				c.logic.playersStateMu.Lock()
-				ps := c.logic.playersState[r.PlayerId]
-				delete(c.logic.playersState, r.PlayerId)
+				ps := c.logic.playersState[r.PlayerID]
+				delete(c.logic.playersState, r.PlayerID)
 				c.logic.playersStateMu.Unlock()
 
 				fmt.Printf("%v left the game.\n", ps.Name)
 			case packet.PlayerJoinedTeamType:
-				var r = packet.PlayerJoinedTeam{TcpHeader: tcpHeader}
-				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
+				var r = packet.PlayerJoinedTeam{TCPHeader: tcpHeader}
+				_, err = io.CopyN(ioutil.Discard, buf, packet.TCPHeaderSize)
 				if err != nil {
 					panic(err)
 				}
-				err = binary.Read(buf, binary.BigEndian, &r.PlayerId)
+				err = binary.Read(buf, binary.BigEndian, &r.PlayerID)
 				if err != nil {
 					panic(err)
 				}
@@ -457,7 +457,7 @@ func (c *client) connectToServer() {
 				state.Lock()
 				c.logic.playersStateMu.Lock()
 				logicTime := float64(c.logic.GlobalStateSequenceNumber) + (time.Since(c.logic.started).Seconds()-c.logic.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(c.logic.started).Seconds(), r.PlayerId, c.logic.playersState[r.PlayerId].Name, r.Team, logicTime, c.logic.GlobalStateSequenceNumber)
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [client].\n", time.Since(c.logic.started).Seconds(), r.PlayerID, c.logic.playersState[r.PlayerID].Name, r.Team, logicTime, c.logic.GlobalStateSequenceNumber)
 				c.logic.playersStateMu.Unlock()
 				state.Unlock()
 
@@ -469,7 +469,7 @@ func (c *client) connectToServer() {
 				}
 
 				c.logic.playersStateMu.Lock()
-				ps := c.logic.playersState[r.PlayerId]
+				ps := c.logic.playersState[r.PlayerID]
 				if r.State != nil {
 					ps.NewSeries()
 					ps.PushAuthed(c.logic, sequencedPlayerPosVel{
@@ -480,22 +480,22 @@ func (c *client) connectToServer() {
 						},
 						SequenceNumber: r.State.CommandSequenceNumber,
 					})
-					if r.PlayerId == c.playerId {
+					if r.PlayerID == c.playerID {
 						c.ZOffset = 0
 					}
 				}
 				ps.Team = r.Team
-				c.logic.playersState[r.PlayerId] = ps
+				c.logic.playersState[r.PlayerID] = ps
 				c.logic.playersStateMu.Unlock()
 
 				fmt.Printf("%v joined %v.\n", ps.Name, ps.Team)
 			case packet.PlayerWasHitType:
-				var r = packet.PlayerWasHit{TcpHeader: tcpHeader}
-				_, err = io.CopyN(ioutil.Discard, buf, packet.TcpHeaderSize)
+				var r = packet.PlayerWasHit{TCPHeader: tcpHeader}
+				_, err = io.CopyN(ioutil.Discard, buf, packet.TCPHeaderSize)
 				if err != nil {
 					panic(err)
 				}
-				err = binary.Read(buf, binary.BigEndian, &r.PlayerId)
+				err = binary.Read(buf, binary.BigEndian, &r.PlayerID)
 				if err != nil {
 					panic(err)
 				}
@@ -504,7 +504,7 @@ func (c *client) connectToServer() {
 					panic(err)
 				}
 
-				fmt.Fprintf(os.Stderr, "[weapons] Player %v was hit for %v.\n", r.PlayerId, r.HealthGiven)
+				fmt.Fprintf(os.Stderr, "[weapons] Player %v was hit for %v.\n", r.PlayerID, r.HealthGiven)
 				// TODO: Implement.
 			default:
 				fmt.Println("[client] got unsupported tcp packet type:", tcpHeader.Type)
@@ -513,14 +513,14 @@ func (c *client) connectToServer() {
 	}()
 }
 
-func (c *client) handleUdp(s *Connection) {
+func (c *client) handleUDP(s *Connection) {
 	for {
-		buf, err := receiveUdpPacket(s)
+		buf, err := receiveUDPPacket(s)
 		if err != nil {
 			panic(err)
 		}
 
-		var udpHeader packet.UdpHeader
+		var udpHeader packet.UDPHeader
 		err = binary.Read(buf, binary.BigEndian, &udpHeader)
 		if err != nil {
 			panic(err)
@@ -595,7 +595,7 @@ func (c *client) handleUdp(s *Connection) {
 				if err != nil {
 					panic(err)
 				}
-				err = sendUdpPacket(s, buf.Bytes())
+				err = sendUDPPacket(s, buf.Bytes())
 				if err != nil {
 					panic(err)
 				}

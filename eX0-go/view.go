@@ -93,7 +93,7 @@ func (v *view) initAndMainLoop() {
 		v.logic.Input <- func(logic *logic) packet.Move { return inputCommand(logic, window) }
 
 		// Create and set player-centric camera.
-		v.cameras = append(v.cameras, &PlayerCamera{logic: v.logic, playerID: components.client.playerId})
+		v.cameras = append(v.cameras, &PlayerCamera{logic: v.logic, playerID: components.client.playerID})
 		v.activeCamera = len(v.cameras) - 1
 	}
 

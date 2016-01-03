@@ -29,7 +29,7 @@ type logic struct {
 
 	// TODO: There's also some overlap with server.connections, shouldn't that be resolved?
 	playersStateMu sync.Mutex
-	playersState   map[uint8]playerState // Player Id -> Player State.
+	playersState   map[uint8]playerState // Player ID -> Player State.
 
 	level *level
 }
@@ -74,11 +74,11 @@ func (l *logic) gameLogic() {
 
 		if debugFirstJoin && client != nil {
 			l.playersStateMu.Lock()
-			ps, ok := l.playersState[client.playerId]
+			ps, ok := l.playersState[client.playerID]
 			if ok && ps.Team != packet.Spectator {
 				debugFirstJoin = false
 				logicTime := float64(l.GlobalStateSequenceNumber) + (time.Since(l.started).Seconds()-l.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(l.started).Seconds(), client.playerId, l.playersState[client.playerId].Name, ps.Team, logicTime, l.GlobalStateSequenceNumber)
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(l.started).Seconds(), client.playerID, l.playersState[client.playerID].Name, ps.Team, logicTime, l.GlobalStateSequenceNumber)
 			}
 			l.playersStateMu.Unlock()
 		}
@@ -86,7 +86,7 @@ func (l *logic) gameLogic() {
 		if tick && client != nil {
 			if doInput != nil {
 				l.playersStateMu.Lock()
-				ps, ok := l.playersState[client.playerId]
+				ps, ok := l.playersState[client.playerID]
 				if ok && ps.Team != packet.Spectator {
 					// Fill all missing commands (from last authed until one we're supposed to be by now (based on GlobalStateSequenceNumberTEST time).
 					for lastState := ps.LatestPredicted(); int8(lastState.SequenceNumber-l.GlobalStateSequenceNumber) < 0; lastState = ps.LatestPredicted() {
@@ -99,13 +99,13 @@ func (l *logic) gameLogic() {
 							predicted: newState,
 						})
 					}
-					l.playersState[client.playerId] = ps
+					l.playersState[client.playerID] = ps
 				}
 				l.playersStateMu.Unlock()
 			}
 
 			l.playersStateMu.Lock()
-			ps, ok := l.playersState[client.playerId]
+			ps, ok := l.playersState[client.playerID]
 			l.playersStateMu.Unlock()
 
 			if ok && ps.Team != packet.Spectator && len(ps.unconfirmed) > 0 {
@@ -132,7 +132,7 @@ func (l *logic) gameLogic() {
 					p.MovesCount = uint8(len(p.Moves)) - 1
 
 					var buf bytes.Buffer
-					err := binary.Write(&buf, binary.BigEndian, &p.UdpHeader)
+					err := binary.Write(&buf, binary.BigEndian, &p.UDPHeader)
 					if err != nil {
 						panic(err)
 					}
@@ -155,7 +155,7 @@ func (l *logic) gameLogic() {
 						}
 					}
 
-					err = sendUdpPacket(client.serverConn, buf.Bytes())
+					err = sendUDPPacket(client.serverConn, buf.Bytes())
 					if err != nil {
 						panic(err)
 					}
@@ -251,11 +251,11 @@ func (ps *playerState) NewSeries() {
 	ps.unconfirmed = nil
 }
 
-func (ps playerState) Interpolated(logic *logic, playerId uint8) playerPosVel {
+func (ps playerState) Interpolated(logic *logic, playerID uint8) playerPosVel {
 	desiredAStateSN := logic.GlobalStateSequenceNumber - 1
 
 	// When we don't have perfect information about present, return position 100 ms in the past.
-	if components.client == nil || components.client.playerId != playerId {
+	if components.client == nil || components.client.playerID != playerID {
 		desiredAStateSN -= 2 // HACK: Assumes command rate of 20, this puts us 100 ms in the past (2 * 1s/20 = 100 ms).
 	}
 
@@ -303,7 +303,7 @@ func (ps playerState) Interpolated(logic *logic, playerId uint8) playerPosVel {
 	interp = interp / interpDistance
 
 	var z float32
-	if components.client != nil && components.client.playerId == playerId && b.SequenceNumber == logic.GlobalStateSequenceNumber {
+	if components.client != nil && components.client.playerID == playerID && b.SequenceNumber == logic.GlobalStateSequenceNumber {
 		z = b.playerPosVel.Z + components.client.ZOffset
 	} else {
 		z = (1-interp)*a.playerPosVel.Z + interp*b.playerPosVel.Z
