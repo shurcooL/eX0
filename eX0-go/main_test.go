@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func ExampleFullConnection() {
+func Example_fullConnection() {
 	defer func() {
 		err := recover()
 		if err != nil {
@@ -262,7 +262,7 @@ func ExampleFullConnection() {
 }
 
 // Requires an empty server to be running.
-func disabledExampleConnectToEmptyRealServer() {
+func disabledExample_connectToEmptyRealServer() {
 	defer func() {
 		err := recover()
 		if err != nil {
