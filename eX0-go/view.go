@@ -14,20 +14,21 @@ type view struct {
 
 	windowSize [2]int
 
-	cameraPos [2]float32
+	activeCamera int
+	cameras      []CameraI
 }
 
-func runView(logic *logic, gameLogicInput bool) *view {
+func startView(logic *logic) *view {
 	v := &view{
-		logic:      logic,
-		windowSize: [2]int{640, 480},
-		cameraPos:  [2]float32{362, 340},
+		logic:        logic,
+		windowSize:   [2]int{640, 480},
+		activeCamera: 0,
+		cameras:      []CameraI{&FreeCamera{pos: [2]float32{362, 340}}},
 	}
-	v.initAndMainLoop(gameLogicInput)
 	return v
 }
 
-func (v *view) initAndMainLoop(gameLogicInput bool) {
+func (v *view) initAndMainLoop() {
 	err := glfw.Init(gl.ContextWatcher)
 	if err != nil {
 		panic(err)
@@ -47,11 +48,6 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 	gl.ClearColor(227.0/255, 189.0/255, 162.0/255, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 
-	window.SetScrollCallback(func(_ *glfw.Window, xoff, yoff float64) {
-		v.cameraPos[0] += float32(xoff) * 5
-		v.cameraPos[1] -= float32(yoff) * 5
-	})
-
 	framebufferSizeCallback := func(w *glfw.Window, framebufferSize0, framebufferSize1 int) {
 		gl.Viewport(0, 0, framebufferSize0, framebufferSize1)
 
@@ -64,6 +60,25 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 	}
 	window.SetFramebufferSizeCallback(framebufferSizeCallback)
 
+	window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+		if action == glfw.Press {
+			switch key {
+			case glfw.KeyEscape:
+				window.SetShouldClose(true)
+			case glfw.KeyV:
+				v.activeCamera = (v.activeCamera + 1) % len(v.cameras)
+			}
+		}
+	})
+	window.SetScrollCallback(func(_ *glfw.Window, xoff, yoff float64) {
+		// TODO: A better mechanism to feed input events stream to active camera.
+		switch v.activeCamera {
+		case 0:
+			v.cameras[0].(*FreeCamera).pos[0] += float32(xoff) * 5
+			v.cameras[0].(*FreeCamera).pos[1] -= float32(yoff) * 5
+		}
+	})
+
 	err = v.logic.level.initGraphics()
 	if err != nil {
 		panic(err)
@@ -74,8 +89,12 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 		panic(err)
 	}
 
-	if gameLogicInput {
+	if components.client != nil {
 		v.logic.Input <- func(logic *logic) packet.Move { return inputCommand(logic, window) }
+
+		// Create and set player-centric camera.
+		v.cameras = append(v.cameras, &PlayerCamera{logic: v.logic, playerID: components.client.playerId})
+		v.activeCamera = len(v.cameras) - 1
 	}
 
 	frameStarted := time.Now()
@@ -86,7 +105,7 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 
 		glfw.PollEvents()
 
-		if gameLogicInput {
+		if components.client != nil {
 			if (window.GetKey(glfw.KeyLeft) != glfw.Release) && !(window.GetKey(glfw.KeyRight) != glfw.Release) {
 				components.client.ZOffset -= 2.0 * float32(timePassed.Seconds())
 			} else if (window.GetKey(glfw.KeyRight) != glfw.Release) && !(window.GetKey(glfw.KeyLeft) != glfw.Release) {
@@ -96,8 +115,9 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
+		v.cameras[v.activeCamera].CalculateForFrame()
 		pMatrix := mgl32.Ortho2D(0, float32(v.windowSize[0]), 0, float32(v.windowSize[1]))
-		mvMatrix := mgl32.Translate3D(v.cameraPos[0], v.cameraPos[1], 0)
+		mvMatrix := v.cameras[v.activeCamera].ModelView()
 
 		v.logic.level.setup()
 		gl.UniformMatrix4fv(v.logic.level.pMatrixUniform, pMatrix[:])
@@ -116,7 +136,7 @@ func (v *view) initAndMainLoop(gameLogicInput bool) {
 
 			pos := ps.Interpolated(v.logic, uint8(id))
 
-			mvMatrix = mgl32.Translate3D(v.cameraPos[0], v.cameraPos[1], 0)
+			mvMatrix = v.cameras[v.activeCamera].ModelView()
 			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(pos.X, pos.Y, 0))
 			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-pos.Z))
 

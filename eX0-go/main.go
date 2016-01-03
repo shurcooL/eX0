@@ -36,14 +36,17 @@ func main() {
 		select {}
 	case len(args) == 1 && args[0] == "server-view":
 		components.server = startServer()
-		components.view = runView(components.server.logic, false)
+		components.view = startView(components.server.logic)
+		components.view.initAndMainLoop()
 	case len(args) == 1 && args[0] == "client-view":
 		components.client = startClient()
-		components.view = runView(components.client.logic, true)
+		components.view = startView(components.client.logic)
+		components.view.initAndMainLoop()
 	case len(args) == 1 && (args[0] == "client-server-view" || args[0] == "server-client-view"):
 		components.server = startServer()
 		components.client = startClient()
-		components.view = runView(components.client.logic, true)
+		components.view = startView(components.client.logic)
+		components.view.initAndMainLoop()
 	default:
 		fmt.Fprintf(os.Stderr, "invalid usage: %q\n", args)
 		os.Exit(2)
