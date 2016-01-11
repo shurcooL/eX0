@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"net"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
@@ -56,7 +55,7 @@ func sendTCPPacket2(c *Connection, b []byte) error {
 	return nil
 }
 
-func receiveTCPPacket(c *Connection) (io.Reader, packet.TCPHeader, error) {
+func receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
 	b := <-c.recvTCP
 	if len(b) < packet.TCPHeaderSize {
 		return nil, packet.TCPHeader{}, fmt.Errorf("tcp packet size %v less than tcp header size %v", len(b), packet.TCPHeaderSize)
@@ -69,7 +68,7 @@ func receiveTCPPacket(c *Connection) (io.Reader, packet.TCPHeader, error) {
 	if packet.TCPHeaderSize+tcpHeader.Length > packet.MAX_TCP_SIZE {
 		return nil, packet.TCPHeader{}, fmt.Errorf("tcp packet size %v greater than max %v", packet.TCPHeaderSize+tcpHeader.Length, packet.MAX_TCP_SIZE)
 	}
-	return bytes.NewReader(b), tcpHeader, nil
+	return b, tcpHeader, nil
 }
 
 func sendUDPPacket(c *Connection, b []byte) error {
@@ -77,12 +76,12 @@ func sendUDPPacket(c *Connection, b []byte) error {
 	return nil
 }
 
-func receiveUDPPacket(c *Connection) (io.Reader, error) {
+func receiveUDPPacket(c *Connection) ([]byte, error) {
 	b := <-c.recvUDP
-	return bytes.NewReader(b), nil
+	return b, nil
 }
 
-func receiveUDPPacketFrom(_ *server, mux *Connection) (io.Reader, *Connection, *net.UDPAddr, error) {
+func receiveUDPPacketFrom(_ *server, mux *Connection) ([]byte, *Connection, *net.UDPAddr, error) {
 	b := <-mux.recvUDP
-	return bytes.NewReader(b), mux, nil, nil // HACK.
+	return b, mux, nil, nil // HACK.
 }

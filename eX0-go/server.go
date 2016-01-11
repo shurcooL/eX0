@@ -166,7 +166,7 @@ func (s *server) listenAndHandleChan() {
 
 func (s *server) handleUDP(mux *Connection) {
 	for {
-		buf, c, udpAddr, err := receiveUDPPacketFrom(s, mux)
+		b, c, udpAddr, err := receiveUDPPacketFrom(s, mux)
 		if err != nil {
 			if shouldHandleUDPDirectly { // HACK: This isn't a real mux but rather the client directly, so return.
 				fmt.Println("udp conn ended with:", err)
@@ -175,7 +175,7 @@ func (s *server) handleUDP(mux *Connection) {
 			panic(err)
 		}
 
-		err = s.processUDPPacket(buf, c, udpAddr, mux)
+		err = s.processUDPPacket(b, c, udpAddr, mux)
 		if err != nil {
 			fmt.Println("handleUDPPacket:", err)
 			if c != nil {
@@ -185,7 +185,9 @@ func (s *server) handleUDP(mux *Connection) {
 	}
 }
 
-func (s *server) processUDPPacket(buf io.Reader, c *Connection, udpAddr *net.UDPAddr, mux *Connection) error {
+func (s *server) processUDPPacket(b []byte, c *Connection, udpAddr *net.UDPAddr, mux *Connection) error {
+	buf := bytes.NewReader(b)
+
 	var udpHeader packet.UDPHeader
 	err := binary.Read(buf, binary.BigEndian, &udpHeader)
 	if err != nil {
@@ -549,10 +551,11 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 	var playerID uint8
 
 	{
-		buf, _, err := receiveTCPPacket(client)
+		b, _, err := receiveTCPPacket(client)
 		if err != nil {
 			return err
 		}
+		buf := bytes.NewReader(b)
 		var r packet.JoinServerRequest
 		err = binary.Read(buf, binary.BigEndian, &r)
 		if err != nil {
@@ -656,10 +659,11 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 	}
 
 	{
-		buf, _, err := receiveTCPPacket(client)
+		b, _, err := receiveTCPPacket(client)
 		if err != nil {
 			return err
 		}
+		buf := bytes.NewReader(b)
 		var r packet.LocalPlayerInfo
 		err = binary.Read(buf, binary.BigEndian, &r.TCPHeader)
 		if err != nil {
@@ -862,10 +866,11 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 	}
 
 	{
-		buf, _, err := receiveTCPPacket(client)
+		b, _, err := receiveTCPPacket(client)
 		if err != nil {
 			return err
 		}
+		buf := bytes.NewReader(b)
 		var r packet.EnteredGameNotification
 		err = binary.Read(buf, binary.BigEndian, &r)
 		if err != nil {
@@ -882,10 +887,11 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 	}
 
 	for {
-		buf, tcpHeader, err := receiveTCPPacket(client)
+		b, tcpHeader, err := receiveTCPPacket(client)
 		if err != nil {
 			return err
 		}
+		buf := bytes.NewReader(b)
 
 		switch tcpHeader.Type {
 		case packet.JoinTeamRequestType:

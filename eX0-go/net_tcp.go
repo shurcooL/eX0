@@ -159,7 +159,7 @@ func sendTCPPacket2(c *Connection, b []byte) error {
 	return nil
 }
 
-func receiveTCPPacket(c *Connection) (io.Reader, packet.TCPHeader, error) {
+func receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
 	b, ok := <-c.recvTCP
 	if !ok {
 		return nil, packet.TCPHeader{}, errors.New("conn prob")
@@ -175,7 +175,7 @@ func receiveTCPPacket(c *Connection) (io.Reader, packet.TCPHeader, error) {
 	if packet.TCPHeaderSize+tcpHeader.Length > packet.MAX_TCP_SIZE {
 		return nil, packet.TCPHeader{}, fmt.Errorf("tcp packet size %v greater than max %v", packet.TCPHeaderSize+tcpHeader.Length, packet.MAX_TCP_SIZE)
 	}
-	return bytes.NewReader(b), tcpHeader, nil
+	return b, tcpHeader, nil
 }
 
 func sendUDPPacket(c *Connection, b []byte) error {
@@ -183,18 +183,18 @@ func sendUDPPacket(c *Connection, b []byte) error {
 	return nil
 }
 
-func receiveUDPPacket(c *Connection) (io.Reader, error) {
+func receiveUDPPacket(c *Connection) ([]byte, error) {
 	b, ok := <-c.recvUDP
 	if !ok {
 		return nil, errors.New("conn prob")
 	}
-	return bytes.NewReader(b), nil
+	return b, nil
 }
 
-func receiveUDPPacketFrom(_ *server, mux *Connection) (io.Reader, *Connection, *net.UDPAddr, error) {
+func receiveUDPPacketFrom(_ *server, mux *Connection) ([]byte, *Connection, *net.UDPAddr, error) {
 	b, ok := <-mux.recvUDP
 	if !ok {
 		return nil, nil, nil, errors.New("conn prob")
 	}
-	return bytes.NewReader(b), mux, nil, nil // HACK.
+	return b, mux, nil, nil // HACK.
 }

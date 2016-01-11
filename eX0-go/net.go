@@ -62,7 +62,7 @@ func sendTCPPacket2(c *Connection, b []byte) error {
 	return err
 }
 
-func receiveTCPPacket(c *Connection) (io.Reader, packet.TCPHeader, error) {
+func receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
 	var b = make([]byte, packet.MAX_TCP_SIZE)
 	_, err := io.ReadFull(c.tcp, b[:packet.TCPHeaderSize])
 	if err != nil {
@@ -80,7 +80,7 @@ func receiveTCPPacket(c *Connection) (io.Reader, packet.TCPHeader, error) {
 	if err != nil {
 		return nil, packet.TCPHeader{}, err
 	}
-	return bytes.NewReader(b[:packet.TCPHeaderSize+tcpHeader.Length]), tcpHeader, nil
+	return b[:packet.TCPHeaderSize+tcpHeader.Length], tcpHeader, nil
 }
 
 func sendUDPPacket(c *Connection, b []byte) error {
@@ -93,16 +93,16 @@ func sendUDPPacket(c *Connection, b []byte) error {
 	}
 }
 
-func receiveUDPPacket(c *Connection) (io.Reader, error) {
+func receiveUDPPacket(c *Connection) ([]byte, error) {
 	var b [packet.MAX_UDP_SIZE]byte
 	n, err := c.udp.Read(b[:])
 	if err != nil {
 		return nil, err
 	}
-	return bytes.NewReader(b[:n]), nil
+	return b[:n], nil
 }
 
-func receiveUDPPacketFrom(s *server, mux *Connection) (io.Reader, *Connection, *net.UDPAddr, error) {
+func receiveUDPPacketFrom(s *server, mux *Connection) ([]byte, *Connection, *net.UDPAddr, error) {
 	var b [packet.MAX_UDP_SIZE]byte
 	n, udpAddr, err := mux.udp.ReadFromUDP(b[:])
 	if err != nil {
@@ -119,7 +119,7 @@ func receiveUDPPacketFrom(s *server, mux *Connection) (io.Reader, *Connection, *
 	}
 	s.connectionsMu.Unlock()
 
-	return bytes.NewReader(b[:n]), from, udpAddr, nil
+	return b[:n], from, udpAddr, nil
 }
 
 // udpAddrEqual returns true if non-nil a and b are the same UDP address.

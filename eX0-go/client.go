@@ -90,10 +90,11 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		buf, _, err := receiveTCPPacket(s)
+		b, _, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
+		buf := bytes.NewReader(b)
 		var r packet.JoinServerAccept
 		err = binary.Read(buf, binary.BigEndian, &r)
 		if err != nil {
@@ -130,10 +131,11 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		buf, _, err := receiveTCPPacket(s)
+		b, _, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
+		buf := bytes.NewReader(b)
 		var r packet.UDPConnectionEstablished
 		err = binary.Read(buf, binary.BigEndian, &r)
 		if err != nil {
@@ -222,10 +224,11 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		buf, _, err := receiveTCPPacket(s)
+		b, _, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
+		buf := bytes.NewReader(b)
 		var r packet.LoadLevel
 		err = binary.Read(buf, binary.BigEndian, &r.TCPHeader)
 		if err != nil {
@@ -247,10 +250,11 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		buf, _, err := receiveTCPPacket(s)
+		b, _, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
+		buf := bytes.NewReader(b)
 		var r packet.CurrentPlayersInfo
 		err = binary.Read(buf, binary.BigEndian, &r.TCPHeader)
 		if err != nil {
@@ -316,10 +320,11 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		buf, _, err := receiveTCPPacket(s)
+		b, _, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
+		buf := bytes.NewReader(b)
 		var r packet.EnterGamePermission
 		err = binary.Read(buf, binary.BigEndian, &r)
 		if err != nil {
@@ -380,10 +385,11 @@ func (c *client) connectToServer() {
 
 	go func() {
 		for {
-			buf, tcpHeader, err := receiveTCPPacket(s)
+			b, tcpHeader, err := receiveTCPPacket(s)
 			if err != nil {
 				panic(err)
 			}
+			buf := bytes.NewReader(b)
 
 			switch tcpHeader.Type {
 			case packet.PlayerJoinedServerType:
@@ -515,10 +521,11 @@ func (c *client) connectToServer() {
 
 func (c *client) handleUDP(s *Connection) {
 	for {
-		buf, err := receiveUDPPacket(s)
+		b, err := receiveUDPPacket(s)
 		if err != nil {
 			panic(err)
 		}
+		buf := bytes.NewReader(b)
 
 		var udpHeader packet.UDPHeader
 		err = binary.Read(buf, binary.BigEndian, &udpHeader)
