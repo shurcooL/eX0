@@ -1,12 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
 	"flag"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
 	"math"
 	"os"
@@ -75,28 +71,23 @@ func (c *client) connectToServer() {
 			Passphrase: [16]byte{'s', 'o', 'm', 'e', 'r', 'a', 'n', 'd', 'o', 'm', 'p', 'a', 's', 's', '0', '1'},
 			Signature:  s.Signature,
 		}
-
-		p.Length = 26
-
-		var buf bytes.Buffer
-		err := binary.Write(&buf, binary.BigEndian, &p)
+		b, err := p.MarshalBinary()
 		if err != nil {
 			panic(err)
 		}
-		err = sendTCPPacket(s, buf.Bytes())
+		err = sendTCPPacket(s, b)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	{
-		b, _, err := receiveTCPPacket(s)
+		b, tcpHeader, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
-		buf := bytes.NewReader(b)
-		var r packet.JoinServerAccept
-		err = binary.Read(buf, binary.BigEndian, &r)
+		var r = packet.JoinServerAccept{TCPHeader: tcpHeader}
+		err = r.UnmarshalBinary(b)
 		if err != nil {
 			panic(err)
 		}
@@ -116,28 +107,24 @@ func (c *client) connectToServer() {
 	{
 		// TODO: Try sending multiple times, else it might not get received.
 		var p packet.Handshake
-		p.Type = packet.HandshakeType
 		p.Signature = s.Signature
-
-		var buf bytes.Buffer
-		err := binary.Write(&buf, binary.BigEndian, &p)
+		b, err := p.MarshalBinary()
 		if err != nil {
 			panic(err)
 		}
-		err = sendUDPPacket(s, buf.Bytes())
+		err = sendUDPPacket(s, b)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	{
-		b, _, err := receiveTCPPacket(s)
+		b, tcpHeader, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
-		buf := bytes.NewReader(b)
-		var r packet.UDPConnectionEstablished
-		err = binary.Read(buf, binary.BigEndian, &r)
+		var r = packet.UDPConnectionEstablished{TCPHeader: tcpHeader}
+		err = r.UnmarshalBinary(b)
 		if err != nil {
 			panic(err)
 		}
@@ -169,12 +156,11 @@ func (c *client) connectToServer() {
 				c.sentTimeRequestPacketTimes[p.SequenceNumber] = time.Since(c.logic.started).Seconds()
 				state.Unlock()
 
-				var buf bytes.Buffer
-				err := binary.Write(&buf, binary.BigEndian, &p)
+				b, err := p.MarshalBinary()
 				if err != nil {
 					panic(err)
 				}
-				err = sendUDPPacket(s, buf.Bytes())
+				err = sendUDPPacket(s, b)
 				if err != nil {
 					panic(err)
 				}
@@ -189,31 +175,11 @@ func (c *client) connectToServer() {
 		p.Name = []byte(*nameFlag)
 		p.CommandRate = 20
 		p.UpdateRate = 20
-
-		p.Length = 3 + uint16(len(*nameFlag))
-
-		var buf bytes.Buffer
-		err := binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+		b, err := p.MarshalBinary()
 		if err != nil {
 			panic(err)
 		}
-		err = binary.Write(&buf, binary.BigEndian, &p.NameLength)
-		if err != nil {
-			panic(err)
-		}
-		err = binary.Write(&buf, binary.BigEndian, &p.Name)
-		if err != nil {
-			panic(err)
-		}
-		err = binary.Write(&buf, binary.BigEndian, &p.CommandRate)
-		if err != nil {
-			panic(err)
-		}
-		err = binary.Write(&buf, binary.BigEndian, &p.UpdateRate)
-		if err != nil {
-			panic(err)
-		}
-		err = sendTCPPacket(s, buf.Bytes())
+		err = sendTCPPacket(s, b)
 		if err != nil {
 			panic(err)
 		}
@@ -224,18 +190,12 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		b, _, err := receiveTCPPacket(s)
+		b, tcpHeader, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
-		buf := bytes.NewReader(b)
-		var r packet.LoadLevel
-		err = binary.Read(buf, binary.BigEndian, &r.TCPHeader)
-		if err != nil {
-			panic(err)
-		}
-		r.LevelFilename = make([]byte, r.Length)
-		err = binary.Read(buf, binary.BigEndian, &r.LevelFilename)
+		var r = packet.LoadLevel{TCPHeader: tcpHeader}
+		err = r.UnmarshalBinary(b)
 		if err != nil {
 			panic(err)
 		}
@@ -250,46 +210,14 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		b, _, err := receiveTCPPacket(s)
+		b, tcpHeader, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
-		buf := bytes.NewReader(b)
-		var r packet.CurrentPlayersInfo
-		err = binary.Read(buf, binary.BigEndian, &r.TCPHeader)
+		var r = packet.CurrentPlayersInfo{TCPHeader: tcpHeader}
+		err = r.UnmarshalBinary(b, c.logic.TotalPlayerCount)
 		if err != nil {
 			panic(err)
-		}
-		r.Players = make([]packet.PlayerInfo, c.logic.TotalPlayerCount)
-		for i := range r.Players {
-			var playerInfo packet.PlayerInfo
-			err = binary.Read(buf, binary.BigEndian, &playerInfo.NameLength)
-			if err != nil {
-				panic(err)
-			}
-
-			if playerInfo.NameLength != 0 {
-				playerInfo.Name = make([]byte, playerInfo.NameLength)
-				err = binary.Read(buf, binary.BigEndian, &playerInfo.Name)
-				if err != nil {
-					panic(err)
-				}
-
-				err = binary.Read(buf, binary.BigEndian, &playerInfo.Team)
-				if err != nil {
-					panic(err)
-				}
-
-				if playerInfo.Team != packet.Spectator {
-					playerInfo.State = new(packet.State)
-					err = binary.Read(buf, binary.BigEndian, playerInfo.State)
-					if err != nil {
-						panic(err)
-					}
-				}
-			}
-
-			r.Players[i] = playerInfo
 		}
 		goon.Dump(r)
 
@@ -320,13 +248,12 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		b, _, err := receiveTCPPacket(s)
+		b, tcpHeader, err := receiveTCPPacket(s)
 		if err != nil {
 			panic(err)
 		}
-		buf := bytes.NewReader(b)
-		var r packet.EnterGamePermission
-		err = binary.Read(buf, binary.BigEndian, &r)
+		var r = packet.EnterGamePermission{TCPHeader: tcpHeader}
+		err = r.UnmarshalBinary(b)
 		if err != nil {
 			panic(err)
 		}
@@ -341,16 +268,11 @@ func (c *client) connectToServer() {
 
 	{
 		var p packet.EnteredGameNotification
-		p.Type = packet.EnteredGameNotificationType
-
-		p.Length = 0
-
-		var buf bytes.Buffer
-		err := binary.Write(&buf, binary.BigEndian, &p)
+		b, err := p.MarshalBinary()
 		if err != nil {
 			panic(err)
 		}
-		err = sendTCPPacket(s, buf.Bytes())
+		err = sendTCPPacket(s, b)
 		if err != nil {
 			panic(err)
 		}
@@ -365,19 +287,11 @@ func (c *client) connectToServer() {
 		var p packet.JoinTeamRequest
 		p.Type = packet.JoinTeamRequestType
 		p.Team = packet.Red
-
-		p.Length = 1
-
-		var buf bytes.Buffer
-		err := binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+		b, err := p.MarshalBinary()
 		if err != nil {
 			panic(err)
 		}
-		err = binary.Write(&buf, binary.BigEndian, &p.Team)
-		if err != nil {
-			panic(err)
-		}
-		err = sendTCPPacket(s, buf.Bytes())
+		err = sendTCPPacket(s, b)
 		if err != nil {
 			panic(err)
 		}
@@ -389,25 +303,11 @@ func (c *client) connectToServer() {
 			if err != nil {
 				panic(err)
 			}
-			buf := bytes.NewReader(b)
 
 			switch tcpHeader.Type {
 			case packet.PlayerJoinedServerType:
 				var r = packet.PlayerJoinedServer{TCPHeader: tcpHeader}
-				_, err = io.CopyN(ioutil.Discard, buf, packet.TCPHeaderSize)
-				if err != nil {
-					panic(err)
-				}
-				err = binary.Read(buf, binary.BigEndian, &r.PlayerID)
-				if err != nil {
-					panic(err)
-				}
-				err = binary.Read(buf, binary.BigEndian, &r.NameLength)
-				if err != nil {
-					panic(err)
-				}
-				r.Name = make([]byte, r.NameLength)
-				err = binary.Read(buf, binary.BigEndian, &r.Name)
+				err = r.UnmarshalBinary(b)
 				if err != nil {
 					panic(err)
 				}
@@ -423,11 +323,7 @@ func (c *client) connectToServer() {
 				fmt.Printf("%v is entering the game.\n", ps.Name)
 			case packet.PlayerLeftServerType:
 				var r = packet.PlayerLeftServer{TCPHeader: tcpHeader}
-				_, err = io.CopyN(ioutil.Discard, buf, packet.TCPHeaderSize)
-				if err != nil {
-					panic(err)
-				}
-				err = binary.Read(buf, binary.BigEndian, &r.PlayerID)
+				err = r.UnmarshalBinary(b)
 				if err != nil {
 					panic(err)
 				}
@@ -440,24 +336,9 @@ func (c *client) connectToServer() {
 				fmt.Printf("%v left the game.\n", ps.Name)
 			case packet.PlayerJoinedTeamType:
 				var r = packet.PlayerJoinedTeam{TCPHeader: tcpHeader}
-				_, err = io.CopyN(ioutil.Discard, buf, packet.TCPHeaderSize)
+				err = r.UnmarshalBinary(b)
 				if err != nil {
 					panic(err)
-				}
-				err = binary.Read(buf, binary.BigEndian, &r.PlayerID)
-				if err != nil {
-					panic(err)
-				}
-				err = binary.Read(buf, binary.BigEndian, &r.Team)
-				if err != nil {
-					panic(err)
-				}
-				if r.Team != packet.Spectator {
-					r.State = new(packet.State)
-					err = binary.Read(buf, binary.BigEndian, r.State)
-					if err != nil {
-						panic(err)
-					}
 				}
 
 				state.Lock()
@@ -497,15 +378,7 @@ func (c *client) connectToServer() {
 				fmt.Printf("%v joined %v.\n", ps.Name, ps.Team)
 			case packet.PlayerWasHitType:
 				var r = packet.PlayerWasHit{TCPHeader: tcpHeader}
-				_, err = io.CopyN(ioutil.Discard, buf, packet.TCPHeaderSize)
-				if err != nil {
-					panic(err)
-				}
-				err = binary.Read(buf, binary.BigEndian, &r.PlayerID)
-				if err != nil {
-					panic(err)
-				}
-				err = binary.Read(buf, binary.BigEndian, &r.HealthGiven)
+				err = r.UnmarshalBinary(b)
 				if err != nil {
 					panic(err)
 				}
@@ -521,14 +394,7 @@ func (c *client) connectToServer() {
 
 func (c *client) handleUDP(s *Connection) {
 	for {
-		b, err := receiveUDPPacket(s)
-		if err != nil {
-			panic(err)
-		}
-		buf := bytes.NewReader(b)
-
-		var udpHeader packet.UDPHeader
-		err = binary.Read(buf, binary.BigEndian, &udpHeader)
+		b, udpHeader, err := receiveUDPPacket(s)
 		if err != nil {
 			panic(err)
 		}
@@ -537,12 +403,8 @@ func (c *client) handleUDP(s *Connection) {
 		case packet.TimeResponseType:
 			logicTimeAtReceive := time.Since(c.logic.started).Seconds()
 
-			var r packet.TimeResponse
-			err = binary.Read(buf, binary.BigEndian, &r.SequenceNumber)
-			if err != nil {
-				panic(err)
-			}
-			err = binary.Read(buf, binary.BigEndian, &r.Time)
+			var r = packet.TimeResponse{UDPHeader: udpHeader}
+			err = r.UnmarshalBinary(b)
 			if err != nil {
 				panic(err)
 			}
@@ -577,13 +439,8 @@ func (c *client) handleUDP(s *Connection) {
 				close(c.finishedSyncingClock)
 			}
 		case packet.PingType:
-			var r packet.Ping
-			err = binary.Read(buf, binary.BigEndian, &r.PingData)
-			if err != nil {
-				panic(err)
-			}
-			r.LastLatencies = make([]uint16, c.logic.TotalPlayerCount)
-			err = binary.Read(buf, binary.BigEndian, &r.LastLatencies)
+			var r = packet.Ping{UDPHeader: udpHeader}
+			err = r.UnmarshalBinary(b, c.logic.TotalPlayerCount)
 			if err != nil {
 				panic(err)
 			}
@@ -597,12 +454,11 @@ func (c *client) handleUDP(s *Connection) {
 
 				c.pongSentTimes[r.PingData] = time.Now()
 
-				var buf bytes.Buffer
-				err := binary.Write(&buf, binary.BigEndian, &p)
+				b, err := p.MarshalBinary()
 				if err != nil {
 					panic(err)
 				}
-				err = sendUDPPacket(s, buf.Bytes())
+				err = sendUDPPacket(s, b)
 				if err != nil {
 					panic(err)
 				}
@@ -610,12 +466,8 @@ func (c *client) handleUDP(s *Connection) {
 		case packet.PungType:
 			localTimeAtPungReceive := time.Now()
 
-			var r packet.Pung
-			err = binary.Read(buf, binary.BigEndian, &r.PingData)
-			if err != nil {
-				panic(err)
-			}
-			err = binary.Read(buf, binary.BigEndian, &r.Time)
+			var r = packet.Pung{UDPHeader: udpHeader}
+			err = r.UnmarshalBinary(b)
 			if err != nil {
 				panic(err)
 			}
@@ -631,28 +483,10 @@ func (c *client) handleUDP(s *Connection) {
 				}
 			}
 		case packet.ServerUpdateType:
-			var r packet.ServerUpdate
-			err = binary.Read(buf, binary.BigEndian, &r.CurrentUpdateSequenceNumber)
+			var r = packet.ServerUpdate{UDPHeader: udpHeader}
+			err = r.UnmarshalBinary(b, c.logic.TotalPlayerCount)
 			if err != nil {
 				panic(err)
-			}
-			r.PlayerUpdates = make([]packet.PlayerUpdate, c.logic.TotalPlayerCount)
-			for i := range r.PlayerUpdates {
-				var playerUpdate packet.PlayerUpdate
-				err = binary.Read(buf, binary.BigEndian, &playerUpdate.ActivePlayer)
-				if err != nil {
-					panic(err)
-				}
-
-				if playerUpdate.ActivePlayer != 0 {
-					playerUpdate.State = new(packet.State)
-					err = binary.Read(buf, binary.BigEndian, playerUpdate.State)
-					if err != nil {
-						panic(err)
-					}
-				}
-
-				r.PlayerUpdates[i] = playerUpdate
 			}
 
 			// TODO: Verify r.CurrentUpdateSequenceNumber.

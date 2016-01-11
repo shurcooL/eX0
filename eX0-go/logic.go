@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"math"
 	"os"
@@ -119,7 +117,6 @@ func (l *logic) gameLogic() {
 				// Send a ClientCommand packet to server.
 				if client != nil && client.serverConn != nil && client.serverConn.JoinStatus >= IN_GAME {
 					var p packet.ClientCommand
-					p.Type = packet.ClientCommandType
 					state.Lock()
 					p.CommandSequenceNumber = l.GlobalStateSequenceNumber - 1
 					state.Unlock()
@@ -131,31 +128,11 @@ func (l *logic) gameLogic() {
 					}*/
 					p.MovesCount = uint8(len(p.Moves)) - 1
 
-					var buf bytes.Buffer
-					err := binary.Write(&buf, binary.BigEndian, &p.UDPHeader)
+					b, err := p.MarshalBinary()
 					if err != nil {
 						panic(err)
 					}
-					err = binary.Write(&buf, binary.BigEndian, &p.CommandSequenceNumber)
-					if err != nil {
-						panic(err)
-					}
-					err = binary.Write(&buf, binary.BigEndian, &p.CommandSeriesNumber)
-					if err != nil {
-						panic(err)
-					}
-					err = binary.Write(&buf, binary.BigEndian, &p.MovesCount)
-					if err != nil {
-						panic(err)
-					}
-					for _, move := range p.Moves {
-						err = binary.Write(&buf, binary.BigEndian, &move)
-						if err != nil {
-							panic(err)
-						}
-					}
-
-					err = sendUDPPacket(client.serverConn, buf.Bytes())
+					err = sendUDPPacket(client.serverConn, b)
 					if err != nil {
 						panic(err)
 					}

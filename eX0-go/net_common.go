@@ -24,5 +24,5 @@ func sendTCPPacket(c *Connection, b []byte) error {
 		}
 	}
 
-	return sendTCPPacket2(c, b)
+	return sendTCPPacketValidated(c, b)
 }

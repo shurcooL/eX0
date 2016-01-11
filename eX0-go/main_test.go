@@ -55,7 +55,7 @@ func Example_fullConnection() {
 	// })
 	// (packet.Handshake)(packet.Handshake{
 	// 	UDPHeader: (packet.UDPHeader)(packet.UDPHeader{
-	// 		Type: (packet.Type)(0),
+	// 		Type: (packet.Type)(100),
 	// 	}),
 	// 	Signature: (uint64)(123),
 	// })

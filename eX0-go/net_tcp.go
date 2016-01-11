@@ -154,7 +154,7 @@ type Connection struct {
 	UDPAddr *net.UDPAddr
 }
 
-func sendTCPPacket2(c *Connection, b []byte) error {
+func sendTCPPacketValidated(c *Connection, b []byte) error {
 	c.sendTCP <- b
 	return nil
 }
@@ -175,7 +175,7 @@ func receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
 	if packet.TCPHeaderSize+tcpHeader.Length > packet.MAX_TCP_SIZE {
 		return nil, packet.TCPHeader{}, fmt.Errorf("tcp packet size %v greater than max %v", packet.TCPHeaderSize+tcpHeader.Length, packet.MAX_TCP_SIZE)
 	}
-	return b, tcpHeader, nil
+	return b[packet.TCPHeaderSize:], tcpHeader, nil
 }
 
 func sendUDPPacket(c *Connection, b []byte) error {
@@ -183,18 +183,28 @@ func sendUDPPacket(c *Connection, b []byte) error {
 	return nil
 }
 
-func receiveUDPPacket(c *Connection) ([]byte, error) {
+func receiveUDPPacket(c *Connection) ([]byte, packet.UDPHeader, error) {
 	b, ok := <-c.recvUDP
 	if !ok {
-		return nil, errors.New("conn prob")
+		return nil, packet.UDPHeader{}, errors.New("conn prob")
 	}
-	return b, nil
+	var udpHeader packet.UDPHeader
+	err := binary.Read(bytes.NewReader(b), binary.BigEndian, &udpHeader)
+	if err != nil {
+		return nil, packet.UDPHeader{}, err
+	}
+	return b[packet.UDPHeaderSize:], udpHeader, nil
 }
 
-func receiveUDPPacketFrom(_ *server, mux *Connection) ([]byte, *Connection, *net.UDPAddr, error) {
+func receiveUDPPacketFrom(_ *server, mux *Connection) ([]byte, packet.UDPHeader, *Connection, *net.UDPAddr, error) {
 	b, ok := <-mux.recvUDP
 	if !ok {
-		return nil, nil, nil, errors.New("conn prob")
+		return nil, packet.UDPHeader{}, nil, nil, errors.New("conn prob")
 	}
-	return b, mux, nil, nil // HACK.
+	var udpHeader packet.UDPHeader
+	err := binary.Read(bytes.NewReader(b), binary.BigEndian, &udpHeader)
+	if err != nil {
+		return nil, packet.UDPHeader{}, nil, nil, err
+	}
+	return b[packet.UDPHeaderSize:], udpHeader, mux, nil, nil // HACK.
 }

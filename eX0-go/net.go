@@ -57,7 +57,7 @@ type Connection struct {
 	recvUDP chan []byte
 }
 
-func sendTCPPacket2(c *Connection, b []byte) error {
+func sendTCPPacketValidated(c *Connection, b []byte) error {
 	_, err := c.tcp.Write(b)
 	return err
 }
@@ -80,7 +80,7 @@ func receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
 	if err != nil {
 		return nil, packet.TCPHeader{}, err
 	}
-	return b[:packet.TCPHeaderSize+tcpHeader.Length], tcpHeader, nil
+	return b[packet.TCPHeaderSize : packet.TCPHeaderSize+tcpHeader.Length], tcpHeader, nil
 }
 
 func sendUDPPacket(c *Connection, b []byte) error {
@@ -93,20 +93,30 @@ func sendUDPPacket(c *Connection, b []byte) error {
 	}
 }
 
-func receiveUDPPacket(c *Connection) ([]byte, error) {
+func receiveUDPPacket(c *Connection) ([]byte, packet.UDPHeader, error) {
 	var b [packet.MAX_UDP_SIZE]byte
 	n, err := c.udp.Read(b[:])
 	if err != nil {
-		return nil, err
+		return nil, packet.UDPHeader{}, err
 	}
-	return b[:n], nil
+	var udpHeader packet.UDPHeader
+	err = binary.Read(bytes.NewReader(b[:n]), binary.BigEndian, &udpHeader)
+	if err != nil {
+		return nil, packet.UDPHeader{}, err
+	}
+	return b[packet.UDPHeaderSize:n], udpHeader, nil
 }
 
-func receiveUDPPacketFrom(s *server, mux *Connection) ([]byte, *Connection, *net.UDPAddr, error) {
+func receiveUDPPacketFrom(s *server, mux *Connection) ([]byte, packet.UDPHeader, *Connection, *net.UDPAddr, error) {
 	var b [packet.MAX_UDP_SIZE]byte
 	n, udpAddr, err := mux.udp.ReadFromUDP(b[:])
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, packet.UDPHeader{}, nil, nil, err
+	}
+	var udpHeader packet.UDPHeader
+	err = binary.Read(bytes.NewReader(b[:n]), binary.BigEndian, &udpHeader)
+	if err != nil {
+		return nil, packet.UDPHeader{}, nil, nil, err
 	}
 
 	var from *Connection
@@ -119,7 +129,7 @@ func receiveUDPPacketFrom(s *server, mux *Connection) ([]byte, *Connection, *net
 	}
 	s.connectionsMu.Unlock()
 
-	return b[:n], from, udpAddr, nil
+	return b[packet.UDPHeaderSize:n], udpHeader, from, udpAddr, nil
 }
 
 // udpAddrEqual returns true if non-nil a and b are the same UDP address.
