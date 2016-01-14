@@ -71,11 +71,7 @@ func (c *client) connectToServer() {
 			Passphrase: [16]byte{'s', 'o', 'm', 'e', 'r', 'a', 'n', 'd', 'o', 'm', 'p', 'a', 's', 's', '0', '1'},
 			Signature:  s.Signature,
 		}
-		b, err := p.MarshalBinary()
-		if err != nil {
-			panic(err)
-		}
-		err = sendTCPPacket(s, b)
+		err := sendTCPPacket(s, &p)
 		if err != nil {
 			panic(err)
 		}
@@ -146,7 +142,6 @@ func (c *client) connectToServer() {
 				}
 
 				var p packet.TimeRequest
-				p.Type = packet.TimeRequestType
 				p.SequenceNumber = sn
 				sn++
 
@@ -168,16 +163,11 @@ func (c *client) connectToServer() {
 
 	{
 		var p packet.LocalPlayerInfo
-		p.Type = packet.LocalPlayerInfoType
 		p.NameLength = uint8(len(*nameFlag))
 		p.Name = []byte(*nameFlag)
 		p.CommandRate = 20
 		p.UpdateRate = 20
-		b, err := p.MarshalBinary()
-		if err != nil {
-			panic(err)
-		}
-		err = sendTCPPacket(s, b)
+		err := sendTCPPacket(s, &p)
 		if err != nil {
 			panic(err)
 		}
@@ -263,11 +253,7 @@ func (c *client) connectToServer() {
 
 	{
 		var p packet.EnteredGameNotification
-		b, err := p.MarshalBinary()
-		if err != nil {
-			panic(err)
-		}
-		err = sendTCPPacket(s, b)
+		err := sendTCPPacket(s, &p)
 		if err != nil {
 			panic(err)
 		}
@@ -280,13 +266,8 @@ func (c *client) connectToServer() {
 
 	{
 		var p packet.JoinTeamRequest
-		p.Type = packet.JoinTeamRequestType
 		p.Team = packet.Red
-		b, err := p.MarshalBinary()
-		if err != nil {
-			panic(err)
-		}
-		err = sendTCPPacket(s, b)
+		err := sendTCPPacket(s, &p)
 		if err != nil {
 			panic(err)
 		}
@@ -408,7 +389,6 @@ func (c *client) handleUDP(s *Connection) {
 
 			{
 				var p packet.Pong
-				p.Type = packet.PongType
 				p.PingData = r.PingData
 
 				c.pongSentTimes[r.PingData] = time.Now()

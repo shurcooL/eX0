@@ -203,11 +203,7 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 
 		if c != nil {
 			var p packet.UDPConnectionEstablished
-			b, err := p.MarshalBinary()
-			if err != nil {
-				return err
-			}
-			err = sendTCPPacket(c, b)
+			err := sendTCPPacket(c, &p)
 			if err != nil {
 				return err
 			}
@@ -246,7 +242,6 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 
 		{
 			var p packet.Pung
-			p.Type = packet.PungType
 			p.PingData = r.PingData
 			p.Time = time.Since(s.logic.started).Seconds()
 
@@ -381,11 +376,6 @@ func (s *server) handleTCPConnection(client *Connection) {
 			var p packet.PlayerLeftServer
 			p.PlayerID = client.PlayerID
 
-			b, err := p.MarshalBinary()
-			if err != nil {
-				return err
-			}
-
 			// Broadcast the packet to all other connections with at least PUBLIC_CLIENT.
 			var cs []*Connection
 			s.connectionsMu.Lock()
@@ -396,12 +386,10 @@ func (s *server) handleTCPConnection(client *Connection) {
 				cs = append(cs, c)
 			}
 			s.connectionsMu.Unlock()
-			for _, c := range cs {
-				err = sendTCPPacket(c, b)
-				if err != nil {
-					// TODO: This error handling is wrong. If fail to send to one client, should still send to others, etc.
-					return err
-				}
+			err = broadcastTCPPacket(cs, &p)
+			if err != nil {
+				// TODO: This error handling is wrong. If fail to send to one client, should still send to others, etc.
+				return err
 			}
 			return nil
 		}()
@@ -469,12 +457,7 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 			{
 				var p packet.JoinServerRefuse
 				p.RefuseReason = 123 // TODO.
-
-				b, err := p.MarshalBinary()
-				if err != nil {
-					return err
-				}
-				err = sendTCPPacket(client, b)
+				err := sendTCPPacket(client, &p)
 				if err != nil {
 					return err
 				}
@@ -510,12 +493,7 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 			{
 				var p packet.JoinServerRefuse
 				p.RefuseReason = 123 // TODO.
-
-				b, err := p.MarshalBinary()
-				if err != nil {
-					return err
-				}
-				err = sendTCPPacket(client, b)
+				err := sendTCPPacket(client, &p)
 				if err != nil {
 					return err
 				}
@@ -531,12 +509,7 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 		state.Lock()
 		p.TotalPlayerCount = s.logic.TotalPlayerCount - 1
 		state.Unlock()
-
-		b, err := p.MarshalBinary()
-		if err != nil {
-			return err
-		}
-		err = sendTCPPacket(client, b)
+		err := sendTCPPacket(client, &p)
 		if err != nil {
 			return err
 		}
@@ -574,11 +547,7 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 	{
 		var p packet.LoadLevel
 		p.LevelFilename = []byte(serverLevelFilename)
-		b, err := p.MarshalBinary()
-		if err != nil {
-			return err
-		}
-		err = sendTCPPacket(client, b)
+		err := sendTCPPacket(client, &p)
 		if err != nil {
 			return err
 		}
@@ -587,7 +556,6 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 	// Include the client who's connecting and all clients with at least Public status.
 	{
 		var p packet.CurrentPlayersInfo
-		p.Type = packet.CurrentPlayersInfoType
 		p.Players = make([]packet.PlayerInfo, s.logic.TotalPlayerCount)
 		state.Lock()
 		s.logic.playersStateMu.Lock()
@@ -618,12 +586,7 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 		}
 		s.logic.playersStateMu.Unlock()
 		state.Unlock()
-
-		b, err := p.MarshalBinary()
-		if err != nil {
-			return err
-		}
-		err = sendTCPPacket(client, b)
+		err := sendTCPPacket(client, &p)
 		if err != nil {
 			return err
 		}
@@ -631,20 +594,12 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 
 	{
 		var p packet.PlayerJoinedServer
-		p.Type = packet.PlayerJoinedServerType
-
 		s.logic.playersStateMu.Lock()
 		ps := s.logic.playersState[playerID]
 		s.logic.playersStateMu.Unlock()
-
 		p.PlayerID = playerID
 		p.NameLength = uint8(len(ps.Name))
 		p.Name = []byte(ps.Name)
-
-		b, err := p.MarshalBinary()
-		if err != nil {
-			return err
-		}
 
 		// Broadcast the packet to all other connections with at least PUBLIC_CLIENT.
 		var cs []*Connection
@@ -656,21 +611,15 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 			cs = append(cs, c)
 		}
 		s.connectionsMu.Unlock()
-		for _, c := range cs {
-			err = sendTCPPacket(c, b)
-			if err != nil {
-				return err
-			}
+		err := broadcastTCPPacket(cs, &p)
+		if err != nil {
+			return err
 		}
 	}
 
 	{
 		var p packet.EnterGamePermission
-		b, err := p.MarshalBinary()
-		if err != nil {
-			return err
-		}
-		err = sendTCPPacket(client, b)
+		err := sendTCPPacket(client, &p)
 		if err != nil {
 			return err
 		}
@@ -728,7 +677,6 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 
 			{
 				var p packet.PlayerJoinedTeam
-				p.Type = packet.PlayerJoinedTeamType
 				p.PlayerID = playerID
 				p.Team = team
 
@@ -763,11 +711,6 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 					}
 				}
 
-				b, err := p.MarshalBinary()
-				if err != nil {
-					return err
-				}
-
 				// Broadcast the packet to all connections with at least PUBLIC_CLIENT.
 				var cs []*Connection
 				s.connectionsMu.Lock()
@@ -778,11 +721,9 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 					cs = append(cs, c)
 				}
 				s.connectionsMu.Unlock()
-				for _, c := range cs {
-					err = sendTCPPacket(c, b)
-					if err != nil {
-						return err
-					}
+				err := broadcastTCPPacket(cs, &p)
+				if err != nil {
+					return err
 				}
 			}
 		default:

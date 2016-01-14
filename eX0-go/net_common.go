@@ -1,15 +1,40 @@
 package main
 
 import (
+	"encoding"
 	"fmt"
 	"net"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
-func sendTCPPacket(c *Connection, b []byte) error {
-	// Validate packet size (for debugging).
+func sendTCPPacket(c *Connection, p encoding.BinaryMarshaler) error {
+	b, err := p.MarshalBinary()
+	if err != nil {
+		return err
+	}
 	// TODO: Instead of setting manually and validating in debug mode, always set automatically here. It's not expensive if done after creating the entire packet, just edit the appropriate byte(s) in the header in the final []byte buffer just before sending over network.
+	return sendTCPPacketWithValidate(c, b)
+}
+
+func broadcastTCPPacket(cs []*Connection, p encoding.BinaryMarshaler) error {
+	b, err := p.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	// TODO: Instead of setting manually and validating in debug mode, always set automatically here. It's not expensive if done after creating the entire packet, just edit the appropriate byte(s) in the header in the final []byte buffer just before sending over network.
+	for _, c := range cs {
+		err = sendTCPPacketWithValidate(c, b)
+		if err != nil {
+			// TODO: This error handling is wrong. If fail to send to one client, should still send to others, etc.
+			return err
+		}
+	}
+	return nil
+}
+
+func sendTCPPacketWithValidate(c *Connection, b []byte) error {
+	// Validate packet size (for debugging).
 	if debugValidation {
 		if len(b) < packet.TCPHeaderSize {
 			panic(fmt.Errorf("sendTCPPacket: smaller than packet.TCPHeaderSize: %v", b))
