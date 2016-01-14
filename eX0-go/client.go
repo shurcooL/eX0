@@ -82,14 +82,13 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		b, tcpHeader, err := receiveTCPPacket(s)
+		p, err := receiveTCPPacket2(s, c.logic.TotalPlayerCount)
 		if err != nil {
 			panic(err)
 		}
-		var r = packet.JoinServerAccept{TCPHeader: tcpHeader}
-		err = r.UnmarshalBinary(b)
-		if err != nil {
-			panic(err)
+		r, ok := p.(packet.JoinServerAccept)
+		if !ok {
+			panic(fmt.Errorf("unexpected packet type: %T", p))
 		}
 		goon.Dump(r)
 
@@ -119,14 +118,13 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		b, tcpHeader, err := receiveTCPPacket(s)
+		p, err := receiveTCPPacket2(s, c.logic.TotalPlayerCount)
 		if err != nil {
 			panic(err)
 		}
-		var r = packet.UDPConnectionEstablished{TCPHeader: tcpHeader}
-		err = r.UnmarshalBinary(b)
-		if err != nil {
-			panic(err)
+		r, ok := p.(packet.UDPConnectionEstablished)
+		if !ok {
+			panic(fmt.Errorf("unexpected packet type: %T", p))
 		}
 		goon.Dump(r)
 
@@ -190,14 +188,13 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		b, tcpHeader, err := receiveTCPPacket(s)
+		p, err := receiveTCPPacket2(s, c.logic.TotalPlayerCount)
 		if err != nil {
 			panic(err)
 		}
-		var r = packet.LoadLevel{TCPHeader: tcpHeader}
-		err = r.UnmarshalBinary(b)
-		if err != nil {
-			panic(err)
+		r, ok := p.(packet.LoadLevel)
+		if !ok {
+			panic(fmt.Errorf("unexpected packet type: %T", p))
 		}
 		goon.Dump(r)
 		goon.Dump(string(r.LevelFilename))
@@ -210,14 +207,13 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		b, tcpHeader, err := receiveTCPPacket(s)
+		p, err := receiveTCPPacket2(s, c.logic.TotalPlayerCount)
 		if err != nil {
 			panic(err)
 		}
-		var r = packet.CurrentPlayersInfo{TCPHeader: tcpHeader}
-		err = r.UnmarshalBinary(b, c.logic.TotalPlayerCount)
-		if err != nil {
-			panic(err)
+		r, ok := p.(packet.CurrentPlayersInfo)
+		if !ok {
+			panic(fmt.Errorf("unexpected packet type: %T", p))
 		}
 		goon.Dump(r)
 
@@ -248,14 +244,13 @@ func (c *client) connectToServer() {
 	}
 
 	{
-		b, tcpHeader, err := receiveTCPPacket(s)
+		p, err := receiveTCPPacket2(s, c.logic.TotalPlayerCount)
 		if err != nil {
 			panic(err)
 		}
-		var r = packet.EnterGamePermission{TCPHeader: tcpHeader}
-		err = r.UnmarshalBinary(b)
-		if err != nil {
-			panic(err)
+		r, ok := p.(packet.EnterGamePermission)
+		if !ok {
+			panic(fmt.Errorf("unexpected packet type: %T", p))
 		}
 		goon.Dump(r)
 	}
@@ -299,19 +294,13 @@ func (c *client) connectToServer() {
 
 	go func() {
 		for {
-			b, tcpHeader, err := receiveTCPPacket(s)
+			r, err := receiveTCPPacket2(s, c.logic.TotalPlayerCount)
 			if err != nil {
 				panic(err)
 			}
 
-			switch tcpHeader.Type {
-			case packet.PlayerJoinedServerType:
-				var r = packet.PlayerJoinedServer{TCPHeader: tcpHeader}
-				err = r.UnmarshalBinary(b)
-				if err != nil {
-					panic(err)
-				}
-
+			switch r := r.(type) {
+			case packet.PlayerJoinedServer:
 				ps := playerState{
 					Name: string(r.Name),
 					Team: 2,
@@ -321,26 +310,14 @@ func (c *client) connectToServer() {
 				c.logic.playersStateMu.Unlock()
 
 				fmt.Printf("%v is entering the game.\n", ps.Name)
-			case packet.PlayerLeftServerType:
-				var r = packet.PlayerLeftServer{TCPHeader: tcpHeader}
-				err = r.UnmarshalBinary(b)
-				if err != nil {
-					panic(err)
-				}
-
+			case packet.PlayerLeftServer:
 				c.logic.playersStateMu.Lock()
 				ps := c.logic.playersState[r.PlayerID]
 				delete(c.logic.playersState, r.PlayerID)
 				c.logic.playersStateMu.Unlock()
 
 				fmt.Printf("%v left the game.\n", ps.Name)
-			case packet.PlayerJoinedTeamType:
-				var r = packet.PlayerJoinedTeam{TCPHeader: tcpHeader}
-				err = r.UnmarshalBinary(b)
-				if err != nil {
-					panic(err)
-				}
-
+			case packet.PlayerJoinedTeam:
 				state.Lock()
 				c.logic.playersStateMu.Lock()
 				logicTime := float64(c.logic.GlobalStateSequenceNumber) + (time.Since(c.logic.started).Seconds()-c.logic.NextTickTime)*commandRate
@@ -376,17 +353,11 @@ func (c *client) connectToServer() {
 				c.logic.playersStateMu.Unlock()
 
 				fmt.Printf("%v joined %v.\n", ps.Name, ps.Team)
-			case packet.PlayerWasHitType:
-				var r = packet.PlayerWasHit{TCPHeader: tcpHeader}
-				err = r.UnmarshalBinary(b)
-				if err != nil {
-					panic(err)
-				}
-
+			case packet.PlayerWasHit:
 				fmt.Fprintf(os.Stderr, "[weapons] Player %v was hit for %v.\n", r.PlayerID, r.HealthGiven)
 				// TODO: Implement.
 			default:
-				fmt.Println("[client] got unsupported tcp packet type:", tcpHeader.Type)
+				fmt.Println("[client] got unsupported TCP packet type")
 			}
 		}
 	}()
@@ -394,20 +365,14 @@ func (c *client) connectToServer() {
 
 func (c *client) handleUDP(s *Connection) {
 	for {
-		b, udpHeader, err := receiveUDPPacket(s)
+		r, err := receiveUDPPacket2(s, c.logic.TotalPlayerCount)
 		if err != nil {
 			panic(err)
 		}
 
-		switch udpHeader.Type {
-		case packet.TimeResponseType:
+		switch r := r.(type) {
+		case packet.TimeResponse:
 			logicTimeAtReceive := time.Since(c.logic.started).Seconds()
-
-			var r = packet.TimeResponse{UDPHeader: udpHeader}
-			err = r.UnmarshalBinary(b)
-			if err != nil {
-				panic(err)
-			}
 
 			c.trpReceived++
 
@@ -438,13 +403,7 @@ func (c *client) handleUDP(s *Connection) {
 
 				close(c.finishedSyncingClock)
 			}
-		case packet.PingType:
-			var r = packet.Ping{UDPHeader: udpHeader}
-			err = r.UnmarshalBinary(b, c.logic.TotalPlayerCount)
-			if err != nil {
-				panic(err)
-			}
-
+		case packet.Ping:
 			copy(c.lastLatencies, r.LastLatencies)
 
 			{
@@ -463,14 +422,8 @@ func (c *client) handleUDP(s *Connection) {
 					panic(err)
 				}
 			}
-		case packet.PungType:
+		case packet.Pung:
 			localTimeAtPungReceive := time.Now()
-
-			var r = packet.Pung{UDPHeader: udpHeader}
-			err = r.UnmarshalBinary(b)
-			if err != nil {
-				panic(err)
-			}
 
 			{
 				// Get the time sent of the matching Pong packet.
@@ -482,13 +435,7 @@ func (c *client) handleUDP(s *Connection) {
 					log.Printf("Latency %.5f ms %v.\n", latency.Seconds()*1000, c.lastLatencies)
 				}
 			}
-		case packet.ServerUpdateType:
-			var r = packet.ServerUpdate{UDPHeader: udpHeader}
-			err = r.UnmarshalBinary(b, c.logic.TotalPlayerCount)
-			if err != nil {
-				panic(err)
-			}
-
+		case packet.ServerUpdate:
 			// TODO: Verify r.CurrentUpdateSequenceNumber.
 
 			c.logic.playersStateMu.Lock()
@@ -507,6 +454,8 @@ func (c *client) handleUDP(s *Connection) {
 				}
 			}
 			c.logic.playersStateMu.Unlock()
+		default:
+			fmt.Println("[client] got unsupported UDP packet type")
 		}
 	}
 }

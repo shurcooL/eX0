@@ -479,14 +479,13 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 	var playerID uint8
 
 	{
-		b, tcpHeader, err := receiveTCPPacket(client)
+		p, err := receiveTCPPacket2(client, s.logic.TotalPlayerCount)
 		if err != nil {
 			return err
 		}
-		var r = packet.JoinServerRequest{TCPHeader: tcpHeader}
-		err = r.UnmarshalBinary(b)
-		if err != nil {
-			return err
+		r, ok := p.(packet.JoinServerRequest)
+		if !ok {
+			return fmt.Errorf("unexpected packet type: %T", p)
 		}
 		{
 			r2 := r
@@ -574,14 +573,13 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 	}
 
 	{
-		b, tcpHeader, err := receiveTCPPacket(client)
+		p, err := receiveTCPPacket2(client, s.logic.TotalPlayerCount)
 		if err != nil {
 			return err
 		}
-		var r = packet.LocalPlayerInfo{TCPHeader: tcpHeader}
-		err = r.UnmarshalBinary(b)
-		if err != nil {
-			return err
+		r, ok := p.(packet.LocalPlayerInfo)
+		if !ok {
+			return fmt.Errorf("unexpected packet type: %T", p)
 		}
 		goon.Dump(r)
 
@@ -709,14 +707,13 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 	}
 
 	{
-		b, tcpHeader, err := receiveTCPPacket(client)
+		p, err := receiveTCPPacket2(client, s.logic.TotalPlayerCount)
 		if err != nil {
 			return err
 		}
-		var r = packet.EnteredGameNotification{TCPHeader: tcpHeader}
-		err = r.UnmarshalBinary(b)
-		if err != nil {
-			return err
+		r, ok := p.(packet.EnteredGameNotification)
+		if !ok {
+			return fmt.Errorf("unexpected packet type: %T", p)
 		}
 		goon.Dump(r)
 
@@ -729,21 +726,16 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 	}
 
 	for {
-		b, tcpHeader, err := receiveTCPPacket(client)
+		p, err := receiveTCPPacket2(client, s.logic.TotalPlayerCount)
 		if err != nil {
 			return err
 		}
 
-		switch tcpHeader.Type {
-		case packet.JoinTeamRequestType:
+		switch r := p.(type) {
+		case packet.JoinTeamRequest:
 			var team packet.Team
 
 			{
-				var r = packet.JoinTeamRequest{TCPHeader: tcpHeader}
-				err = r.UnmarshalBinary(b)
-				if err != nil {
-					return err
-				}
 				goon.Dump(r)
 
 				team = r.Team
@@ -824,7 +816,7 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 				}
 			}
 		default:
-			fmt.Println("[server] got unsupported tcp packet type:", tcpHeader.Type)
+			fmt.Println("[server] got unsupported TCP packet type")
 		}
 	}
 }

@@ -55,6 +55,35 @@ func init() {
 	}
 }
 
+// TODO: Use or remove.
+// TODO: Optimize these since it's very possible.
+func (h *TCPHeader) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+	var err error
+	err = binary.Write(&buf, binary.BigEndian, &h.Length)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(&buf, binary.BigEndian, &h.Type)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+func (h *TCPHeader) UnmarshalBinary(b []byte) error {
+	buf := bytes.NewReader(b)
+	var err error
+	err = binary.Read(buf, binary.BigEndian, &h.Length)
+	if err != nil {
+		return err
+	}
+	err = binary.Read(buf, binary.BigEndian, &h.Type)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 type JoinServerRequest struct {
 	TCPHeader
 
@@ -632,6 +661,27 @@ func init() {
 	if UDPHeaderSize != binary.Size(UDPHeader{}) {
 		panic("UDPHeaderSize != binary.Size(UDPHeader{})")
 	}
+}
+
+// TODO: Use or remove.
+// TODO: Optimize these since it's very possible.
+func (h *UDPHeader) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+	var err error
+	err = binary.Write(&buf, binary.BigEndian, &h.Type)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+func (h *UDPHeader) UnmarshalBinary(b []byte) error {
+	buf := bytes.NewReader(b)
+	var err error
+	err = binary.Read(buf, binary.BigEndian, &h.Type)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type ClientCommand struct {
