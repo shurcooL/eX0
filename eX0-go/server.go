@@ -162,37 +162,26 @@ func (s *server) listenAndHandleChan() {
 
 func (s *server) handleUDP(mux *Connection) {
 	for {
-		b, udpHeader, c, udpAddr, err := receiveUDPPacketFrom(s, mux)
+		p, c, udpAddr, err := receiveUDPPacketFrom2(s, mux, s.logic.TotalPlayerCount)
 		if err != nil {
-			if shouldHandleUDPDirectly { // HACK: This isn't a real mux but rather the client directly, so return.
-				fmt.Println("udp conn ended with:", err)
-				return
-			}
-			panic(err)
+			fmt.Println("udp conn ended with:", err)
+			return
 		}
 
-		err = s.processUDPPacket(b, udpHeader, c, udpAddr, mux)
+		err = s.processUDPPacket(p, c, udpAddr, mux)
 		if err != nil {
 			fmt.Println("handleUDPPacket:", err)
 			if c != nil {
 				c.tcp.Close()
 			}
+			return
 		}
 	}
 }
 
-func (s *server) processUDPPacket(b []byte, udpHeader packet.UDPHeader, c *Connection, udpAddr *net.UDPAddr, mux *Connection) error {
-	if c == nil && udpHeader.Type != packet.HandshakeType {
-		return fmt.Errorf("nil c, unexpected udpHeader.Type: %v", udpHeader.Type)
-	}
-
-	switch udpHeader.Type {
-	case packet.HandshakeType:
-		var r = packet.Handshake{UDPHeader: udpHeader}
-		err := r.UnmarshalBinary(b)
-		if err != nil {
-			return err
-		}
+func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDPAddr, mux *Connection) error {
+	switch r := r.(type) {
+	case packet.Handshake:
 		{
 			r2 := r
 			r2.Signature = 123
@@ -223,13 +212,7 @@ func (s *server) processUDPPacket(b []byte, udpHeader packet.UDPHeader, c *Conne
 				return err
 			}
 		}
-	case packet.TimeRequestType:
-		var r = packet.TimeRequest{UDPHeader: udpHeader}
-		err := r.UnmarshalBinary(b)
-		if err != nil {
-			return err
-		}
-
+	case packet.TimeRequest:
 		{
 			var p packet.TimeResponse
 			p.SequenceNumber = r.SequenceNumber
@@ -246,14 +229,8 @@ func (s *server) processUDPPacket(b []byte, udpHeader packet.UDPHeader, c *Conne
 				return err
 			}
 		}
-	case packet.PongType:
+	case packet.Pong:
 		localTimeAtPongReceive := time.Now()
-
-		var r = packet.Pong{UDPHeader: udpHeader}
-		err := r.UnmarshalBinary(b)
-		if err != nil {
-			return err
-		}
 
 		s.pingSentTimesMu.Lock()
 		// Get the time sent of the matching Pong packet.
@@ -282,14 +259,7 @@ func (s *server) processUDPPacket(b []byte, udpHeader packet.UDPHeader, c *Conne
 				return err
 			}
 		}
-	case packet.ClientCommandType:
-		var r = packet.ClientCommand{UDPHeader: udpHeader}
-		err := r.UnmarshalBinary(b)
-		if err != nil {
-			return err
-		}
-		//goon.Dump(r)
-
+	case packet.ClientCommand:
 		// TODO: Properly process and authenticate new result states.
 		{
 			s.logic.playersStateMu.Lock()

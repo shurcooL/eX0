@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
@@ -173,5 +174,78 @@ func receiveUDPPacket2(c *Connection, totalPlayerCount uint8) (interface{}, erro
 		return p, nil
 	default:
 		return nil, fmt.Errorf("invalid UDP packet type: %v", udpHeader.Type)
+	}
+}
+
+func receiveUDPPacketFrom2(s *server, mux *Connection, totalPlayerCount uint8) (interface{}, *Connection, *net.UDPAddr, error) {
+	b, udpHeader, c, udpAddr, err := receiveUDPPacketFrom(s, mux)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	if c == nil && udpHeader.Type != packet.HandshakeType {
+		return nil, nil, nil, fmt.Errorf("nil c, unexpected udpHeader.Type: %v", udpHeader.Type)
+	}
+
+	// TODO: Dedup with receiveUDPPacket2?
+	switch udpHeader.Type {
+	case packet.HandshakeType:
+		var p = packet.Handshake{UDPHeader: udpHeader}
+		err = p.UnmarshalBinary(b)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return p, c, udpAddr, nil
+	case packet.TimeRequestType:
+		var p = packet.TimeRequest{UDPHeader: udpHeader}
+		err = p.UnmarshalBinary(b)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return p, c, udpAddr, nil
+	case packet.TimeResponseType:
+		var p = packet.TimeResponse{UDPHeader: udpHeader}
+		err = p.UnmarshalBinary(b)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return p, c, udpAddr, nil
+	case packet.PingType:
+		var p = packet.Ping{UDPHeader: udpHeader}
+		err = p.UnmarshalBinary(b, totalPlayerCount)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return p, c, udpAddr, nil
+	case packet.PongType:
+		var p = packet.Pong{UDPHeader: udpHeader}
+		err = p.UnmarshalBinary(b)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return p, c, udpAddr, nil
+	case packet.PungType:
+		var p = packet.Pung{UDPHeader: udpHeader}
+		err = p.UnmarshalBinary(b)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return p, c, udpAddr, nil
+	case packet.ClientCommandType:
+		var p = packet.ClientCommand{UDPHeader: udpHeader}
+		err = p.UnmarshalBinary(b)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return p, c, udpAddr, nil
+	case packet.ServerUpdateType:
+		var p = packet.ServerUpdate{UDPHeader: udpHeader}
+		err = p.UnmarshalBinary(b, totalPlayerCount)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return p, c, udpAddr, nil
+	default:
+		return nil, nil, nil, fmt.Errorf("invalid UDP packet type: %v", udpHeader.Type)
 	}
 }
