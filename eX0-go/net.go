@@ -3,8 +3,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
@@ -69,7 +67,7 @@ func receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
 		return nil, packet.TCPHeader{}, err
 	}
 	var tcpHeader packet.TCPHeader
-	err = binary.Read(bytes.NewReader(b[:packet.TCPHeaderSize]), binary.BigEndian, &tcpHeader)
+	err = tcpHeader.UnmarshalBinary(b[:packet.TCPHeaderSize])
 	if err != nil {
 		return nil, packet.TCPHeader{}, err
 	}
@@ -100,7 +98,7 @@ func receiveUDPPacket(c *Connection) ([]byte, packet.UDPHeader, error) {
 		return nil, packet.UDPHeader{}, err
 	}
 	var udpHeader packet.UDPHeader
-	err = binary.Read(bytes.NewReader(b[:n]), binary.BigEndian, &udpHeader)
+	err = udpHeader.UnmarshalBinary(b[:packet.UDPHeaderSize])
 	if err != nil {
 		return nil, packet.UDPHeader{}, err
 	}
@@ -114,7 +112,7 @@ func receiveUDPPacketFrom(s *server, mux *Connection) ([]byte, packet.UDPHeader,
 		return nil, packet.UDPHeader{}, nil, nil, err
 	}
 	var udpHeader packet.UDPHeader
-	err = binary.Read(bytes.NewReader(b[:n]), binary.BigEndian, &udpHeader)
+	err = udpHeader.UnmarshalBinary(b[:packet.UDPHeaderSize])
 	if err != nil {
 		return nil, packet.UDPHeader{}, nil, nil, err
 	}

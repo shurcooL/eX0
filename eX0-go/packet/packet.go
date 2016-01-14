@@ -4,6 +4,7 @@ package packet
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 )
 
 const MAX_TCP_SIZE = 1448
@@ -55,32 +56,20 @@ func init() {
 	}
 }
 
-// TODO: Use or remove.
-// TODO: Optimize these since it's very possible.
-func (h *TCPHeader) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
-	var err error
-	err = binary.Write(&buf, binary.BigEndian, &h.Length)
-	if err != nil {
-		return nil, err
-	}
-	err = binary.Write(&buf, binary.BigEndian, &h.Type)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+func (h *TCPHeader) marshalBinary() []byte {
+	b := make([]byte, TCPHeaderSize)
+	b[0] = byte(h.Length >> 8)
+	b[1] = byte(h.Length)
+	b[2] = byte(h.Type)
+	return b
 }
 func (h *TCPHeader) UnmarshalBinary(b []byte) error {
-	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &h.Length)
-	if err != nil {
-		return err
+	// TODO: Should this be != or <? Find out how UnmarshalBinary is supposed to handle not enough/too much data.
+	if len(b) != TCPHeaderSize {
+		return fmt.Errorf("TCPHeader has unexpected size of %v instead of %v", len(b), TCPHeaderSize)
 	}
-	err = binary.Read(buf, binary.BigEndian, &h.Type)
-	if err != nil {
-		return err
-	}
+	h.Length = uint16(b[0])<<8 | uint16(b[1])
+	h.Type = Type(b[2])
 	return nil
 }
 
@@ -97,7 +86,7 @@ func (p *JoinServerRequest) MarshalBinary() ([]byte, error) {
 	p.Length = 26
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +134,7 @@ func (p *JoinServerAccept) MarshalBinary() ([]byte, error) {
 	p.Length = 2
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +173,7 @@ func (p *JoinServerRefuse) MarshalBinary() ([]byte, error) {
 	p.Length = 1
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +202,7 @@ func (p *UDPConnectionEstablished) MarshalBinary() ([]byte, error) {
 	p.Length = 0
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +223,7 @@ func (p *LoadLevel) MarshalBinary() ([]byte, error) {
 	p.Length = uint16(len(p.LevelFilename))
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +268,7 @@ func (p *CurrentPlayersInfo) MarshalBinary() ([]byte, error) {
 	p.Type = CurrentPlayersInfoType
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -356,7 +345,7 @@ func (p *PlayerJoinedServer) MarshalBinary() ([]byte, error) {
 	p.Length = 2 + uint16(len(p.Name))
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -404,7 +393,7 @@ func (p *PlayerLeftServer) MarshalBinary() ([]byte, error) {
 	p.Length = 1
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -436,7 +425,7 @@ func (p *JoinTeamRequest) MarshalBinary() ([]byte, error) {
 	p.Length = 1
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -473,7 +462,7 @@ func (p *PlayerJoinedTeam) MarshalBinary() ([]byte, error) {
 	}
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -523,7 +512,7 @@ func (p *EnterGamePermission) MarshalBinary() ([]byte, error) {
 	p.Length = 0
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -542,7 +531,7 @@ func (p *EnteredGameNotification) MarshalBinary() ([]byte, error) {
 	p.Length = 0
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -566,7 +555,7 @@ func (p *LocalPlayerInfo) MarshalBinary() ([]byte, error) {
 	p.Length = 3 + uint16(len(p.Name))
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -622,7 +611,7 @@ func (p *PlayerWasHit) MarshalBinary() ([]byte, error) {
 	p.Type = PlayerWasHitType
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.TCPHeader)
+	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -663,24 +652,17 @@ func init() {
 	}
 }
 
-// TODO: Use or remove.
-// TODO: Optimize these since it's very possible.
-func (h *UDPHeader) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
-	var err error
-	err = binary.Write(&buf, binary.BigEndian, &h.Type)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+func (h *UDPHeader) marshalBinary() []byte {
+	b := make([]byte, UDPHeaderSize)
+	b[0] = byte(h.Type)
+	return b
 }
 func (h *UDPHeader) UnmarshalBinary(b []byte) error {
-	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &h.Type)
-	if err != nil {
-		return err
+	// TODO: Should this be != or <? Find out how UnmarshalBinary is supposed to handle not enough/too much data.
+	if len(b) != UDPHeaderSize {
+		return fmt.Errorf("UDPHeader has unexpected size of %v instead of %v", len(b), UDPHeaderSize)
 	}
+	h.Type = Type(b[0])
 	return nil
 }
 
@@ -697,7 +679,7 @@ func (p *ClientCommand) MarshalBinary() ([]byte, error) {
 	p.Type = ClientCommandType
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.UDPHeader)
+	_, err = buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -762,7 +744,7 @@ func (p *ServerUpdate) MarshalBinary() ([]byte, error) {
 	p.Type = ServerUpdateType
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.UDPHeader)
+	_, err = buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -829,7 +811,7 @@ func (p *Ping) MarshalBinary() ([]byte, error) {
 	p.Type = PingType
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.UDPHeader)
+	_, err = buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -868,7 +850,7 @@ func (p *Pong) MarshalBinary() ([]byte, error) {
 	p.Type = PongType
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.UDPHeader)
+	_, err = buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -899,7 +881,7 @@ func (p *Pung) MarshalBinary() ([]byte, error) {
 	p.Type = PungType
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.UDPHeader)
+	_, err = buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -937,7 +919,7 @@ func (p *Handshake) MarshalBinary() ([]byte, error) {
 	p.Type = HandshakeType
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.UDPHeader)
+	_, err = buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -967,7 +949,7 @@ func (p *TimeRequest) MarshalBinary() ([]byte, error) {
 	p.Type = TimeRequestType
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.UDPHeader)
+	_, err = buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -998,7 +980,7 @@ func (p *TimeResponse) MarshalBinary() ([]byte, error) {
 	p.Type = TimeResponseType
 	var buf bytes.Buffer
 	var err error
-	err = binary.Write(&buf, binary.BigEndian, &p.UDPHeader)
+	_, err = buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
