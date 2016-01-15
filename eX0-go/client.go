@@ -103,11 +103,7 @@ func (c *client) connectToServer() {
 		// TODO: Try sending multiple times, else it might not get received.
 		var p packet.Handshake
 		p.Signature = s.Signature
-		b, err := p.MarshalBinary()
-		if err != nil {
-			panic(err)
-		}
-		err = sendUDPPacket(s, b)
+		err := sendUDPPacket(s, &p)
 		if err != nil {
 			panic(err)
 		}
@@ -149,11 +145,7 @@ func (c *client) connectToServer() {
 				c.sentTimeRequestPacketTimes[p.SequenceNumber] = time.Since(c.logic.started).Seconds()
 				state.Unlock()
 
-				b, err := p.MarshalBinary()
-				if err != nil {
-					panic(err)
-				}
-				err = sendUDPPacket(s, b)
+				err := sendUDPPacket(s, &p)
 				if err != nil {
 					panic(err)
 				}
@@ -393,11 +385,7 @@ func (c *client) handleUDP(s *Connection) {
 
 				c.pongSentTimes[r.PingData] = time.Now()
 
-				b, err := p.MarshalBinary()
-				if err != nil {
-					panic(err)
-				}
-				err = sendUDPPacket(s, b)
+				err := sendUDPPacket(s, &p)
 				if err != nil {
 					panic(err)
 				}

@@ -128,11 +128,7 @@ func (l *logic) gameLogic() {
 					}*/
 					p.MovesCount = uint8(len(p.Moves)) - 1
 
-					b, err := p.MarshalBinary()
-					if err != nil {
-						panic(err)
-					}
-					err = sendUDPPacket(client.serverConn, b)
+					err := sendUDPPacket(client.serverConn, &p)
 					if err != nil {
 						panic(err)
 					}

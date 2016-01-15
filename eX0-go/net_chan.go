@@ -50,7 +50,7 @@ type Connection struct {
 	PlayerID  uint8 // TODO: Unsure if this should be here, experimental.
 }
 
-func sendTCPPacketValidated(c *Connection, b []byte) error {
+func sendTCPPacketBytes(c *Connection, b []byte) error {
 	c.sendTCP <- b
 	return nil
 }
@@ -71,7 +71,7 @@ func receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
 	return b[packet.TCPHeaderSize:], tcpHeader, nil
 }
 
-func sendUDPPacket(c *Connection, b []byte) error {
+func sendUDPPacketBytes(c *Connection, b []byte) error {
 	c.sendUDP <- b
 	return nil
 }

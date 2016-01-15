@@ -17,6 +17,14 @@ func sendTCPPacket(c *Connection, p encoding.BinaryMarshaler) error {
 	return sendTCPPacketWithValidate(c, b)
 }
 
+func sendUDPPacket(c *Connection, p encoding.BinaryMarshaler) error {
+	b, err := p.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	return sendUDPPacketBytes(c, b)
+}
+
 func broadcastTCPPacket(cs []*Connection, p encoding.BinaryMarshaler) error {
 	b, err := p.MarshalBinary()
 	if err != nil {
@@ -49,7 +57,7 @@ func sendTCPPacketWithValidate(c *Connection, b []byte) error {
 		}
 	}
 
-	return sendTCPPacketValidated(c, b)
+	return sendTCPPacketBytes(c, b)
 }
 
 func receiveTCPPacket2(c *Connection, totalPlayerCount uint8) (interface{}, error) {

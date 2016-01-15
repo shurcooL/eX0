@@ -216,11 +216,7 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 			p.Time = time.Since(s.logic.started).Seconds()
 			state.Unlock()
 
-			b, err := p.MarshalBinary()
-			if err != nil {
-				return err
-			}
-			err = sendUDPPacket(c, b)
+			err := sendUDPPacket(c, &p)
 			if err != nil {
 				return err
 			}
@@ -245,11 +241,7 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 			p.PingData = r.PingData
 			p.Time = time.Since(s.logic.started).Seconds()
 
-			b, err := p.MarshalBinary()
-			if err != nil {
-				return err
-			}
-			err = sendUDPPacket(c, b)
+			err := sendUDPPacket(c, &p)
 			if err != nil {
 				return err
 			}
@@ -313,13 +305,8 @@ func (s *server) sendServerUpdates(c *Connection) {
 		}
 		s.logic.playersStateMu.Unlock()
 
-		b, err := p.MarshalBinary()
-		if err != nil {
-			panic(err)
-		}
-
 		// Send the packet to this client.
-		err = sendUDPPacket(c, b)
+		err := sendUDPPacket(c, &p)
 		if err != nil {
 			panic(err)
 		}
@@ -356,7 +343,7 @@ func (s *server) broadcastPingPacket() {
 			s.pingSentTimes[c.PlayerID][p.PingData] = time.Now()
 			s.pingSentTimesMu.Unlock()
 
-			err = sendUDPPacket(c, b)
+			err = sendUDPPacketBytes(c, b) // TODO: See if this can/should be replaced with sendUDPPacket or sendTCPPacket, and not affect timing code above negatively.
 			if err != nil {
 				panic(err)
 			}

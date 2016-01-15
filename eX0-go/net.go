@@ -55,7 +55,7 @@ type Connection struct {
 	recvUDP chan []byte
 }
 
-func sendTCPPacketValidated(c *Connection, b []byte) error {
+func sendTCPPacketBytes(c *Connection, b []byte) error {
 	_, err := c.tcp.Write(b)
 	return err
 }
@@ -81,7 +81,7 @@ func receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
 	return b[packet.TCPHeaderSize : packet.TCPHeaderSize+tcpHeader.Length], tcpHeader, nil
 }
 
-func sendUDPPacket(c *Connection, b []byte) error {
+func sendUDPPacketBytes(c *Connection, b []byte) error {
 	if c.UDPAddr != nil {
 		_, err := c.udp.WriteToUDP(b, c.UDPAddr)
 		return err
