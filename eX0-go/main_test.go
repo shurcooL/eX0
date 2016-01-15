@@ -427,6 +427,7 @@ func disabledExample_connectToEmptyRealServer() {
 	// 		Type:   (packet.Type)(6),
 	// 	}),
 	// })
+	// Client connected and joining team.
 	// (packet.PlayerJoinedTeam)(packet.PlayerJoinedTeam{
 	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(15),
@@ -441,5 +442,5 @@ func disabledExample_connectToEmptyRealServer() {
 	// 		Z: (float32)(3),
 	// 	}),
 	// })
-	// Client connected and joined team.
+	// Unnamed Player joined team Red.
 }
