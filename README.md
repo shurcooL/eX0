@@ -5,7 +5,7 @@ eX0 is an unfinished networked multiplayer (and single-player) top-down view 2D 
 
 It was originally envisioned as a realistic recreation of Counter-Strike in 2D, but since most of the gameplay is not implemented nor finalized, it can end up being quite different (if I ever decide to finish it).
 
-Its networking model is mostly based on the Half-Life and Quake networking models, with some tweaks and improvements based on ideas by Glenn Fiedler. Some info can be found in this [blog post](http://shurcool.wordpress.com/2011/07/25/how-to-make-your-networked-game-smooth-as-butter/) including the comments section.
+Its networking model is mostly based on the Half-Life and Quake networking models, with some tweaks and improvements based on ideas by Glenn Fiedler. Some info can be found in this [blog post](https://dmitri.shuralyov.com/blog/10) including the [comments section](https://dmitri.shuralyov.com/blog/10#comment-2).
 
 The C++ code was written over multiple decades (starting from around 2002-2006). Some of of it has been untouched since it was written back when I was just learning C++ and development in general. There are lots of hacks and ugly code, most of it is not optimized. A lot of it was refactored and improved too, but much is simply unfinished. It's unlikely to be worthwhile to others; I'm mostly putting it up so all my code is in one good place, and I no longer see any benefit to keep it closed source.
 
