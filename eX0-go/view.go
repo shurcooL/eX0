@@ -150,4 +150,9 @@ func (v *view) initAndMainLoop() {
 
 		window.SwapBuffers()
 	}
+
+	if components.client != nil {
+		// Take away logic's access to window before terminating GLFW.
+		v.logic.Input <- nil
+	}
 }
