@@ -145,8 +145,8 @@ func (l *character) render(team packet.Team) {
 func drawCircleBorderCustom(pos mgl32.Vec2, size mgl32.Vec2, borderWidth float32, totalSlices, startSlice, endSlice int32) (vertices []float32) {
 	var x = float64(totalSlices)
 	for i := startSlice; i <= endSlice; i++ {
-		vertices = append(vertices, float32(pos[0]+float32(math.Sin(Tau*float64(i)/x))*size[0]/2), float32(pos[1]+float32(math.Cos(Tau*float64(i)/x))*size[1]/2))
-		vertices = append(vertices, float32(pos[0]+float32(math.Sin(Tau*float64(i)/x))*(size[0]/2-borderWidth)), float32(pos[1]+float32(math.Cos(Tau*float64(i)/x))*(size[1]/2-borderWidth)))
+		vertices = append(vertices, pos[0]+float32(math.Sin(Tau*float64(i)/x))*size[0]/2, pos[1]+float32(math.Cos(Tau*float64(i)/x))*size[1]/2)
+		vertices = append(vertices, pos[0]+float32(math.Sin(Tau*float64(i)/x))*(size[0]/2-borderWidth), pos[1]+float32(math.Cos(Tau*float64(i)/x))*(size[1]/2-borderWidth))
 	}
 	return vertices
 }

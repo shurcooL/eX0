@@ -134,7 +134,7 @@ func (v *view) initAndMainLoop() {
 				continue
 			}
 
-			pos := ps.Interpolated(v.logic, uint8(id))
+			pos := ps.Interpolated(v.logic, id)
 
 			mvMatrix = v.cameras[v.activeCamera].ModelView()
 			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(pos.X, pos.Y, 0))
