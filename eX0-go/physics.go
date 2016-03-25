@@ -5,8 +5,8 @@ import (
 	"math"
 
 	"github.com/go-gl/mathgl/mgl32"
+	"github.com/shurcooL/eX0/eX0-go/gpc"
 	"github.com/shurcooL/eX0/eX0-go/packet"
-	"github.com/shurcooL/go/gists/gist6545684"
 )
 
 const (
@@ -85,7 +85,7 @@ func nextStateWithoutCollision(state sequencedPlayerPosVel, move packet.Move) se
 }
 
 // checks to see if player pos is ok, or inside a wall
-func colHandCheckPlayerPos(polygon *gist6545684.Polygon, fX, fY float32) (noCollision bool, oClosestPoint mgl32.Vec2, oShortestDistance float32) {
+func colHandCheckPlayerPos(polygon *gpc.Polygon, fX, fY float32) (noCollision bool, oClosestPoint mgl32.Vec2, oShortestDistance float32) {
 	var oVector mgl32.Vec2
 	var oSegment Seg2
 	var oParam float32

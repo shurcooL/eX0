@@ -1,24 +1,24 @@
-package gist6545684_test
+package gpc_test
 
 import (
 	"path/filepath"
 
+	"github.com/shurcooL/eX0/eX0-go/gpc"
 	"github.com/shurcooL/go-goon"
-	"github.com/shurcooL/go/gists/gist6545684"
 )
 
 func Example() {
-	p, err := gist6545684.ReadGpcFile(filepath.Join("testdata", "test_orientation.wwl"))
+	polygon, err := gpc.ParseFile(filepath.Join("testdata", "test_orientation.wwl"))
 	if err != nil {
 		panic(err)
 	}
 
-	goon.Dump(p)
+	goon.Dump(polygon)
 
 	// Output:
-	// (gist6545684.Polygon)(gist6545684.Polygon{
-	// 	Contours: ([]gist6545684.Contour)([]gist6545684.Contour{
-	// 		(gist6545684.Contour)(gist6545684.Contour{
+	// (gpc.Polygon)(gpc.Polygon{
+	// 	Contours: ([]gpc.Contour)([]gpc.Contour{
+	// 		(gpc.Contour)(gpc.Contour{
 	// 			Vertices: ([]mgl64.Vec2)([]mgl64.Vec2{
 	// 				(mgl64.Vec2)(mgl64.Vec2{
 	// 					(float64)(-210),
@@ -38,7 +38,7 @@ func Example() {
 	// 				}),
 	// 			}),
 	// 		}),
-	// 		(gist6545684.Contour)(gist6545684.Contour{
+	// 		(gpc.Contour)(gpc.Contour{
 	// 			Vertices: ([]mgl64.Vec2)([]mgl64.Vec2{
 	// 				(mgl64.Vec2)(mgl64.Vec2{
 	// 					(float64)(180),
@@ -54,7 +54,7 @@ func Example() {
 	// 				}),
 	// 			}),
 	// 		}),
-	// 		(gist6545684.Contour)(gist6545684.Contour{
+	// 		(gpc.Contour)(gpc.Contour{
 	// 			Vertices: ([]mgl64.Vec2)([]mgl64.Vec2{
 	// 				(mgl64.Vec2)(mgl64.Vec2{
 	// 					(float64)(0),
@@ -70,7 +70,7 @@ func Example() {
 	// 				}),
 	// 			}),
 	// 		}),
-	// 		(gist6545684.Contour)(gist6545684.Contour{
+	// 		(gpc.Contour)(gpc.Contour{
 	// 			Vertices: ([]mgl64.Vec2)([]mgl64.Vec2{
 	// 				(mgl64.Vec2)(mgl64.Vec2{
 	// 					(float64)(-150),

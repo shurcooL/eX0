@@ -1,5 +1,5 @@
-// Package gist6545684 parses GPC format files.
-package gist6545684
+// Package gpc parses GPC format files.
+package gpc
 
 import (
 	"fmt"
@@ -9,40 +9,53 @@ import (
 	"github.com/go-gl/mathgl/mgl64"
 )
 
-type Contour struct {
-	Vertices []mgl64.Vec2
-}
-
+// Polygon is a polygon.
 type Polygon struct {
 	Contours []Contour
 }
 
-func ReadGpcFromReader(r io.Reader) (Polygon, error) {
+// Contour is a contour.
+type Contour struct {
+	Vertices []mgl64.Vec2
+}
+
+// Parse parses a GPC format reader.
+func Parse(r io.Reader) (Polygon, error) {
 	var p Polygon
 
-	var numContours uint64
-	fmt.Fscan(r, &numContours)
-	p.Contours = make([]Contour, numContours)
+	var nc uint64
+	_, err := fmt.Fscan(r, &nc)
+	if err != nil {
+		return p, err
+	}
+	p.Contours = make([]Contour, nc)
 
 	for ci := range p.Contours {
-		var numVertices uint64
-		fmt.Fscan(r, &numVertices)
-		p.Contours[ci].Vertices = make([]mgl64.Vec2, numVertices)
+		var nv uint64
+		_, err := fmt.Fscan(r, &nv)
+		if err != nil {
+			return p, err
+		}
+		p.Contours[ci].Vertices = make([]mgl64.Vec2, nv)
 
 		for vi := range p.Contours[ci].Vertices {
-			fmt.Fscan(r, &p.Contours[ci].Vertices[vi][0], &p.Contours[ci].Vertices[vi][1])
+			_, err := fmt.Fscan(r, &p.Contours[ci].Vertices[vi][0], &p.Contours[ci].Vertices[vi][1])
+			if err != nil {
+				return p, err
+			}
 		}
 	}
 
 	return p, nil
 }
 
-func ReadGpcFile(path string) (Polygon, error) {
+// ParseFile parses a GPC format file.
+func ParseFile(path string) (Polygon, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return Polygon{}, err
 	}
 	defer f.Close()
 
-	return ReadGpcFromReader(f)
+	return Parse(f)
 }

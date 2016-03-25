@@ -8,7 +8,7 @@ import (
 	"github.com/goxjs/gl"
 	"github.com/goxjs/gl/glutil"
 	"github.com/goxjs/glfw"
-	"github.com/shurcooL/go/gists/gist6545684"
+	"github.com/shurcooL/eX0/eX0-go/gpc"
 	"golang.org/x/mobile/exp/f32"
 )
 
@@ -17,7 +17,7 @@ func newLevel(name string) (*level, error) {
 	if err != nil {
 		return nil, err
 	}
-	polygon, err := gist6545684.ReadGpcFromReader(f)
+	polygon, err := gpc.Parse(f)
 	f.Close()
 	if err != nil {
 		return nil, err
@@ -26,7 +26,7 @@ func newLevel(name string) (*level, error) {
 }
 
 type level struct {
-	polygon gist6545684.Polygon
+	polygon gpc.Polygon
 
 	program                 gl.Program
 	pMatrixUniform          gl.Uniform
