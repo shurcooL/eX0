@@ -13,8 +13,7 @@ func sendTCPPacket(c *Connection, p encoding.BinaryMarshaler) error {
 	if err != nil {
 		return err
 	}
-	// TODO: Instead of setting manually and validating in debug mode, always set automatically here. It's not expensive if done after creating the entire packet, just edit the appropriate byte(s) in the header in the final []byte buffer just before sending over network.
-	return sendTCPPacketWithValidate(c, b)
+	return sendTCPPacketBytes(c, b)
 }
 
 func sendUDPPacket(c *Connection, p encoding.BinaryMarshaler) error {
@@ -30,34 +29,14 @@ func broadcastTCPPacket(cs []*Connection, p encoding.BinaryMarshaler) error {
 	if err != nil {
 		return err
 	}
-	// TODO: Instead of setting manually and validating in debug mode, always set automatically here. It's not expensive if done after creating the entire packet, just edit the appropriate byte(s) in the header in the final []byte buffer just before sending over network.
 	for _, c := range cs {
-		err = sendTCPPacketWithValidate(c, b)
+		err = sendTCPPacketBytes(c, b)
 		if err != nil {
 			// TODO: This error handling is wrong. If fail to send to one client, should still send to others, etc.
 			return err
 		}
 	}
 	return nil
-}
-
-func sendTCPPacketWithValidate(c *Connection, b []byte) error {
-	// Validate packet size (for debugging).
-	if debugValidation {
-		if len(b) < packet.TCPHeaderSize {
-			panic(fmt.Errorf("sendTCPPacket: smaller than packet.TCPHeaderSize: %v", b))
-		}
-		var tcpHeader packet.TCPHeader
-		err := tcpHeader.UnmarshalBinary(b[:packet.TCPHeaderSize])
-		if err != nil {
-			panic(err)
-		}
-		if len(b)-packet.TCPHeaderSize != int(tcpHeader.Length) {
-			panic(fmt.Errorf("sendTCPPacket: invalid payload size: %v %+v", len(b)-packet.TCPHeaderSize, tcpHeader))
-		}
-	}
-
-	return sendTCPPacketBytes(c, b)
 }
 
 func receiveTCPPacket2(c *Connection, totalPlayerCount uint8) (interface{}, error) {

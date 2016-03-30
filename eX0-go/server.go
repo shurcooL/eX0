@@ -546,7 +546,6 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 		p.Players = make([]packet.PlayerInfo, s.logic.TotalPlayerCount)
 		state.Lock()
 		s.logic.playersStateMu.Lock()
-		p.Length += uint16(s.logic.TotalPlayerCount)
 		for _, c := range s.connections {
 			if c.JoinStatus < PUBLIC_CLIENT {
 				continue
@@ -556,9 +555,7 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 			playerInfo.NameLength = uint8(len(ps.Name))
 			if playerInfo.NameLength > 0 {
 				playerInfo.Name = []byte(ps.Name)
-				p.Length += uint16(playerInfo.NameLength)
 				playerInfo.Team = ps.Team
-				p.Length += 1
 				if playerInfo.Team != packet.Spectator {
 					playerInfo.State = &packet.State{
 						CommandSequenceNumber: ps.LatestAuthed().SequenceNumber,
@@ -566,7 +563,6 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 						Y: ps.LatestAuthed().Y,
 						Z: ps.LatestAuthed().Z,
 					}
-					p.Length += 1 + 4 + 4 + 4
 				}
 			}
 			p.Players[c.PlayerID] = playerInfo

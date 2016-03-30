@@ -73,6 +73,15 @@ func (h *TCPHeader) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
+// amendLength takes the entire marshalled TCP packet, calculates its length,
+// and amends that in the TCPHeader.
+func (h *TCPHeader) amendLength(b []byte) []byte {
+	h.Length = uint16(len(b) - TCPHeaderSize)
+	b[0] = byte(h.Length >> 8)
+	b[1] = byte(h.Length)
+	return b
+}
+
 type JoinServerRequest struct {
 	TCPHeader
 
@@ -83,7 +92,6 @@ type JoinServerRequest struct {
 
 func (p *JoinServerRequest) MarshalBinary() ([]byte, error) {
 	p.Type = JoinServerRequestType
-	p.Length = 26
 	var buf bytes.Buffer
 	var err error
 	_, err = buf.Write(p.TCPHeader.marshalBinary())
@@ -102,7 +110,7 @@ func (p *JoinServerRequest) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *JoinServerRequest) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
@@ -131,7 +139,6 @@ type JoinServerAccept struct {
 
 func (p *JoinServerAccept) MarshalBinary() ([]byte, error) {
 	p.Type = JoinServerAcceptType
-	p.Length = 2
 	var buf bytes.Buffer
 	var err error
 	_, err = buf.Write(p.TCPHeader.marshalBinary())
@@ -146,7 +153,7 @@ func (p *JoinServerAccept) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *JoinServerAccept) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
@@ -170,7 +177,6 @@ type JoinServerRefuse struct {
 
 func (p *JoinServerRefuse) MarshalBinary() ([]byte, error) {
 	p.Type = JoinServerRefuseType
-	p.Length = 1
 	var buf bytes.Buffer
 	var err error
 	_, err = buf.Write(p.TCPHeader.marshalBinary())
@@ -181,7 +187,7 @@ func (p *JoinServerRefuse) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *JoinServerRefuse) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
@@ -199,14 +205,13 @@ type UDPConnectionEstablished struct {
 
 func (p *UDPConnectionEstablished) MarshalBinary() ([]byte, error) {
 	p.Type = UDPConnectionEstablishedType
-	p.Length = 0
 	var buf bytes.Buffer
 	var err error
 	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *UDPConnectionEstablished) UnmarshalBinary(b []byte) error {
 	return nil
@@ -220,7 +225,6 @@ type LoadLevel struct {
 
 func (p *LoadLevel) MarshalBinary() ([]byte, error) {
 	p.Type = LoadLevelType
-	p.Length = uint16(len(p.LevelFilename))
 	var buf bytes.Buffer
 	var err error
 	_, err = buf.Write(p.TCPHeader.marshalBinary())
@@ -231,7 +235,7 @@ func (p *LoadLevel) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *LoadLevel) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
@@ -296,7 +300,7 @@ func (p *CurrentPlayersInfo) MarshalBinary() ([]byte, error) {
 			}
 		}
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *CurrentPlayersInfo) UnmarshalBinary(b []byte, totalPlayerCount uint8) error {
 	buf := bytes.NewReader(b)
@@ -342,7 +346,6 @@ type PlayerJoinedServer struct {
 
 func (p *PlayerJoinedServer) MarshalBinary() ([]byte, error) {
 	p.Type = PlayerJoinedServerType
-	p.Length = 2 + uint16(len(p.Name))
 	var buf bytes.Buffer
 	var err error
 	_, err = buf.Write(p.TCPHeader.marshalBinary())
@@ -361,7 +364,7 @@ func (p *PlayerJoinedServer) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *PlayerJoinedServer) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
@@ -390,7 +393,6 @@ type PlayerLeftServer struct {
 
 func (p *PlayerLeftServer) MarshalBinary() ([]byte, error) {
 	p.Type = PlayerLeftServerType
-	p.Length = 1
 	var buf bytes.Buffer
 	var err error
 	_, err = buf.Write(p.TCPHeader.marshalBinary())
@@ -401,7 +403,7 @@ func (p *PlayerLeftServer) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *PlayerLeftServer) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
@@ -422,7 +424,6 @@ type JoinTeamRequest struct {
 
 func (p *JoinTeamRequest) MarshalBinary() ([]byte, error) {
 	p.Type = JoinTeamRequestType
-	p.Length = 1
 	var buf bytes.Buffer
 	var err error
 	_, err = buf.Write(p.TCPHeader.marshalBinary())
@@ -433,7 +434,7 @@ func (p *JoinTeamRequest) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *JoinTeamRequest) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
@@ -456,10 +457,6 @@ type PlayerJoinedTeam struct {
 
 func (p *PlayerJoinedTeam) MarshalBinary() ([]byte, error) {
 	p.Type = PlayerJoinedTeamType
-	p.Length = 2
-	if p.State != nil {
-		p.Length += 13
-	}
 	var buf bytes.Buffer
 	var err error
 	_, err = buf.Write(p.TCPHeader.marshalBinary())
@@ -480,7 +477,7 @@ func (p *PlayerJoinedTeam) MarshalBinary() ([]byte, error) {
 			return nil, err
 		}
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *PlayerJoinedTeam) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
@@ -509,14 +506,13 @@ type EnterGamePermission struct {
 
 func (p *EnterGamePermission) MarshalBinary() ([]byte, error) {
 	p.Type = EnterGamePermissionType
-	p.Length = 0
 	var buf bytes.Buffer
 	var err error
 	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *EnterGamePermission) UnmarshalBinary(b []byte) error {
 	return nil
@@ -528,14 +524,13 @@ type EnteredGameNotification struct {
 
 func (p *EnteredGameNotification) MarshalBinary() ([]byte, error) {
 	p.Type = EnteredGameNotificationType
-	p.Length = 0
 	var buf bytes.Buffer
 	var err error
 	_, err = buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *EnteredGameNotification) UnmarshalBinary(b []byte) error {
 	return nil
@@ -552,7 +547,6 @@ type LocalPlayerInfo struct {
 
 func (p *LocalPlayerInfo) MarshalBinary() ([]byte, error) {
 	p.Type = LocalPlayerInfoType
-	p.Length = 3 + uint16(len(p.Name))
 	var buf bytes.Buffer
 	var err error
 	_, err = buf.Write(p.TCPHeader.marshalBinary())
@@ -575,7 +569,7 @@ func (p *LocalPlayerInfo) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *LocalPlayerInfo) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
@@ -623,7 +617,7 @@ func (p *PlayerWasHit) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return p.amendLength(buf.Bytes()), nil
 }
 func (p *PlayerWasHit) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
