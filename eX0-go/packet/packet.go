@@ -439,7 +439,7 @@ func (p *JoinTeamRequest) MarshalBinary() ([]byte, error) {
 func (p *JoinTeamRequest) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
 	var err error
-	// TODO: Handle potential PlayerNumbep.
+	// TODO: Handle potential PlayerNumber.
 	err = binary.Read(buf, binary.BigEndian, &p.Team)
 	if err != nil {
 		return err
