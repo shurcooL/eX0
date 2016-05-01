@@ -4,7 +4,7 @@ addons:
     - libgles2-mesa-dev
 language: go
 go:
-  - 1.5.2
+  - 1.6.2
   - tip
 matrix:
   allow_failures:
