@@ -3,6 +3,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -14,6 +15,11 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 	"github.com/shurcooL/go-goon"
 	"golang.org/x/net/websocket"
+)
+
+var (
+	certFlag = flag.String("cert", "", "Cert file for wss, if blank then ws is used.")
+	keyFlag  = flag.String("key", "", "Key file for wss, if blank then ws is used.")
 )
 
 type server struct {
@@ -130,9 +136,17 @@ func (s *server) listenAndHandleWebSocket() {
 		s.handleTCPConnection(client)
 		// Do not return until handleTCPConnection does, else WebSocket gets closed.
 	})
-	err := http.ListenAndServe(":25046", h)
-	if err != nil {
-		panic(err)
+	switch {
+	case *certFlag == "" && *keyFlag == "":
+		err := http.ListenAndServe(":25046", h)
+		if err != nil {
+			panic(err)
+		}
+	default:
+		err := http.ListenAndServeTLS(":25046", *certFlag, *keyFlag, h)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 

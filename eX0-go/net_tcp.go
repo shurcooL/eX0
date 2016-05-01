@@ -114,7 +114,14 @@ func (clientToServerConn *Connection) dialServer() {
 		tcp, err = net.Dial("tcp", *hostFlag+":25045")
 	case 1:
 		// WebSocket connection.
-		tcp, err = websocket.Dial("ws://"+*hostFlag+":25046", "http://localhost/")
+		var scheme string
+		switch *secureFlag {
+		case false:
+			scheme = "ws"
+		case true:
+			scheme = "wss"
+		}
+		tcp, err = websocket.Dial(scheme+"://"+*hostFlag+":25046", "http://localhost/")
 	default:
 		panic("invalid choice")
 	}

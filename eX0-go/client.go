@@ -12,8 +12,11 @@ import (
 	"github.com/shurcooL/go-goon"
 )
 
-var hostFlag = flag.String("host", "localhost", "Server host (without port) for client to connect to.")
-var nameFlag = flag.String("name", "Unnamed Player", "Local client player name.")
+var (
+	hostFlag   = flag.String("host", "localhost", "Server host (without port) for client to connect to.")
+	secureFlag = flag.Bool("secure", false, "Secure connection to server (e.g., use wss instead of ws).")
+	nameFlag   = flag.String("name", "Unnamed Player", "Local client player name.")
+)
 
 type client struct {
 	logic *logic
