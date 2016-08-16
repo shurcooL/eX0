@@ -11,10 +11,7 @@ You'll need to have OpenGL headers (see [here](https://github.com/go-gl/glfw#ins
 
 ```bash
 go get -u github.com/shurcooL/eX0/eX0-go
-
-# Get additional dependencies for tcp and js build tags.
-go get -u -d -tags="tcp" github.com/shurcooL/eX0/eX0-go
-go get -u -d -tags="tcp js" github.com/shurcooL/eX0/eX0-go
+GOARCH=js go get -u -d github.com/shurcooL/eX0/eX0-go
 ```
 
 Use this folder as the current working directory when running `eX0-go` binary.
@@ -29,17 +26,17 @@ The port is incomplete; this screenshot represents the current state.
 Browser
 -------
 
-The client can run in browser by leveraging [GopherJS](https://github.com/gopherjs/gopherjs#readme) for Go to JavaScript compilation, WebGL for graphics, WebSocket for networking. Only the `-tags=tcp` networking mode is supported, so you'll need to run the server with that build tag:
+The client can run in browser by leveraging [GopherJS](https://github.com/gopherjs/gopherjs#readme) for Go to JavaScript compilation, WebGL for graphics, WebSocket for networking. Only the "tcp-ws" network is supported, so you'll need to run the server with that flag:
 
 ```bash
-go build -tags=tcp -o /tmp/eX0-go
-/tmp/eX0-go server-view # Or server for dedicated server.
+go build -o /tmp/eX0-go
+/tmp/eX0-go -network=tcp-ws server-view # Or server for dedicated server.
 ```
 
 To compile Go to JavaScript, you'll need [GopherJS compiler](https://github.com/gopherjs/gopherjs#installation-and-usage). Install it with `go get -u github.com/gopherjs/gopherjs` and run:
 
 ```bash
-gopherjs serve --tags=tcp
+gopherjs serve
 ```
 
 Then open <http://localhost:8080/github.com/shurcooL/eX0/eX0-go> to start up the client.

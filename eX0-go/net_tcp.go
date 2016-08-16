@@ -1,5 +1,3 @@
-// +build tcp,!chan
-
 package main
 
 import (
@@ -15,10 +13,13 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
-// Virtual TCP and UDP via physical TCP. Requires `-tags=tcp`.
-// dialServer can be controlled to use raw TCP or WebSocket.
+// Virtual TCP and UDP via physical TCP.
+type tcpNetwork struct {
+	// useWebSocket controls whether to use raw TCP or WebSocket.
+	useWebSocket bool
+}
 
-func newConnection() *Connection {
+func (tcpNetwork) newConnection() *Connection {
 	c := &Connection{
 		sendTCP: make(chan []byte),
 		recvTCP: make(chan []byte, 128),
@@ -103,17 +104,17 @@ func newConnection() *Connection {
 	return c
 }
 
-func (clientToServerConn *Connection) dialServer() {
+func (tn tcpNetwork) dialServer(clientToServerConn *Connection) {
 	var (
 		tcp net.Conn
 		err error
 	)
-	switch 1 {
-	case 0:
-		// TCP connection.
+	switch tn.useWebSocket {
+	case false:
+		// Raw TCP connection.
 		tcp, err = net.Dial("tcp", *hostFlag+":25045")
-	case 1:
-		// WebSocket connection.
+	case true:
+		// WebSocket connection (TCP-like).
 		var scheme string
 		switch *secureFlag {
 		case false:
@@ -122,8 +123,6 @@ func (clientToServerConn *Connection) dialServer() {
 			scheme = "wss"
 		}
 		tcp, err = websocket.Dial(scheme+"://"+*hostFlag+":25046", "http://localhost/")
-	default:
-		panic("invalid choice")
 	}
 	if err != nil {
 		panic(err)
@@ -132,41 +131,19 @@ func (clientToServerConn *Connection) dialServer() {
 	close(clientToServerConn.start) // tcp-specific.
 }
 
-func (c *Connection) dialedClient() {
+func (tcpNetwork) dialedClient(c *Connection) {
 	close(c.start)
 }
 
 // tcp-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
-const shouldHandleUDPDirectly = true
+func (tcpNetwork) shouldHandleUDPDirectly() bool { return true }
 
-type Connection struct {
-	tcp net.Conn
-
-	// Connection to client.
-	JoinStatus JoinStatus
-
-	// Common.
-	Signature uint64
-	PlayerID  uint8 // TODO: Unsure if this should be here, experimental.
-
-	sendTCP chan []byte
-	recvTCP chan []byte
-	sendUDP chan []byte
-	recvUDP chan []byte
-
-	start chan struct{}
-
-	// Unused.
-	udp     *net.UDPConn
-	UDPAddr *net.UDPAddr
-}
-
-func sendTCPPacketBytes(c *Connection, b []byte) error {
+func (tcpNetwork) sendTCPPacketBytes(c *Connection, b []byte) error {
 	c.sendTCP <- b
 	return nil
 }
 
-func receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
+func (tcpNetwork) receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
 	b, ok := <-c.recvTCP
 	if !ok {
 		return nil, packet.TCPHeader{}, errors.New("conn prob")
@@ -185,12 +162,12 @@ func receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
 	return b[packet.TCPHeaderSize:], tcpHeader, nil
 }
 
-func sendUDPPacketBytes(c *Connection, b []byte) error {
+func (tcpNetwork) sendUDPPacketBytes(c *Connection, b []byte) error {
 	c.sendUDP <- b
 	return nil
 }
 
-func receiveUDPPacket(c *Connection) ([]byte, packet.UDPHeader, error) {
+func (tcpNetwork) receiveUDPPacket(c *Connection) ([]byte, packet.UDPHeader, error) {
 	b, ok := <-c.recvUDP
 	if !ok {
 		return nil, packet.UDPHeader{}, errors.New("conn prob")
@@ -203,7 +180,7 @@ func receiveUDPPacket(c *Connection) ([]byte, packet.UDPHeader, error) {
 	return b[packet.UDPHeaderSize:], udpHeader, nil
 }
 
-func receiveUDPPacketFrom(_ *server, mux *Connection) ([]byte, packet.UDPHeader, *Connection, *net.UDPAddr, error) {
+func (tcpNetwork) receiveUDPPacketFrom(_ *server, mux *Connection) ([]byte, packet.UDPHeader, *Connection, *net.UDPAddr, error) {
 	b, ok := <-mux.recvUDP
 	if !ok {
 		return nil, packet.UDPHeader{}, nil, nil, errors.New("conn prob")

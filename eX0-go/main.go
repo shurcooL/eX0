@@ -11,8 +11,6 @@ import (
 	"time"
 )
 
-const commandRate = 20
-
 var state sync.Mutex // TODO: Remove in favor of more specific mutexes.
 
 // THINK: Is this the best way?
@@ -22,8 +20,20 @@ var components struct {
 	view   *view
 }
 
+func usage() {
+	fmt.Fprintln(os.Stderr, "Usage: eX0-go [server]-[client]-[view] (e.g., eX0-go client-view)")
+	flag.PrintDefaults()
+}
+
 func main() {
+	flag.Usage = usage
 	flag.Parse()
+
+	if !setupNetwork() {
+		flag.Usage()
+		os.Exit(2)
+		return
+	}
 
 	switch args := flag.Args(); {
 	case len(args) == 1 && args[0] == "client":
@@ -46,7 +56,8 @@ func main() {
 		components.view = startView(components.client.logic)
 		components.view.initAndMainLoop()
 	default:
-		fmt.Fprintf(os.Stderr, "invalid usage: %q\n", args)
+		flag.Usage()
 		os.Exit(2)
+		return
 	}
 }

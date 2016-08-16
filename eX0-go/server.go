@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	certFlag = flag.String("cert", "", "Cert file for wss, if blank then ws is used.")
-	keyFlag  = flag.String("key", "", "Key file for wss, if blank then ws is used.")
+	certFlag = flag.String("cert", "", "Cert file for wss, if empty then ws is used.")
+	keyFlag  = flag.String("key", "", "Key file for wss, if empty then ws is used.")
 )
 
 type server struct {
@@ -86,15 +86,15 @@ func (s *server) listenAndHandleTCP() {
 			panic(err)
 		}
 
-		client := newConnection()
+		client := nw.newConnection()
 		client.tcp = tcp
 		client.JoinStatus = TCP_CONNECTED
-		client.dialedClient()
+		nw.dialedClient(client)
 		s.connectionsMu.Lock()
 		s.connections = append(s.connections, client)
 		s.connectionsMu.Unlock()
 
-		if shouldHandleUDPDirectly {
+		if nw.shouldHandleUDPDirectly() {
 			go s.handleUDP(client)
 		}
 		go s.handleTCPConnection(client)
@@ -122,15 +122,15 @@ func (s *server) listenAndHandleWebSocket() {
 		// the Write method sends bytes as binary rather than text frames.
 		conn.PayloadType = websocket.BinaryFrame
 
-		client := newConnection()
+		client := nw.newConnection()
 		client.tcp = conn
 		client.JoinStatus = TCP_CONNECTED
-		client.dialedClient()
+		nw.dialedClient(client)
 		s.connectionsMu.Lock()
 		s.connections = append(s.connections, client)
 		s.connectionsMu.Unlock()
 
-		if shouldHandleUDPDirectly {
+		if nw.shouldHandleUDPDirectly() {
 			go s.handleUDP(client)
 		}
 		s.handleTCPConnection(client)
@@ -153,7 +153,7 @@ func (s *server) listenAndHandleWebSocket() {
 func (s *server) listenAndHandleChan() {
 	for clientToServerConn := range s.chanListener {
 
-		serverToClientConn := newConnection()
+		serverToClientConn := nw.newConnection()
 		// Join server <-> client channel ends together.
 		serverToClientConn.sendTCP = clientToServerConn.recvTCP
 		serverToClientConn.recvTCP = clientToServerConn.sendTCP
@@ -165,7 +165,7 @@ func (s *server) listenAndHandleChan() {
 		s.connections = append(s.connections, serverToClientConn)
 		s.connectionsMu.Unlock()
 
-		if shouldHandleUDPDirectly {
+		if nw.shouldHandleUDPDirectly() {
 			go s.handleUDP(serverToClientConn)
 		}
 		go s.handleTCPConnection(serverToClientConn)
@@ -357,7 +357,7 @@ func (s *server) broadcastPingPacket() {
 			s.pingSentTimes[c.PlayerID][p.PingData] = time.Now()
 			s.pingSentTimesMu.Unlock()
 
-			err = sendUDPPacketBytes(c, b) // TODO: See if this can/should be replaced with sendUDPPacket or sendTCPPacket, and not affect timing code above negatively.
+			err = nw.sendUDPPacketBytes(c, b) // TODO: See if this can/should be replaced with sendUDPPacket or sendTCPPacket, and not affect timing code above negatively.
 			if err != nil {
 				panic(err)
 			}

@@ -1,4 +1,4 @@
-// +build chan,!tcp
+// +build !js
 
 package main
 
@@ -11,9 +11,10 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
-// TCP and UDP via local channels. Requires `-tags=chan`.
+// TCP and UDP via local channels.
+type chanNetwork struct{}
 
-func newConnection() *Connection {
+func (chanNetwork) newConnection() *Connection {
 	return &Connection{
 		sendTCP: make(chan []byte, 128),
 		recvTCP: make(chan []byte, 128),
@@ -22,40 +23,22 @@ func newConnection() *Connection {
 	}
 }
 
-func (clientToServerConn *Connection) dialServer() {
+func (chanNetwork) dialServer(clientToServerConn *Connection) {
 	components.server.chanListener <- clientToServerConn
 	<-components.server.chanListenerReply
 }
 
-func (_ *Connection) dialedClient() {
-}
+func (chanNetwork) dialedClient(_ *Connection) {}
 
 // chan-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
-const shouldHandleUDPDirectly = true
+func (chanNetwork) shouldHandleUDPDirectly() bool { return true }
 
-type Connection struct {
-	sendTCP chan []byte
-	recvTCP chan []byte
-	sendUDP chan []byte
-	recvUDP chan []byte
-
-	// Unused.
-	tcp        net.Conn
-	udp        *net.UDPConn
-	JoinStatus JoinStatus
-	UDPAddr    *net.UDPAddr
-
-	// Common.
-	Signature uint64
-	PlayerID  uint8 // TODO: Unsure if this should be here, experimental.
-}
-
-func sendTCPPacketBytes(c *Connection, b []byte) error {
+func (chanNetwork) sendTCPPacketBytes(c *Connection, b []byte) error {
 	c.sendTCP <- b
 	return nil
 }
 
-func receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
+func (chanNetwork) receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
 	b := <-c.recvTCP
 	if len(b) < packet.TCPHeaderSize {
 		return nil, packet.TCPHeader{}, fmt.Errorf("tcp packet size %v less than tcp header size %v", len(b), packet.TCPHeaderSize)
@@ -71,12 +54,12 @@ func receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error) {
 	return b[packet.TCPHeaderSize:], tcpHeader, nil
 }
 
-func sendUDPPacketBytes(c *Connection, b []byte) error {
+func (chanNetwork) sendUDPPacketBytes(c *Connection, b []byte) error {
 	c.sendUDP <- b
 	return nil
 }
 
-func receiveUDPPacket(c *Connection) ([]byte, packet.UDPHeader, error) {
+func (chanNetwork) receiveUDPPacket(c *Connection) ([]byte, packet.UDPHeader, error) {
 	b := <-c.recvUDP
 	var udpHeader packet.UDPHeader
 	err := binary.Read(bytes.NewReader(b), binary.BigEndian, &udpHeader)
@@ -86,7 +69,7 @@ func receiveUDPPacket(c *Connection) ([]byte, packet.UDPHeader, error) {
 	return b[packet.UDPHeaderSize:], udpHeader, nil
 }
 
-func receiveUDPPacketFrom(_ *server, mux *Connection) ([]byte, packet.UDPHeader, *Connection, *net.UDPAddr, error) {
+func (chanNetwork) receiveUDPPacketFrom(_ *server, mux *Connection) ([]byte, packet.UDPHeader, *Connection, *net.UDPAddr, error) {
 	b := <-mux.recvUDP
 	var udpHeader packet.UDPHeader
 	err := binary.Read(bytes.NewReader(b), binary.BigEndian, &udpHeader)

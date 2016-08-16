@@ -13,6 +13,9 @@ func Example_fullConnection() {
 		}
 	}()
 
+	// TODO: Test all networks? Use 4 tests or table of tests?
+	nw = tcpNetwork{useWebSocket: true}
+
 	components.server = startServer() // Wait for server to start listening.
 	components.client = startClient()
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
@@ -269,6 +272,8 @@ func disabledExample_connectToEmptyRealServer() {
 			fmt.Println("panic:", err)
 		}
 	}()
+
+	nw = tcpUDPNetwork{}
 
 	components.client = startClient()
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.

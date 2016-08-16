@@ -40,7 +40,7 @@ type client struct {
 
 func startClient() *client {
 	c := &client{
-		serverConn:                 newConnection(),
+		serverConn:                 nw.newConnection(),
 		sentTimeRequestPacketTimes: make(map[uint8]float64),
 		shortestLatency:            math.MaxFloat64,
 		finishedSyncingClock:       make(chan struct{}),
@@ -59,7 +59,7 @@ func startClient() *client {
 }
 
 func (c *client) connectToServer() {
-	c.serverConn.dialServer()
+	nw.dialServer(c.serverConn)
 
 	s := c.serverConn
 

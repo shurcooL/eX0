@@ -3,12 +3,25 @@
 package main
 
 import (
+	"flag"
 	"net/url"
 	"os"
 	"path"
 
 	"github.com/gopherjs/gopherjs/js"
 )
+
+var networkFlag = flag.String("network", "tcp-ws", `Network for client to use (only choice is "tcp-ws").`)
+
+func setupNetwork() bool {
+	switch *networkFlag {
+	case "tcp-ws":
+		nw = tcpNetwork{useWebSocket: true}
+		return true
+	default:
+		return false
+	}
+}
 
 func queryToArgs() []string {
 	u, err := url.Parse(js.Global.Get("location").Get("href").String())
