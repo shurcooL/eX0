@@ -388,11 +388,8 @@ func (s *server) handleTCPConnection(client *Connection) {
 			}
 			s.connectionsMu.Unlock()
 			err = broadcastTCPPacket(cs, &p)
-			if err != nil {
-				// TODO: This error handling is wrong. If fail to send to one client, should still send to others, etc.
-				return err
-			}
-			return nil
+			// TODO: This error handling is wrong. If fail to send to one client, should still send to others, etc.
+			return err
 		}()
 		if err != nil {
 			fmt.Println("error while broadcasting PlayerLeftServer packet:", err)
@@ -459,11 +456,7 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 				var p packet.JoinServerRefuse
 				p.RefuseReason = 123 // TODO.
 				err := sendTCPPacket(client, &p)
-				if err != nil {
-					return err
-				}
-
-				return nil
+				return err
 			}
 		}
 
@@ -495,11 +488,7 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 				var p packet.JoinServerRefuse
 				p.RefuseReason = 123 // TODO.
 				err := sendTCPPacket(client, &p)
-				if err != nil {
-					return err
-				}
-
-				return nil
+				return err
 			}
 		}
 	}

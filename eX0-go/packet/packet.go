@@ -124,10 +124,7 @@ func (p *JoinServerRequest) UnmarshalBinary(b []byte) error {
 		return err
 	}
 	err = binary.Read(buf, binary.BigEndian, &p.Signature)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type JoinServerAccept struct {
@@ -163,10 +160,7 @@ func (p *JoinServerAccept) UnmarshalBinary(b []byte) error {
 		return err
 	}
 	err = binary.Read(buf, binary.BigEndian, &p.TotalPlayerCount)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type JoinServerRefuse struct {
@@ -193,10 +187,7 @@ func (p *JoinServerRefuse) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
 	var err error
 	err = binary.Read(buf, binary.BigEndian, &p.RefuseReason)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type UDPConnectionEstablished struct {
@@ -242,10 +233,7 @@ func (p *LoadLevel) UnmarshalBinary(b []byte) error {
 	var err error
 	p.LevelFilename = make([]byte, len(b))
 	err = binary.Read(buf, binary.BigEndian, &p.LevelFilename)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type CurrentPlayersInfo struct {
@@ -379,10 +367,7 @@ func (p *PlayerJoinedServer) UnmarshalBinary(b []byte) error {
 	}
 	p.Name = make([]byte, p.NameLength)
 	err = binary.Read(buf, binary.BigEndian, &p.Name)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type PlayerLeftServer struct {
@@ -409,10 +394,7 @@ func (p *PlayerLeftServer) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
 	var err error
 	err = binary.Read(buf, binary.BigEndian, &p.PlayerID)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type JoinTeamRequest struct {
@@ -441,10 +423,7 @@ func (p *JoinTeamRequest) UnmarshalBinary(b []byte) error {
 	var err error
 	// TODO: Handle potential PlayerNumber.
 	err = binary.Read(buf, binary.BigEndian, &p.Team)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type PlayerJoinedTeam struct {
@@ -588,10 +567,7 @@ func (p *LocalPlayerInfo) UnmarshalBinary(b []byte) error {
 		return err
 	}
 	err = binary.Read(buf, binary.BigEndian, &p.UpdateRate)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type PlayerWasHit struct {
@@ -627,10 +603,7 @@ func (p *PlayerWasHit) UnmarshalBinary(b []byte) error {
 		return err
 	}
 	err = binary.Read(buf, binary.BigEndian, &p.HealthGiven)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type UDPHeader struct {
@@ -715,10 +688,7 @@ func (p *ClientCommand) UnmarshalBinary(b []byte) error {
 	movesCount := uint16(p.MovesCount) + 1 // De-normalize back to 1 (min value), prevent overflow to 0.
 	p.Moves = make([]Move, movesCount)
 	err = binary.Read(buf, binary.BigEndian, &p.Moves)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type Move struct {
@@ -828,10 +798,7 @@ func (p *Ping) UnmarshalBinary(b []byte, totalPlayerCount uint8) error {
 	}
 	p.LastLatencies = make([]uint16, totalPlayerCount) // TODO: Figure out if this is the best way.
 	err = binary.Read(buf, binary.BigEndian, &p.LastLatencies)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type Pong struct {
@@ -858,10 +825,7 @@ func (p *Pong) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
 	var err error
 	err = binary.Read(buf, binary.BigEndian, &p.PingData)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type Pung struct {
@@ -897,10 +861,7 @@ func (p *Pung) UnmarshalBinary(b []byte) error {
 		return err
 	}
 	err = binary.Read(buf, binary.BigEndian, &p.Time)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type Handshake struct {
@@ -927,10 +888,7 @@ func (p *Handshake) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
 	var err error
 	err = binary.Read(buf, binary.BigEndian, &p.Signature)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type TimeRequest struct {
@@ -957,10 +915,7 @@ func (p *TimeRequest) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
 	var err error
 	err = binary.Read(buf, binary.BigEndian, &p.SequenceNumber)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 type TimeResponse struct {
@@ -996,8 +951,5 @@ func (p *TimeResponse) UnmarshalBinary(b []byte) error {
 		return err
 	}
 	err = binary.Read(buf, binary.BigEndian, &p.Time)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
