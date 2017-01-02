@@ -16,7 +16,7 @@ type network interface {
 	newConnection() *Connection
 
 	dialServer(*Connection)
-	dialedClient(*Connection)
+	dialedClient(*Connection) // dialedClient should be called after a TCP connection to client is established.
 
 	sendTCPPacketBytes(c *Connection, b []byte) error
 	receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error)

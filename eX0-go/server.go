@@ -55,7 +55,7 @@ func startServer() *server {
 	s.lastLatencies = make([]uint16, s.logic.TotalPlayerCount)
 	state.Unlock()
 
-	if level, err := newLevel(string(serverLevelFilename) + ".wwl"); err != nil {
+	if level, err := newLevel(serverLevelFilename + ".wwl"); err != nil {
 		log.Fatalln("failed to load level:", err)
 	} else {
 		s.logic.level = level
@@ -190,6 +190,7 @@ func (s *server) listenAndHandleChan(nw network) {
 		serverToClientConn.sendUDP = clientToServerConn.recvUDP
 		serverToClientConn.recvUDP = clientToServerConn.sendUDP
 		serverToClientConn.JoinStatus = TCP_CONNECTED
+		nw.dialedClient(serverToClientConn)
 
 		s.connectionsMu.Lock()
 		s.connections = append(s.connections, serverToClientConn)
