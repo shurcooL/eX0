@@ -31,4 +31,4 @@ This software uses the PolyBoolean library v0.0 © 1998-1999 [Michael Leonov](ht
 License
 -------
 
-- [MIT License](http://opensource.org/licenses/mit-license.php)
+-	[MIT License](https://opensource.org/licenses/mit-license.php)
