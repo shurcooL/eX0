@@ -13,14 +13,17 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
-// Virtual TCP and UDP via physical TCP.
+// Virtual TCP and UDP via physical TCP or WebSocket.
 type tcpNetwork struct {
-	// useWebSocket controls whether to use raw TCP or WebSocket.
+	// useWebSocket controls whether to use raw TCP or WebSocket
+	// when client is dialing the server.
 	useWebSocket bool
 }
 
-func (tcpNetwork) newConnection() *Connection {
+func (nw tcpNetwork) newConnection() *Connection {
 	c := &Connection{
+		nw: nw,
+
 		sendTCP: make(chan []byte),
 		recvTCP: make(chan []byte, 128),
 		sendUDP: make(chan []byte),
@@ -112,7 +115,7 @@ func (tn tcpNetwork) dialServer(clientToServerConn *Connection) {
 	switch tn.useWebSocket {
 	case false:
 		// Raw TCP connection.
-		tcp, err = net.Dial("tcp", *hostFlag+":25045")
+		tcp, err = net.Dial("tcp", *hostFlag+":25046")
 	case true:
 		// WebSocket connection (TCP-like).
 		var scheme string
@@ -122,7 +125,7 @@ func (tn tcpNetwork) dialServer(clientToServerConn *Connection) {
 		case true:
 			scheme = "wss"
 		}
-		tcp, err = websocket.Dial(scheme+"://"+*hostFlag+":25046", "http://localhost/")
+		tcp, err = websocket.Dial(scheme+"://"+*hostFlag+":25047", "http://localhost/")
 	}
 	if err != nil {
 		panic(err)
@@ -134,9 +137,6 @@ func (tn tcpNetwork) dialServer(clientToServerConn *Connection) {
 func (tcpNetwork) dialedClient(c *Connection) {
 	close(c.start)
 }
-
-// tcp-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
-func (tcpNetwork) shouldHandleUDPDirectly() bool { return true }
 
 func (tcpNetwork) sendTCPPacketBytes(c *Connection, b []byte) error {
 	c.sendTCP <- b

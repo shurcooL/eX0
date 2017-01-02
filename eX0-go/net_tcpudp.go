@@ -13,8 +13,8 @@ import (
 // Normal TCP + UDP.
 type tcpUDPNetwork struct{}
 
-func (tcpUDPNetwork) newConnection() *Connection {
-	return &Connection{}
+func (nw tcpUDPNetwork) newConnection() *Connection {
+	return &Connection{nw: nw}
 }
 
 func (tcpUDPNetwork) dialServer(clientToServerConn *Connection) {
@@ -32,9 +32,6 @@ func (tcpUDPNetwork) dialServer(clientToServerConn *Connection) {
 }
 
 func (tcpUDPNetwork) dialedClient(_ *Connection) {}
-
-// Normal TCP + UDP. No need to handle UDP directly, since it will come in via the UDP mux.
-func (tcpUDPNetwork) shouldHandleUDPDirectly() bool { return false }
 
 func (tcpUDPNetwork) sendTCPPacketBytes(c *Connection, b []byte) error {
 	_, err := c.tcp.Write(b)

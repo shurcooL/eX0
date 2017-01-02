@@ -13,13 +13,12 @@ import (
 
 var networkFlag = flag.String("network", "tcp-ws", `Network for client to use (only choice is "tcp-ws").`)
 
-func setupNetwork() bool {
+func newClientNetwork() (network, bool) {
 	switch *networkFlag {
 	case "tcp-ws":
-		nw = tcpNetwork{useWebSocket: true}
-		return true
+		return tcpNetwork{useWebSocket: true}, true
 	default:
-		return false
+		return nil, false
 	}
 }
 

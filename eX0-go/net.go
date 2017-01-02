@@ -10,8 +10,6 @@ import (
 
 const commandRate = 20
 
-var nw network
-
 // network is the mechanism by which connections are established and
 // individual packets are transported.
 type network interface {
@@ -19,8 +17,6 @@ type network interface {
 
 	dialServer(*Connection)
 	dialedClient(*Connection)
-
-	shouldHandleUDPDirectly() bool
 
 	sendTCPPacketBytes(c *Connection, b []byte) error
 	receiveTCPPacket(c *Connection) ([]byte, packet.TCPHeader, error)
@@ -31,6 +27,8 @@ type network interface {
 
 // Connection is a structure that holds data relevant to a connection.
 type Connection struct {
+	nw network
+
 	// TCP+UDP-only.
 	tcp net.Conn
 	udp *net.UDPConn
@@ -61,7 +59,7 @@ func sendTCPPacket(c *Connection, p encoding.BinaryMarshaler) error {
 	if err != nil {
 		return err
 	}
-	return nw.sendTCPPacketBytes(c, b)
+	return c.nw.sendTCPPacketBytes(c, b)
 }
 
 func sendUDPPacket(c *Connection, p encoding.BinaryMarshaler) error {
@@ -69,7 +67,7 @@ func sendUDPPacket(c *Connection, p encoding.BinaryMarshaler) error {
 	if err != nil {
 		return err
 	}
-	return nw.sendUDPPacketBytes(c, b)
+	return c.nw.sendUDPPacketBytes(c, b)
 }
 
 func broadcastTCPPacket(cs []*Connection, p encoding.BinaryMarshaler) error {
@@ -78,7 +76,7 @@ func broadcastTCPPacket(cs []*Connection, p encoding.BinaryMarshaler) error {
 		return err
 	}
 	for _, c := range cs {
-		err = nw.sendTCPPacketBytes(c, b)
+		err = c.nw.sendTCPPacketBytes(c, b)
 		if err != nil {
 			// TODO: This error handling is wrong. If fail to send to one client, should still send to others, etc.
 			return err
@@ -88,7 +86,7 @@ func broadcastTCPPacket(cs []*Connection, p encoding.BinaryMarshaler) error {
 }
 
 func receiveTCPPacket2(c *Connection, totalPlayerCount uint8) (interface{}, error) {
-	b, tcpHeader, err := nw.receiveTCPPacket(c)
+	b, tcpHeader, err := c.nw.receiveTCPPacket(c)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +196,7 @@ func receiveTCPPacket2(c *Connection, totalPlayerCount uint8) (interface{}, erro
 }
 
 func receiveUDPPacket2(c *Connection, totalPlayerCount uint8) (interface{}, error) {
-	b, udpHeader, err := nw.receiveUDPPacket(c)
+	b, udpHeader, err := c.nw.receiveUDPPacket(c)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +236,7 @@ func receiveUDPPacket2(c *Connection, totalPlayerCount uint8) (interface{}, erro
 }
 
 func receiveUDPPacketFrom2(s *server, mux *Connection, totalPlayerCount uint8) (interface{}, *Connection, *net.UDPAddr, error) {
-	b, udpHeader, c, udpAddr, err := nw.receiveUDPPacketFrom(s, mux)
+	b, udpHeader, c, udpAddr, err := mux.nw.receiveUDPPacketFrom(s, mux)
 	if err != nil {
 		return nil, nil, nil, err
 	}

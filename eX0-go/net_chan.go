@@ -14,8 +14,10 @@ import (
 // TCP and UDP via local channels.
 type chanNetwork struct{}
 
-func (chanNetwork) newConnection() *Connection {
+func (nw chanNetwork) newConnection() *Connection {
 	return &Connection{
+		nw: nw,
+
 		sendTCP: make(chan []byte, 128),
 		recvTCP: make(chan []byte, 128),
 		sendUDP: make(chan []byte, 128),
@@ -29,9 +31,6 @@ func (chanNetwork) dialServer(clientToServerConn *Connection) {
 }
 
 func (chanNetwork) dialedClient(_ *Connection) {}
-
-// chan-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
-func (chanNetwork) shouldHandleUDPDirectly() bool { return true }
 
 func (chanNetwork) sendTCPPacketBytes(c *Connection, b []byte) error {
 	c.sendTCP <- b

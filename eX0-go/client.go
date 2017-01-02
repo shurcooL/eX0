@@ -38,7 +38,7 @@ type client struct {
 	lastLatencies []uint16             // Index is Player ID. Units are 0.1 ms.
 }
 
-func startClient() *client {
+func startClient(nw network) *client {
 	c := &client{
 		serverConn:                 nw.newConnection(),
 		sentTimeRequestPacketTimes: make(map[uint8]float64),
@@ -59,9 +59,9 @@ func startClient() *client {
 }
 
 func (c *client) connectToServer() {
-	nw.dialServer(c.serverConn)
-
 	s := c.serverConn
+
+	s.nw.dialServer(s)
 
 	s.Signature = uint64(time.Now().UnixNano())
 

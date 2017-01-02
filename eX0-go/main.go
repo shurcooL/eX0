@@ -29,7 +29,8 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	if !setupNetwork() {
+	clientNetwork, ok := newClientNetwork()
+	if !ok {
 		flag.Usage()
 		os.Exit(2)
 		return
@@ -37,7 +38,7 @@ func main() {
 
 	switch args := flag.Args(); {
 	case len(args) == 1 && args[0] == "client":
-		components.client = startClient()
+		components.client = startClient(clientNetwork)
 		time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 	case len(args) == 1 && args[0] == "server":
 		components.server = startServer()
@@ -47,12 +48,12 @@ func main() {
 		components.view = startView(components.server.logic)
 		components.view.initAndMainLoop()
 	case len(args) == 1 && args[0] == "client-view":
-		components.client = startClient()
+		components.client = startClient(clientNetwork)
 		components.view = startView(components.client.logic)
 		components.view.initAndMainLoop()
 	case len(args) == 1 && (args[0] == "client-server-view" || args[0] == "server-client-view"):
 		components.server = startServer()
-		components.client = startClient()
+		components.client = startClient(clientNetwork)
 		components.view = startView(components.client.logic)
 		components.view.initAndMainLoop()
 	default:

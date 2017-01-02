@@ -61,10 +61,16 @@ func startServer() *server {
 		s.logic.level = level
 	}
 
-	go s.listenAndHandleTCP()
-	go s.listenAndHandleUDP()
-	go s.listenAndHandleWebSocket()
-	go s.listenAndHandleChan()
+	// Normal TCP + UDP.
+	go s.listenAndHandleTCP(tcpUDPNetwork{})
+	go s.listenAndHandleUDP(tcpUDPNetwork{})
+
+	// Virtual TCP and UDP via physical TCP or WebSocket.
+	go s.listenAndHandleTCPRaw(tcpNetwork{useWebSocket: false})
+	go s.listenAndHandleTCPWebSocket(tcpNetwork{useWebSocket: true})
+
+	// TCP and UDP via local channels.
+	go s.listenAndHandleChan(chanNetwork{})
 
 	go s.broadcastPingPacket()
 
@@ -74,7 +80,7 @@ func startServer() *server {
 	return s
 }
 
-func (s *server) listenAndHandleTCP() {
+func (s *server) listenAndHandleTCP(nw network) {
 	ln, err := net.Listen("tcp", ":25045")
 	if err != nil {
 		panic(err)
@@ -94,13 +100,11 @@ func (s *server) listenAndHandleTCP() {
 		s.connections = append(s.connections, client)
 		s.connectionsMu.Unlock()
 
-		if nw.shouldHandleUDPDirectly() {
-			go s.handleUDP(client)
-		}
 		go s.handleTCPConnection(client)
+		// Normal TCP + UDP. No need to handle UDP directly, since it will come in via the UDP mux.
 	}
 }
-func (s *server) listenAndHandleUDP() {
+func (s *server) listenAndHandleUDP(nw network) {
 	udpAddr, err := net.ResolveUDPAddr("udp", ":25045")
 	if err != nil {
 		panic(err)
@@ -109,12 +113,40 @@ func (s *server) listenAndHandleUDP() {
 	if err != nil {
 		panic(err)
 	}
-	mux := &Connection{udp: ln}
+	mux := &Connection{
+		nw:  nw,
+		udp: ln,
+	}
 
 	s.handleUDP(mux)
 }
 
-func (s *server) listenAndHandleWebSocket() {
+func (s *server) listenAndHandleTCPRaw(nw network) {
+	ln, err := net.Listen("tcp", ":25046")
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		tcp, err := ln.Accept()
+		if err != nil {
+			panic(err)
+		}
+
+		client := nw.newConnection()
+		client.tcp = tcp
+		client.JoinStatus = TCP_CONNECTED
+		nw.dialedClient(client)
+		s.connectionsMu.Lock()
+		s.connections = append(s.connections, client)
+		s.connectionsMu.Unlock()
+
+		go s.handleTCPConnection(client)
+		go s.handleUDP(client) // tcp-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
+	}
+}
+
+func (s *server) listenAndHandleTCPWebSocket(nw network) {
 	h := websocket.Handler(func(conn *websocket.Conn) {
 		// Why is this exported field undocumented?
 		//
@@ -130,27 +162,25 @@ func (s *server) listenAndHandleWebSocket() {
 		s.connections = append(s.connections, client)
 		s.connectionsMu.Unlock()
 
-		if nw.shouldHandleUDPDirectly() {
-			go s.handleUDP(client)
-		}
+		go s.handleUDP(client) // tcp-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
 		s.handleTCPConnection(client)
 		// Do not return until handleTCPConnection does, else WebSocket gets closed.
 	})
 	switch {
 	case *certFlag == "" && *keyFlag == "":
-		err := http.ListenAndServe(":25046", h)
+		err := http.ListenAndServe(":25047", h)
 		if err != nil {
 			panic(err)
 		}
 	default:
-		err := http.ListenAndServeTLS(":25046", *certFlag, *keyFlag, h)
+		err := http.ListenAndServeTLS(":25047", *certFlag, *keyFlag, h)
 		if err != nil {
 			panic(err)
 		}
 	}
 }
 
-func (s *server) listenAndHandleChan() {
+func (s *server) listenAndHandleChan(nw network) {
 	for clientToServerConn := range s.chanListener {
 
 		serverToClientConn := nw.newConnection()
@@ -165,10 +195,8 @@ func (s *server) listenAndHandleChan() {
 		s.connections = append(s.connections, serverToClientConn)
 		s.connectionsMu.Unlock()
 
-		if nw.shouldHandleUDPDirectly() {
-			go s.handleUDP(serverToClientConn)
-		}
 		go s.handleTCPConnection(serverToClientConn)
+		go s.handleUDP(serverToClientConn) // chan-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
 
 		s.chanListenerReply <- struct{}{}
 	}
@@ -357,7 +385,7 @@ func (s *server) broadcastPingPacket() {
 			s.pingSentTimes[c.PlayerID][p.PingData] = time.Now()
 			s.pingSentTimesMu.Unlock()
 
-			err = nw.sendUDPPacketBytes(c, b) // TODO: See if this can/should be replaced with sendUDPPacket or sendTCPPacket, and not affect timing code above negatively.
+			err = c.nw.sendUDPPacketBytes(c, b) // TODO: See if this can/should be replaced with sendUDPPacket or sendTCPPacket, and not affect timing code above negatively.
 			if err != nil {
 				panic(err)
 			}

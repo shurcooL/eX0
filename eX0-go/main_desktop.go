@@ -4,23 +4,19 @@ package main
 
 import "flag"
 
-var networkFlag = flag.String("network", "tcp+udp", `Network for client and server to use (one of "tcp+udp", "tcp-raw", "tcp-ws", "chan").`)
+var networkFlag = flag.String("network", "tcp+udp", `Network for client to use (one of "tcp+udp", "tcp-raw", "tcp-ws", "chan").`)
 
-func setupNetwork() bool {
+func newClientNetwork() (network, bool) {
 	switch *networkFlag {
 	case "tcp+udp":
-		nw = tcpUDPNetwork{}
-		return true
+		return tcpUDPNetwork{}, true
 	case "tcp-raw":
-		nw = tcpNetwork{useWebSocket: false}
-		return true
+		return tcpNetwork{useWebSocket: false}, true
 	case "tcp-ws":
-		nw = tcpNetwork{useWebSocket: true}
-		return true
+		return tcpNetwork{useWebSocket: true}, true
 	case "chan":
-		nw = chanNetwork{}
-		return true
+		return chanNetwork{}, true
 	default:
-		return false
+		return nil, false
 	}
 }

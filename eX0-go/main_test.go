@@ -14,10 +14,10 @@ func Example_fullConnection() {
 	}()
 
 	// TODO: Test all networks? Use 4 tests or table of tests?
-	nw = tcpNetwork{useWebSocket: true}
+	clientNetwork := tcpNetwork{useWebSocket: true}
 
 	components.server = startServer() // Wait for server to start listening.
-	components.client = startClient()
+	components.client = startClient(clientNetwork)
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 
 	// Output:
@@ -273,9 +273,9 @@ func disabledExample_connectToEmptyRealServer() {
 		}
 	}()
 
-	nw = tcpUDPNetwork{}
+	clientNetwork := tcpUDPNetwork{}
 
-	components.client = startClient()
+	components.client = startClient(clientNetwork)
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 
 	// Output:
