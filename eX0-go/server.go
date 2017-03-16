@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	certFlag = flag.String("cert", "", "Cert file for wss, if empty then ws is used.")
-	keyFlag  = flag.String("key", "", "Key file for wss, if empty then ws is used.")
+	certFlag = flag.String("cert", "", "Cert file for wss on server, if empty then ws is used.")
+	keyFlag  = flag.String("key", "", "Key file for wss on server, if empty then ws is used.")
 )
 
 type server struct {

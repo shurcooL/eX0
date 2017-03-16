@@ -30,19 +30,23 @@ Usage
 -----
 
 ```
-Usage: eX0-go [server]-[client]-[view] (e.g., eX0-go client-view)
+Usage: eX0-go [flags] [server]-[client]-[view]
+
+Flags:
   -cert string
-    	Cert file for wss, if empty then ws is used.
+    	Cert file for wss on server, if empty then ws is used.
   -host string
     	Server host (without port) for client to connect to. (default "localhost")
   -key string
-    	Key file for wss, if empty then ws is used.
+    	Key file for wss on server, if empty then ws is used.
   -name string
     	Local client player name. (default "Unnamed Player")
   -network string
     	Network for client to use (one of "tcp+udp", "tcp-raw", "tcp-ws", "chan"). (default "tcp+udp")
   -secure
     	Secure connection to server (e.g., use wss instead of ws).
+
+Example: eX0-go -host=example.com -name=shaGuar client-view
 ```
 
 To run a server and client in one:

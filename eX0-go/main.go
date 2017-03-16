@@ -21,8 +21,11 @@ var components struct {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "Usage: eX0-go [server]-[client]-[view] (e.g., eX0-go client-view)")
+	fmt.Fprintln(os.Stderr, `Usage: eX0-go [flags] [server]-[client]-[view]
+
+Flags:`)
 	flag.PrintDefaults()
+	fmt.Fprintln(os.Stderr, "\nExample: eX0-go -host=example.com -name=shaGuar client-view")
 }
 
 func main() {
