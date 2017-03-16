@@ -16,12 +16,12 @@ Videos
 
 <https://vimeo.com/62844255>
 
-<https://dl.dropboxusercontent.com/u/8554242/dmitri/projects/eX0/videos/eX0-Slowmo.html>
+<https://dmitri.shuralyov.com/projects/eX0/videos/eX0-Slowmo.html>
 
 Screenshots
 -----------
 
-![Screenshot](https://dl.dropboxusercontent.com/u/8554242/dmitri/projects/eX0/Screenshot.png)
+![Screenshot](https://dmitri.shuralyov.com/projects/eX0/Screenshot.png)
 
 Attribution
 -----------
