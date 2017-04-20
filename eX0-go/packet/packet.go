@@ -50,12 +50,6 @@ type TCPHeader struct {
 // TCPHeaderSize is the size in bytes of the TCP packet header.
 const TCPHeaderSize = 3
 
-func init() {
-	if TCPHeaderSize != binary.Size(TCPHeader{}) {
-		panic("TCPHeaderSize != binary.Size(TCPHeader{})")
-	}
-}
-
 func (h *TCPHeader) marshalBinary() []byte {
 	b := make([]byte, TCPHeaderSize)
 	b[0] = byte(h.Length >> 8)
@@ -612,12 +606,6 @@ type UDPHeader struct {
 
 // UDPHeaderSize is the size in bytes of the UDP packet header.
 const UDPHeaderSize = 1
-
-func init() {
-	if UDPHeaderSize != binary.Size(UDPHeader{}) {
-		panic("UDPHeaderSize != binary.Size(UDPHeader{})")
-	}
-}
 
 func (h *UDPHeader) marshalBinary() []byte {
 	b := make([]byte, UDPHeaderSize)
