@@ -92,7 +92,7 @@ func (nw tcpNetwork) newConnection() *Connection {
 				}
 				c.recvTCP <- b[:packet.TCPHeaderSize+tcpHeader.Length]
 			} else {
-				var b = make([]byte, udpSize, udpSize)
+				var b = make([]byte, udpSize)
 				_, err := io.ReadFull(c.tcp, b)
 				if err != nil {
 					close(c.recvTCP)

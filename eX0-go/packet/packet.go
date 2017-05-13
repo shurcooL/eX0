@@ -87,8 +87,7 @@ type JoinServerRequest struct {
 func (p *JoinServerRequest) MarshalBinary() ([]byte, error) {
 	p.Type = JoinServerRequestType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -108,8 +107,7 @@ func (p *JoinServerRequest) MarshalBinary() ([]byte, error) {
 }
 func (p *JoinServerRequest) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.Version)
+	err := binary.Read(buf, binary.BigEndian, &p.Version)
 	if err != nil {
 		return err
 	}
@@ -131,8 +129,7 @@ type JoinServerAccept struct {
 func (p *JoinServerAccept) MarshalBinary() ([]byte, error) {
 	p.Type = JoinServerAcceptType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +145,7 @@ func (p *JoinServerAccept) MarshalBinary() ([]byte, error) {
 }
 func (p *JoinServerAccept) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.YourPlayerID)
+	err := binary.Read(buf, binary.BigEndian, &p.YourPlayerID)
 	if err != nil {
 		return err
 	}
@@ -166,8 +162,7 @@ type JoinServerRefuse struct {
 func (p *JoinServerRefuse) MarshalBinary() ([]byte, error) {
 	p.Type = JoinServerRefuseType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -179,8 +174,7 @@ func (p *JoinServerRefuse) MarshalBinary() ([]byte, error) {
 }
 func (p *JoinServerRefuse) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.RefuseReason)
+	err := binary.Read(buf, binary.BigEndian, &p.RefuseReason)
 	return err
 }
 
@@ -191,8 +185,7 @@ type UDPConnectionEstablished struct {
 func (p *UDPConnectionEstablished) MarshalBinary() ([]byte, error) {
 	p.Type = UDPConnectionEstablishedType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -211,8 +204,7 @@ type LoadLevel struct {
 func (p *LoadLevel) MarshalBinary() ([]byte, error) {
 	p.Type = LoadLevelType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -224,9 +216,8 @@ func (p *LoadLevel) MarshalBinary() ([]byte, error) {
 }
 func (p *LoadLevel) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
 	p.LevelFilename = make([]byte, len(b))
-	err = binary.Read(buf, binary.BigEndian, &p.LevelFilename)
+	err := binary.Read(buf, binary.BigEndian, &p.LevelFilename)
 	return err
 }
 
@@ -253,8 +244,7 @@ type State struct {
 func (p *CurrentPlayersInfo) MarshalBinary() ([]byte, error) {
 	p.Type = CurrentPlayersInfoType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -286,10 +276,9 @@ func (p *CurrentPlayersInfo) MarshalBinary() ([]byte, error) {
 }
 func (p *CurrentPlayersInfo) UnmarshalBinary(b []byte, totalPlayerCount uint8) error {
 	buf := bytes.NewReader(b)
-	var err error
 	p.Players = make([]PlayerInfo, totalPlayerCount) // TODO: Figure out if this is the best way.
 	for i := range p.Players {
-		err = binary.Read(buf, binary.BigEndian, &p.Players[i].NameLength)
+		err := binary.Read(buf, binary.BigEndian, &p.Players[i].NameLength)
 		if err != nil {
 			return err
 		}
@@ -329,8 +318,7 @@ type PlayerJoinedServer struct {
 func (p *PlayerJoinedServer) MarshalBinary() ([]byte, error) {
 	p.Type = PlayerJoinedServerType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -350,8 +338,7 @@ func (p *PlayerJoinedServer) MarshalBinary() ([]byte, error) {
 }
 func (p *PlayerJoinedServer) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.PlayerID)
+	err := binary.Read(buf, binary.BigEndian, &p.PlayerID)
 	if err != nil {
 		return err
 	}
@@ -373,8 +360,7 @@ type PlayerLeftServer struct {
 func (p *PlayerLeftServer) MarshalBinary() ([]byte, error) {
 	p.Type = PlayerLeftServerType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -386,8 +372,7 @@ func (p *PlayerLeftServer) MarshalBinary() ([]byte, error) {
 }
 func (p *PlayerLeftServer) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.PlayerID)
+	err := binary.Read(buf, binary.BigEndian, &p.PlayerID)
 	return err
 }
 
@@ -401,8 +386,7 @@ type JoinTeamRequest struct {
 func (p *JoinTeamRequest) MarshalBinary() ([]byte, error) {
 	p.Type = JoinTeamRequestType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -414,9 +398,8 @@ func (p *JoinTeamRequest) MarshalBinary() ([]byte, error) {
 }
 func (p *JoinTeamRequest) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
 	// TODO: Handle potential PlayerNumber.
-	err = binary.Read(buf, binary.BigEndian, &p.Team)
+	err := binary.Read(buf, binary.BigEndian, &p.Team)
 	return err
 }
 
@@ -431,8 +414,7 @@ type PlayerJoinedTeam struct {
 func (p *PlayerJoinedTeam) MarshalBinary() ([]byte, error) {
 	p.Type = PlayerJoinedTeamType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -454,8 +436,7 @@ func (p *PlayerJoinedTeam) MarshalBinary() ([]byte, error) {
 }
 func (p *PlayerJoinedTeam) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.PlayerID)
+	err := binary.Read(buf, binary.BigEndian, &p.PlayerID)
 	if err != nil {
 		return err
 	}
@@ -480,8 +461,7 @@ type EnterGamePermission struct {
 func (p *EnterGamePermission) MarshalBinary() ([]byte, error) {
 	p.Type = EnterGamePermissionType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -498,8 +478,7 @@ type EnteredGameNotification struct {
 func (p *EnteredGameNotification) MarshalBinary() ([]byte, error) {
 	p.Type = EnteredGameNotificationType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -521,8 +500,7 @@ type LocalPlayerInfo struct {
 func (p *LocalPlayerInfo) MarshalBinary() ([]byte, error) {
 	p.Type = LocalPlayerInfoType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -546,8 +524,7 @@ func (p *LocalPlayerInfo) MarshalBinary() ([]byte, error) {
 }
 func (p *LocalPlayerInfo) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.NameLength)
+	err := binary.Read(buf, binary.BigEndian, &p.NameLength)
 	if err != nil {
 		return err
 	}
@@ -574,8 +551,7 @@ type PlayerWasHit struct {
 func (p *PlayerWasHit) MarshalBinary() ([]byte, error) {
 	p.Type = PlayerWasHitType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.TCPHeader.marshalBinary())
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -591,8 +567,7 @@ func (p *PlayerWasHit) MarshalBinary() ([]byte, error) {
 }
 func (p *PlayerWasHit) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.PlayerID)
+	err := binary.Read(buf, binary.BigEndian, &p.PlayerID)
 	if err != nil {
 		return err
 	}
@@ -633,8 +608,7 @@ type ClientCommand struct {
 func (p *ClientCommand) MarshalBinary() ([]byte, error) {
 	p.Type = ClientCommandType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.UDPHeader.marshalBinary())
+	_, err := buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -660,8 +634,7 @@ func (p *ClientCommand) MarshalBinary() ([]byte, error) {
 }
 func (p *ClientCommand) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.CommandSequenceNumber)
+	err := binary.Read(buf, binary.BigEndian, &p.CommandSequenceNumber)
 	if err != nil {
 		return err
 	}
@@ -695,8 +668,7 @@ type ServerUpdate struct {
 func (p *ServerUpdate) MarshalBinary() ([]byte, error) {
 	p.Type = ServerUpdateType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.UDPHeader.marshalBinary())
+	_, err := buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -721,8 +693,7 @@ func (p *ServerUpdate) MarshalBinary() ([]byte, error) {
 }
 func (p *ServerUpdate) UnmarshalBinary(b []byte, totalPlayerCount uint8) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.CurrentUpdateSequenceNumber)
+	err := binary.Read(buf, binary.BigEndian, &p.CurrentUpdateSequenceNumber)
 	if err != nil {
 		return err
 	}
@@ -762,8 +733,7 @@ type Ping struct {
 func (p *Ping) MarshalBinary() ([]byte, error) {
 	p.Type = PingType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.UDPHeader.marshalBinary())
+	_, err := buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -779,8 +749,7 @@ func (p *Ping) MarshalBinary() ([]byte, error) {
 }
 func (p *Ping) UnmarshalBinary(b []byte, totalPlayerCount uint8) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.PingData)
+	err := binary.Read(buf, binary.BigEndian, &p.PingData)
 	if err != nil {
 		return err
 	}
@@ -798,8 +767,7 @@ type Pong struct {
 func (p *Pong) MarshalBinary() ([]byte, error) {
 	p.Type = PongType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.UDPHeader.marshalBinary())
+	_, err := buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -811,8 +779,7 @@ func (p *Pong) MarshalBinary() ([]byte, error) {
 }
 func (p *Pong) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.PingData)
+	err := binary.Read(buf, binary.BigEndian, &p.PingData)
 	return err
 }
 
@@ -826,8 +793,7 @@ type Pung struct {
 func (p *Pung) MarshalBinary() ([]byte, error) {
 	p.Type = PungType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.UDPHeader.marshalBinary())
+	_, err := buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -843,8 +809,7 @@ func (p *Pung) MarshalBinary() ([]byte, error) {
 }
 func (p *Pung) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.PingData)
+	err := binary.Read(buf, binary.BigEndian, &p.PingData)
 	if err != nil {
 		return err
 	}
@@ -861,8 +826,7 @@ type Handshake struct {
 func (p *Handshake) MarshalBinary() ([]byte, error) {
 	p.Type = HandshakeType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.UDPHeader.marshalBinary())
+	_, err := buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -874,8 +838,7 @@ func (p *Handshake) MarshalBinary() ([]byte, error) {
 }
 func (p *Handshake) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.Signature)
+	err := binary.Read(buf, binary.BigEndian, &p.Signature)
 	return err
 }
 
@@ -888,8 +851,7 @@ type TimeRequest struct {
 func (p *TimeRequest) MarshalBinary() ([]byte, error) {
 	p.Type = TimeRequestType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.UDPHeader.marshalBinary())
+	_, err := buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -901,8 +863,7 @@ func (p *TimeRequest) MarshalBinary() ([]byte, error) {
 }
 func (p *TimeRequest) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.SequenceNumber)
+	err := binary.Read(buf, binary.BigEndian, &p.SequenceNumber)
 	return err
 }
 
@@ -916,8 +877,7 @@ type TimeResponse struct {
 func (p *TimeResponse) MarshalBinary() ([]byte, error) {
 	p.Type = TimeResponseType
 	var buf bytes.Buffer
-	var err error
-	_, err = buf.Write(p.UDPHeader.marshalBinary())
+	_, err := buf.Write(p.UDPHeader.marshalBinary())
 	if err != nil {
 		return nil, err
 	}
@@ -933,8 +893,7 @@ func (p *TimeResponse) MarshalBinary() ([]byte, error) {
 }
 func (p *TimeResponse) UnmarshalBinary(b []byte) error {
 	buf := bytes.NewReader(b)
-	var err error
-	err = binary.Read(buf, binary.BigEndian, &p.SequenceNumber)
+	err := binary.Read(buf, binary.BigEndian, &p.SequenceNumber)
 	if err != nil {
 		return err
 	}
