@@ -36,7 +36,6 @@ func main() {
 	if !ok {
 		flag.Usage()
 		os.Exit(2)
-		return
 	}
 
 	switch args := flag.Args(); {
@@ -62,6 +61,5 @@ func main() {
 	default:
 		flag.Usage()
 		os.Exit(2)
-		return
 	}
 }
