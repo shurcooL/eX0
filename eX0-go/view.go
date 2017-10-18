@@ -23,7 +23,7 @@ func startView(logic *logic) *view {
 		logic:        logic,
 		windowSize:   [2]int{640, 480},
 		activeCamera: 0,
-		cameras:      []CameraI{&FreeCamera{pos: [2]float32{362, 340}}},
+		cameras:      []CameraI{&FreeCamera{pos: [2]float32{25, 140}}},
 	}
 	return v
 }
@@ -67,6 +67,16 @@ func (v *view) initAndMainLoop() {
 				window.SetShouldClose(true)
 			case glfw.KeyV:
 				v.activeCamera = (v.activeCamera + 1) % len(v.cameras)
+			case glfw.Key0:
+				v.cameras[0].(*FreeCamera).zoom = 0
+			}
+		}
+		if action != glfw.Release {
+			switch key {
+			case glfw.KeyEqual:
+				v.cameras[0].(*FreeCamera).zoom++
+			case glfw.KeyMinus:
+				v.cameras[0].(*FreeCamera).zoom--
 			}
 		}
 	})
@@ -74,8 +84,9 @@ func (v *view) initAndMainLoop() {
 		// TODO: A better mechanism to feed input events stream to active camera.
 		switch v.activeCamera {
 		case 0:
-			v.cameras[0].(*FreeCamera).pos[0] += float32(xoff) * 5
-			v.cameras[0].(*FreeCamera).pos[1] -= float32(yoff) * 5
+			scale := v.cameras[0].(*FreeCamera).Scale()
+			v.cameras[0].(*FreeCamera).pos[0] += float32(xoff) * 5 / scale
+			v.cameras[0].(*FreeCamera).pos[1] -= float32(yoff) * 5 / scale
 		}
 	})
 
