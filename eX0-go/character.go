@@ -131,13 +131,12 @@ func (l *character) render(team packet.Team) {
 		gl.Uniform3f(l.colorUniform, 0, 0, 1)
 	}
 
-	var first int
+	first := 0
 	count := l.vertexCount
 	gl.DrawArrays(gl.TRIANGLE_STRIP, first, count)
 	first += count
 	count = 4
 	gl.DrawArrays(gl.TRIANGLE_FAN, first, count)
-	first += count
 }
 
 // ---
