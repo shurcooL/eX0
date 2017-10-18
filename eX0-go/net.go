@@ -155,6 +155,20 @@ func receiveTCPPacket2(c *Connection, totalPlayerCount uint8) (interface{}, erro
 			return nil, err
 		}
 		return p, nil
+	case packet.SendTextMessageType:
+		var p = packet.SendTextMessage{TCPHeader: tcpHeader}
+		err = p.UnmarshalBinary(b)
+		if err != nil {
+			return nil, err
+		}
+		return p, nil
+	case packet.BroadcastTextMessageType:
+		var p = packet.BroadcastTextMessage{TCPHeader: tcpHeader}
+		err = p.UnmarshalBinary(b)
+		if err != nil {
+			return nil, err
+		}
+		return p, nil
 	case packet.JoinTeamRequestType:
 		var p = packet.JoinTeamRequest{TCPHeader: tcpHeader}
 		err = p.UnmarshalBinary(b)

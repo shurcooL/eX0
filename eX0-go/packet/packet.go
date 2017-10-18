@@ -20,6 +20,8 @@ const (
 	UDPConnectionEstablishedType Type = 5
 	EnterGamePermissionType      Type = 6
 	EnteredGameNotificationType  Type = 7
+	SendTextMessageType          Type = 10
+	BroadcastTextMessageType     Type = 11
 	LoadLevelType                Type = 20
 	CurrentPlayersInfoType       Type = 21
 	PlayerJoinedServerType       Type = 25
@@ -486,6 +488,67 @@ func (p *EnteredGameNotification) MarshalBinary() ([]byte, error) {
 }
 func (p *EnteredGameNotification) UnmarshalBinary(b []byte) error {
 	return nil
+}
+
+type SendTextMessage struct {
+	TCPHeader
+
+	Message []byte
+}
+
+func (p *SendTextMessage) MarshalBinary() ([]byte, error) {
+	p.Type = SendTextMessageType
+	var buf bytes.Buffer
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(&buf, binary.BigEndian, &p.Message)
+	if err != nil {
+		return nil, err
+	}
+	return p.amendLength(buf.Bytes()), nil
+}
+func (p *SendTextMessage) UnmarshalBinary(b []byte) error {
+	buf := bytes.NewReader(b)
+	p.Message = make([]byte, p.Length)
+	err := binary.Read(buf, binary.BigEndian, &p.Message)
+	return err
+}
+
+type BroadcastTextMessage struct {
+	TCPHeader
+
+	PlayerID uint8
+	Message  []byte
+}
+
+func (p *BroadcastTextMessage) MarshalBinary() ([]byte, error) {
+	p.Type = BroadcastTextMessageType
+	var buf bytes.Buffer
+	_, err := buf.Write(p.TCPHeader.marshalBinary())
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(&buf, binary.BigEndian, &p.PlayerID)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(&buf, binary.BigEndian, &p.Message)
+	if err != nil {
+		return nil, err
+	}
+	return p.amendLength(buf.Bytes()), nil
+}
+func (p *BroadcastTextMessage) UnmarshalBinary(b []byte) error {
+	buf := bytes.NewReader(b)
+	err := binary.Read(buf, binary.BigEndian, &p.PlayerID)
+	if err != nil {
+		return err
+	}
+	p.Message = make([]byte, p.Length-1)
+	err = binary.Read(buf, binary.BigEndian, &p.Message)
+	return err
 }
 
 type LocalPlayerInfo struct {

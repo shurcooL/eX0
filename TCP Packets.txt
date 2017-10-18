@@ -26,7 +26,7 @@ Signature (SIGNATURE_SIZE = 8 char)
 7. Entered Game Notification (size == 0):
 Empty
 
-10. Send Text message (size >= 1):
+10. Send Text Message (size >= 1):
 Message (* char)
 
 27. Join Team Request (size == 1 {+ 1}):

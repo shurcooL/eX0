@@ -329,6 +329,12 @@ func (c *client) connectToServer() {
 				c.logic.playersStateMu.Unlock()
 
 				fmt.Printf("%v joined %v.\n", ps.Name, ps.Team)
+			case packet.BroadcastTextMessage:
+				c.logic.playersStateMu.Lock()
+				ps := c.logic.playersState[r.PlayerID]
+				c.logic.playersStateMu.Unlock()
+
+				fmt.Printf("%s: %s\n", ps.Name, r.Message)
 			case packet.PlayerWasHit:
 				fmt.Fprintf(os.Stderr, "[weapons] Player %v was hit for %v.\n", r.PlayerID, r.HealthGiven)
 				// TODO: Implement.
