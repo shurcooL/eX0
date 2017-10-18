@@ -50,7 +50,7 @@ func startClient(nw network) *client {
 	c.logic.Input <- func(logic *logic) packet.Move {
 		return packet.Move{
 			MoveDirection: -1,
-			Z:             logic.playersState[components.client.playerID].LatestAuthed().Z,
+			Z:             logic.playersState[c.playerID].LatestAuthed().Z,
 		}
 	}
 	c.connectToServer()
