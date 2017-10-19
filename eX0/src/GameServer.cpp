@@ -94,11 +94,11 @@ void GLFWCALL GameServer::ThreadFunction(void * pArgument)
 		printf("Created UDP socket #%d.\n", (int)pGameServer->nUdpSocket);
 
 		// lose the pesky "address already in use" error message
-		/*if (setsockopt(pGameServer->listener, SOL_SOCKET, SO_REUSEADDR, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
+		if (setsockopt(pGameServer->listener, SOL_SOCKET, SO_REUSEADDR, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
 			NetworkPrintError("setsockopt(SO_REUSEADDR)");
 			Terminate(1);
 			return;
-		}*/
+		}
 		// Disable the Nagle algorithm for send coalescing
 		if (setsockopt(pGameServer->listener, IPPROTO_TCP, TCP_NODELAY, (char *)&nYes, sizeof(nYes)) == SOCKET_ERROR) {
 			NetworkPrintError("setsockopt(nodelay)");
