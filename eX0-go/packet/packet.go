@@ -34,6 +34,8 @@ const (
 	// UDP packet types.
 	ClientCommandType Type = 1
 	ServerUpdateType  Type = 2
+	WeaponCommandType Type = 3
+	WeaponActionType  Type = 4
 	PingType          Type = 10
 	PongType          Type = 11
 	PungType          Type = 12
@@ -784,6 +786,141 @@ func (p *ServerUpdate) UnmarshalBinary(b []byte, totalPlayerCount uint8) error {
 type PlayerUpdate struct {
 	ActivePlayer uint8
 	State        *State // If ActivePlayer == true.
+}
+
+type WeaponCommand struct {
+	UDPHeader
+
+	Action       WeaponState
+	Time         float64
+	Z            float32 // If Action is WeaponSystem::FIRE.
+	WeaponNumber uint8   // If Action is WeaponSystem::CHANGE_WEAPON.
+}
+
+func (p *WeaponCommand) MarshalBinary() ([]byte, error) {
+	p.Type = WeaponCommandType
+	var buf bytes.Buffer
+	_, err := buf.Write(p.UDPHeader.marshalBinary())
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(&buf, binary.BigEndian, &p.Action)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(&buf, binary.BigEndian, &p.Time)
+	if err != nil {
+		return nil, err
+	}
+	switch p.Action {
+	case Fire:
+		err = binary.Write(&buf, binary.BigEndian, &p.Z)
+		if err != nil {
+			return nil, err
+		}
+	case ChangeWeapon:
+		err = binary.Write(&buf, binary.BigEndian, &p.WeaponNumber)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return buf.Bytes(), nil
+}
+func (p *WeaponCommand) UnmarshalBinary(b []byte) error {
+	buf := bytes.NewReader(b)
+	err := binary.Read(buf, binary.BigEndian, &p.Action)
+	if err != nil {
+		return err
+	}
+	err = binary.Read(buf, binary.BigEndian, &p.Time)
+	if err != nil {
+		return err
+	}
+	switch p.Action {
+	case Fire:
+		err = binary.Read(buf, binary.BigEndian, &p.Z)
+		if err != nil {
+			return err
+		}
+	case ChangeWeapon:
+		err = binary.Read(buf, binary.BigEndian, &p.WeaponNumber)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type WeaponAction struct {
+	UDPHeader
+
+	PlayerID     uint8
+	Action       WeaponState
+	Time         float64
+	Z            float32 // If Action is WeaponSystem::FIRE.
+	WeaponNumber uint8   // If Action is WeaponSystem::CHANGE_WEAPON.
+}
+
+func (p *WeaponAction) MarshalBinary() ([]byte, error) {
+	p.Type = WeaponActionType
+	var buf bytes.Buffer
+	_, err := buf.Write(p.UDPHeader.marshalBinary())
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(&buf, binary.BigEndian, &p.PlayerID)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(&buf, binary.BigEndian, &p.Action)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(&buf, binary.BigEndian, &p.Time)
+	if err != nil {
+		return nil, err
+	}
+	switch p.Action {
+	case Fire:
+		err = binary.Write(&buf, binary.BigEndian, &p.Z)
+		if err != nil {
+			return nil, err
+		}
+	case ChangeWeapon:
+		err = binary.Write(&buf, binary.BigEndian, &p.WeaponNumber)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return buf.Bytes(), nil
+}
+func (p *WeaponAction) UnmarshalBinary(b []byte) error {
+	buf := bytes.NewReader(b)
+	err := binary.Read(buf, binary.BigEndian, &p.PlayerID)
+	if err != nil {
+		return err
+	}
+	err = binary.Read(buf, binary.BigEndian, &p.Action)
+	if err != nil {
+		return err
+	}
+	err = binary.Read(buf, binary.BigEndian, &p.Time)
+	if err != nil {
+		return err
+	}
+	switch p.Action {
+	case Fire:
+		err = binary.Read(buf, binary.BigEndian, &p.Z)
+		if err != nil {
+			return err
+		}
+	case ChangeWeapon:
+		err = binary.Read(buf, binary.BigEndian, &p.WeaponNumber)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type Ping struct {

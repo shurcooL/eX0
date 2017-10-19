@@ -431,6 +431,9 @@ func (c *client) handleUDP(s *Connection) {
 				}
 			}
 			c.logic.playersStateMu.Unlock()
+
+		case packet.WeaponAction:
+			goon.DumpExpr(r)
 		default:
 			fmt.Println("[client] got unsupported UDP packet type")
 		}

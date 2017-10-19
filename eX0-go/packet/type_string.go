@@ -5,55 +5,50 @@ package packet
 import "fmt"
 
 const (
-	_Type_name_0 = "JoinServerRequestTypeJoinServerAcceptTypeJoinServerRefuseType"
-	_Type_name_1 = "UDPConnectionEstablishedTypeEnterGamePermissionTypeEnteredGameNotificationType"
-	_Type_name_2 = "SendTextMessageTypeBroadcastTextMessageTypePungType"
-	_Type_name_3 = "LoadLevelTypeCurrentPlayersInfoType"
-	_Type_name_4 = "PlayerJoinedServerTypePlayerLeftServerTypeJoinTeamRequestTypePlayerJoinedTeamType"
-	_Type_name_5 = "LocalPlayerInfoType"
-	_Type_name_6 = "PlayerWasHitType"
-	_Type_name_7 = "HandshakeType"
-	_Type_name_8 = "TimeRequestTypeTimeResponseType"
+	_Type_name_0 = "JoinServerRequestTypeJoinServerAcceptTypeJoinServerRefuseTypeWeaponActionTypeUDPConnectionEstablishedTypeEnterGamePermissionTypeEnteredGameNotificationType"
+	_Type_name_1 = "SendTextMessageTypeBroadcastTextMessageTypePungType"
+	_Type_name_2 = "LoadLevelTypeCurrentPlayersInfoType"
+	_Type_name_3 = "PlayerJoinedServerTypePlayerLeftServerTypeJoinTeamRequestTypePlayerJoinedTeamType"
+	_Type_name_4 = "LocalPlayerInfoType"
+	_Type_name_5 = "PlayerWasHitType"
+	_Type_name_6 = "HandshakeType"
+	_Type_name_7 = "TimeRequestTypeTimeResponseType"
 )
 
 var (
-	_Type_index_0 = [...]uint8{0, 21, 41, 61}
-	_Type_index_1 = [...]uint8{0, 28, 51, 78}
-	_Type_index_2 = [...]uint8{0, 19, 43, 51}
-	_Type_index_3 = [...]uint8{0, 13, 35}
-	_Type_index_4 = [...]uint8{0, 22, 42, 61, 81}
-	_Type_index_5 = [...]uint8{0, 19}
-	_Type_index_6 = [...]uint8{0, 16}
-	_Type_index_7 = [...]uint8{0, 13}
-	_Type_index_8 = [...]uint8{0, 15, 31}
+	_Type_index_0 = [...]uint8{0, 21, 41, 61, 77, 105, 128, 155}
+	_Type_index_1 = [...]uint8{0, 19, 43, 51}
+	_Type_index_2 = [...]uint8{0, 13, 35}
+	_Type_index_3 = [...]uint8{0, 22, 42, 61, 81}
+	_Type_index_4 = [...]uint8{0, 19}
+	_Type_index_5 = [...]uint8{0, 16}
+	_Type_index_6 = [...]uint8{0, 13}
+	_Type_index_7 = [...]uint8{0, 15, 31}
 )
 
 func (i Type) String() string {
 	switch {
-	case 1 <= i && i <= 3:
+	case 1 <= i && i <= 7:
 		i -= 1
 		return _Type_name_0[_Type_index_0[i]:_Type_index_0[i+1]]
-	case 5 <= i && i <= 7:
-		i -= 5
-		return _Type_name_1[_Type_index_1[i]:_Type_index_1[i+1]]
 	case 10 <= i && i <= 12:
 		i -= 10
-		return _Type_name_2[_Type_index_2[i]:_Type_index_2[i+1]]
+		return _Type_name_1[_Type_index_1[i]:_Type_index_1[i+1]]
 	case 20 <= i && i <= 21:
 		i -= 20
-		return _Type_name_3[_Type_index_3[i]:_Type_index_3[i+1]]
+		return _Type_name_2[_Type_index_2[i]:_Type_index_2[i+1]]
 	case 25 <= i && i <= 28:
 		i -= 25
-		return _Type_name_4[_Type_index_4[i]:_Type_index_4[i+1]]
+		return _Type_name_3[_Type_index_3[i]:_Type_index_3[i+1]]
 	case i == 30:
-		return _Type_name_5
+		return _Type_name_4
 	case i == 40:
-		return _Type_name_6
+		return _Type_name_5
 	case i == 100:
-		return _Type_name_7
+		return _Type_name_6
 	case 105 <= i && i <= 106:
 		i -= 105
-		return _Type_name_8[_Type_index_8[i]:_Type_index_8[i+1]]
+		return _Type_name_7[_Type_index_7[i]:_Type_index_7[i+1]]
 	default:
 		return fmt.Sprintf("Type(%d)", i)
 	}

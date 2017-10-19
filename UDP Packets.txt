@@ -49,6 +49,27 @@ cCurrentUpdateSequenceNumber (char)
 	active_player (char) = 0
 ]
 
+3. Weapon Command (size == 9 | 10 | 13):
+Action (char)
+Time (double)
+[ if (Action == WeaponSystem::FIRE)
+	fZ (float)
+] else
+[ if (Action == WeaponSystem::CHANGE_WEAPON)
+ 	Weapon Number (char)
+]
+
+4. Weapon Action (size == 10 | 11 | 14):
+Player Id (char)
+Action (char)
+Time (double)
+[ if (Action == WeaponSystem::FIRE)
+	fZ (float)
+] else
+[ if (Action == WeaponSystem::CHANGE_WEAPON)
+ 	Weapon Number (char)
+]
+
 106. Time Response (size == 9):
 Sequence Number (char)
 Time (double)

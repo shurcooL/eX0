@@ -244,6 +244,13 @@ func receiveUDPPacket2(c *Connection, totalPlayerCount uint8) (interface{}, erro
 			return nil, err
 		}
 		return p, nil
+	case packet.WeaponActionType:
+		var p = packet.WeaponAction{UDPHeader: udpHeader}
+		err = p.UnmarshalBinary(b)
+		if err != nil {
+			return nil, err
+		}
+		return p, nil
 	default:
 		return nil, fmt.Errorf("invalid UDP packet type: %v", udpHeader.Type)
 	}
@@ -313,6 +320,13 @@ func receiveUDPPacketFrom2(s *server, mux *Connection, totalPlayerCount uint8) (
 	case packet.ServerUpdateType:
 		var p = packet.ServerUpdate{UDPHeader: udpHeader}
 		err = p.UnmarshalBinary(b, totalPlayerCount)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return p, c, udpAddr, nil
+	case packet.WeaponCommandType:
+		var p = packet.WeaponCommand{UDPHeader: udpHeader}
+		err = p.UnmarshalBinary(b)
 		if err != nil {
 			return nil, nil, nil, err
 		}
