@@ -16,23 +16,23 @@ Packet Type (char) - 1 byte
 Client -> Server TCP Packets:
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 1. Client Command (size >= 9):
-cCommandSequenceNumber (char)
-cCommandSeriesNumber (char)
-cMovesCount (char)
-[
-	cMoveDirection (char)
-	cStealth (char)
+Command Sequence Number (char)
+Command Series Number (char)
+Moves Count (char)
+[ for each move
+	Move Direction (char)
+	Stealth (char)
 	fZ (float)
 ]
 
-100. Handshake Packet (size == 8):
+100. Handshake (size == 8):
 Signature (SIGNATURE_SIZE = 8 char)
 
-105. Time Request Packet (size == 1):
-cSequenceNumber (char)
+105. Time Request (size == 1):
+Sequence Number (char)
 
-11. Pong Packet (size == 4):
-cPingData (4 char)
+11. Pong (size == 4):
+Ping Data (4 char)
 
 Server -> Client TCP Packets:
 ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
@@ -49,16 +49,16 @@ cCurrentUpdateSequenceNumber (char)
 	active_player (char) = 0
 ]
 
-106. Time Response Packet (size == 9):
-cSequenceNumber (char)
-dTime (double)
+106. Time Response (size == 9):
+Sequence Number (char)
+Time (double)
 
-10. Ping Packet (size == 4 + 2 * nPlayerCount):
-cPingData (4 char)
+10. Ping (size == 4 + 2 * nPlayerCount):
+Ping Data (4 char)
 [ for each player
 	nLastLatency (short)
 ]
 
-12. Pung Packet (size == 12):
-cPingData (4 char)
-dTime (double)
+12. Pung (size == 12):
+Ping Data (4 char)
+Time (double)
