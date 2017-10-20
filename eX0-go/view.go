@@ -100,6 +100,14 @@ func (v *view) initAndMainLoop() {
 		panic(err)
 	}
 
+	shadow, err := newCharacterShadow()
+	if err != nil {
+		panic(err)
+	}
+
+	gl.Enable(gl.CULL_FACE)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+
 	if components.client != nil {
 		v.logic.Input <- func(logic *logic) packet.Move { return inputCommand(logic, window) }
 
@@ -130,11 +138,14 @@ func (v *view) initAndMainLoop() {
 		pMatrix := mgl32.Ortho2D(0, float32(v.windowSize[0]), 0, float32(v.windowSize[1]))
 		mvMatrix := v.cameras[v.activeCamera].ModelView()
 
+		// Render level.
 		v.logic.level.setup()
 		gl.UniformMatrix4fv(v.logic.level.pMatrixUniform, pMatrix[:])
 		gl.UniformMatrix4fv(v.logic.level.mvMatrixUniform, mvMatrix[:])
 		v.logic.level.render()
 
+		// Calculate player positions for this frame.
+		var players []visiblePlayer
 		state.Lock()
 		v.logic.playersStateMu.Lock()
 		for id, ps := range v.logic.playersState {
@@ -151,13 +162,26 @@ func (v *view) initAndMainLoop() {
 			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(pos.X, pos.Y, 0))
 			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-pos.Z))
 
-			c.setup()
-			gl.UniformMatrix4fv(c.pMatrixUniform, pMatrix[:])
-			gl.UniformMatrix4fv(c.mvMatrixUniform, mvMatrix[:])
-			c.render(ps.Team)
+			players = append(players, visiblePlayer{MV: mvMatrix, Team: ps.Team})
 		}
 		v.logic.playersStateMu.Unlock()
 		state.Unlock()
+
+		// Render player shadows.
+		shadow.setup()
+		gl.UniformMatrix4fv(shadow.pMatrixUniform, pMatrix[:])
+		for _, p := range players {
+			gl.UniformMatrix4fv(shadow.mvMatrixUniform, p.MV[:])
+			shadow.render()
+		}
+
+		// Render players.
+		c.setup()
+		gl.UniformMatrix4fv(c.pMatrixUniform, pMatrix[:])
+		for _, p := range players {
+			gl.UniformMatrix4fv(c.mvMatrixUniform, p.MV[:])
+			c.render(p.Team)
+		}
 
 		window.SwapBuffers()
 	}
@@ -166,4 +190,9 @@ func (v *view) initAndMainLoop() {
 		// Take away logic's access to window before terminating GLFW.
 		v.logic.Input <- nil
 	}
+}
+
+type visiblePlayer struct {
+	MV   mgl32.Mat4 // Model-view matrix for player position.
+	Team packet.Team
 }

@@ -376,7 +376,7 @@ func (c *client) handleUDP(s *Connection) {
 				c.logic.started = c.logic.started.Add(time.Duration(delta * float64(time.Second)))
 				fmt.Fprintf(os.Stderr, "delta: %.3f seconds, started: %v\n", delta, c.logic.started)
 				logicTime := time.Since(c.logic.started).Seconds()
-				c.logic.GlobalStateSequenceNumber = uint8(logicTime * commandRate) // TODO: Adjust this.
+				c.logic.GlobalStateSequenceNumber = uint8(logicTime * commandRate) // TODO: Adjust this (https://github.com/shurcooL/eX0/commit/2d3f33ade3765cfc55f6b31c235ab29adad3a8f2).
 				c.logic.NextTickTime = 0                                           // TODO: Adjust this.
 				for c.logic.NextTickTime+1.0/commandRate < logicTime {
 					c.logic.NextTickTime += 1.0 / commandRate

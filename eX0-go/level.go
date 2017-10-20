@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 
@@ -9,7 +8,6 @@ import (
 	"github.com/goxjs/gl/glutil"
 	"github.com/goxjs/glfw"
 	"github.com/shurcooL/eX0/eX0-go/gpc"
-	"golang.org/x/mobile/exp/f32"
 )
 
 func newLevel(name string) (*level, error) {
@@ -31,22 +29,12 @@ type level struct {
 	program                 gl.Program
 	pMatrixUniform          gl.Uniform
 	mvMatrixUniform         gl.Uniform
-	vertexPositionBuffer    gl.Buffer
 	vertexPositionAttribute gl.Attrib
+	vertexPositionBuffer    gl.Buffer
 }
 
 // initGraphics prepares level for rendering.
 func (l *level) initGraphics() error {
-	if err := l.initShaders(); err != nil {
-		return err
-	}
-	if err := l.createVbo(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (l *level) initShaders() error {
 	const (
 		vertexSource = `//#version 120 // OpenGL 2.1.
 //#version 100 // WebGL.
@@ -70,53 +58,35 @@ void main() {
 	)
 
 	var err error
-	l.program, err = glutil.CreateProgram(vertexSource, fragmentSource)
+	l.program, err = createValidateUseProgram(vertexSource, fragmentSource)
 	if err != nil {
 		return err
 	}
 
-	gl.ValidateProgram(l.program)
-	if gl.GetProgrami(l.program, gl.VALIDATE_STATUS) != gl.TRUE {
-		return errors.New("VALIDATE_STATUS: " + gl.GetProgramInfoLog(l.program))
-	}
-
-	gl.UseProgram(l.program)
-
 	l.pMatrixUniform = gl.GetUniformLocation(l.program, "uPMatrix")
 	l.mvMatrixUniform = gl.GetUniformLocation(l.program, "uMVMatrix")
-
-	if glError := gl.GetError(); glError != 0 {
-		return fmt.Errorf("gl.GetError: %v", glError)
-	}
-
-	return nil
-}
-
-func (l *level) createVbo() error {
-	l.vertexPositionBuffer = gl.CreateBuffer()
-	gl.BindBuffer(gl.ARRAY_BUFFER, l.vertexPositionBuffer)
-	var vertices []float32
-	for _, contour := range l.polygon.Contours {
-		for _, vertex := range contour.Vertices {
-			vertices = append(vertices, float32(vertex[0]), float32(vertex[1]))
-		}
-	}
-	gl.BufferData(gl.ARRAY_BUFFER, f32.Bytes(binary.LittleEndian, vertices...), gl.STATIC_DRAW)
 
 	l.vertexPositionAttribute = gl.GetAttribLocation(l.program, "aVertexPosition")
 	gl.EnableVertexAttribArray(l.vertexPositionAttribute)
 
-	if glError := gl.GetError(); glError != 0 {
-		return fmt.Errorf("gl.GetError: %v", glError)
+	var positionData []float32
+	for _, contour := range l.polygon.Contours {
+		for _, vertex := range contour.Vertices {
+			positionData = append(positionData, float32(vertex[0]), float32(vertex[1]))
+		}
 	}
+	l.vertexPositionBuffer = createVbo3Float(positionData)
 
+	if err := gl.GetError(); err != 0 {
+		return fmt.Errorf("gl.GetError: %v", err)
+	}
 	return nil
 }
 
 func (l *level) setup() {
 	gl.UseProgram(l.program)
-	gl.BindBuffer(gl.ARRAY_BUFFER, l.vertexPositionBuffer)
 
+	gl.BindBuffer(gl.ARRAY_BUFFER, l.vertexPositionBuffer)
 	gl.VertexAttribPointer(l.vertexPositionAttribute, 2, gl.FLOAT, false, 0, 0)
 }
 
@@ -127,4 +97,21 @@ func (l *level) render() {
 		gl.DrawArrays(gl.LINE_LOOP, first, count)
 		first += count
 	}
+}
+
+// createValidateUseProgram creates, compiles, links, validates, and uses a gl.Program.
+func createValidateUseProgram(vertexSource, fragmentSource string) (gl.Program, error) {
+	p, err := glutil.CreateProgram(vertexSource, fragmentSource)
+	if err != nil {
+		return p, err
+	}
+	gl.ValidateProgram(p)
+	if gl.GetProgrami(p, gl.VALIDATE_STATUS) != gl.TRUE {
+		return p, errors.New("VALIDATE_STATUS: " + gl.GetProgramInfoLog(p))
+	}
+	gl.UseProgram(p)
+	if err := gl.GetError(); err != 0 {
+		return p, fmt.Errorf("gl.GetError: %v", err)
+	}
+	return p, nil
 }
