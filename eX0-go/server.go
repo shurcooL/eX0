@@ -366,7 +366,9 @@ func (s *server) broadcastPingPacket() {
 		var p packet.Ping
 		p.PingData = s.lastPingData
 		p.LastLatencies = make([]uint16, s.logic.TotalPlayerCount)
+		s.lastLatenciesMu.Lock()
 		copy(p.LastLatencies, s.lastLatencies)
+		s.lastLatenciesMu.Unlock()
 
 		b, err := p.MarshalBinary()
 		if err != nil {

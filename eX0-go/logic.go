@@ -69,20 +69,27 @@ func (l *logic) gameLogic() {
 		state.Unlock()
 
 		if debugFirstJoin && components.client != nil {
+			state.Lock()
+			playerID := components.client.playerID
+			state.Unlock()
 			l.playersStateMu.Lock()
-			ps, ok := l.playersState[components.client.playerID]
+			ps, ok := l.playersState[playerID]
 			if ok && ps.Team != packet.Spectator {
 				debugFirstJoin = false
 				logicTime := float64(l.GlobalStateSequenceNumber) + (time.Since(l.started).Seconds()-l.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(l.started).Seconds(), components.client.playerID, l.playersState[components.client.playerID].Name, ps.Team, logicTime, l.GlobalStateSequenceNumber)
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(l.started).Seconds(), playerID, l.playersState[playerID].Name, ps.Team, logicTime, l.GlobalStateSequenceNumber)
 			}
 			l.playersStateMu.Unlock()
 		}
 
 		if tick && components.client != nil {
+			state.Lock()
+			playerID := components.client.playerID
+			state.Unlock()
+
 			if doInput != nil {
 				l.playersStateMu.Lock()
-				ps, ok := l.playersState[components.client.playerID]
+				ps, ok := l.playersState[playerID]
 				if ok && ps.Team != packet.Spectator {
 					// Fill all missing commands (from last authed until one we're supposed to be by now (based on GlobalStateSequenceNumberTEST time).
 					for lastState := ps.LatestPredicted(); int8(lastState.SequenceNumber-l.GlobalStateSequenceNumber) < 0; lastState = ps.LatestPredicted() {
@@ -95,17 +102,14 @@ func (l *logic) gameLogic() {
 							predicted: newState,
 						})
 					}
-					l.playersState[components.client.playerID] = ps
+					l.playersState[playerID] = ps
 				}
 				l.playersStateMu.Unlock()
 			}
 
 			l.playersStateMu.Lock()
-			ps, ok := l.playersState[components.client.playerID]
-			l.playersStateMu.Unlock()
-
+			ps, ok := l.playersState[playerID]
 			if ok && ps.Team != packet.Spectator && len(ps.unconfirmed) > 0 {
-
 				var moves []packet.Move
 				for _, unconfirmed := range ps.unconfirmed {
 					moves = append(moves, unconfirmed.move)
@@ -132,6 +136,7 @@ func (l *logic) gameLogic() {
 					}
 				}
 			}
+			l.playersStateMu.Unlock()
 		}
 
 		time.Sleep(sleep)
