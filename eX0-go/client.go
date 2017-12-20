@@ -54,7 +54,6 @@ func startClient(nw network) *client {
 		}
 	}
 	c.connectToServer()
-	c.logic.client <- c // TODO: Do this in a nicer way.
 	return c
 }
 
