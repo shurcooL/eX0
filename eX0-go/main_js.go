@@ -22,6 +22,13 @@ func newClientNetwork() (network, bool) {
 	}
 }
 
+func init() {
+	os.Args = queryToArgs()
+	if len(os.Args) == 1 {
+		os.Args = append(os.Args, "client-view") // Default mode when no parameters are provided.
+	}
+}
+
 func queryToArgs() []string {
 	u, err := url.Parse(js.Global.Get("location").Get("href").String())
 	if err != nil {
@@ -37,11 +44,4 @@ func queryToArgs() []string {
 		}
 	}
 	return args
-}
-
-func init() {
-	os.Args = queryToArgs()
-	if len(os.Args) == 1 {
-		os.Args = append(os.Args, "client-view") // Default mode when no parameters are provided.
-	}
 }
