@@ -17,8 +17,6 @@ go get -u github.com/shurcooL/eX0/eX0-go
 GOARCH=js go get -u -d github.com/shurcooL/eX0/eX0-go
 ```
 
-Use this folder as the current working directory when running `eX0-go` binary.
-
 Screenshot
 ----------
 
