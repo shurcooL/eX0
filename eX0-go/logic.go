@@ -60,12 +60,14 @@ func (l *logic) gameLogic() {
 		sleep := time.Millisecond
 
 		state.Lock()
+		l.playersStateMu.Lock()
 		for now := time.Since(l.started).Seconds(); now >= l.NextTickTime; {
 			l.NextTickTime += 1.0 / commandRate
 			l.GlobalStateSequenceNumber++
 			tick = true
 		}
 		//sleep = time.Duration((l.NextTickTime - now) * float64(time.Second))
+		l.playersStateMu.Unlock()
 		state.Unlock()
 
 		if debugFirstJoin && components.client != nil {
@@ -91,7 +93,7 @@ func (l *logic) gameLogic() {
 				l.playersStateMu.Lock()
 				ps, ok := l.playersState[playerID]
 				if ok && ps.Team != packet.Spectator {
-					// Fill all missing commands (from last authed until one we're supposed to be by now (based on GlobalStateSequenceNumberTEST time).
+					// Fill all missing commands (from last authed until one we're supposed to be by now (based on GlobalStateSequenceNumber time).
 					for lastState := ps.LatestPredicted(); int8(lastState.SequenceNumber-l.GlobalStateSequenceNumber) < 0; lastState = ps.LatestPredicted() {
 						move := doInput(l)
 
@@ -107,6 +109,7 @@ func (l *logic) gameLogic() {
 				l.playersStateMu.Unlock()
 			}
 
+			state.Lock() // For GlobalStateSequenceNumber.
 			l.playersStateMu.Lock()
 			ps, ok := l.playersState[playerID]
 			if ok && ps.Team != packet.Spectator && len(ps.unconfirmed) > 0 {
@@ -119,9 +122,7 @@ func (l *logic) gameLogic() {
 				// Send a ClientCommand packet to server.
 				if components.client != nil && components.client.serverConn != nil && components.client.serverConn.JoinStatus >= IN_GAME {
 					var p packet.ClientCommand
-					state.Lock()
 					p.CommandSequenceNumber = l.GlobalStateSequenceNumber - 1
-					state.Unlock()
 					p.CommandSeriesNumber = 1 // TODO: Don't hardcode this.
 					p.Moves = moves
 					//fmt.Printf("%.3f: sending ClientCommand with %v moves, clientLastAckedCSN=%v, G-1=%v\n", time.Since(l.started).Seconds(), len(p.Moves), clientLastAckedCmdSequenceNumber, l.GlobalStateSequenceNumber-1)
@@ -137,6 +138,7 @@ func (l *logic) gameLogic() {
 				}
 			}
 			l.playersStateMu.Unlock()
+			state.Unlock()
 		}
 
 		time.Sleep(sleep)
