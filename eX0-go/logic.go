@@ -31,8 +31,8 @@ type logic struct {
 	level *level
 }
 
-func startLogic() *logic {
-	l := &logic{
+func newLogic() *logic {
+	return &logic{
 		Input:                     make(chan func(logic *logic) packet.Move),
 		started:                   time.Now(),
 		GlobalStateSequenceNumber: 0,
@@ -40,8 +40,10 @@ func startLogic() *logic {
 
 		playersState: make(map[uint8]playerState),
 	}
+}
+
+func (l *logic) start() {
 	go l.gameLogic()
-	return l
 }
 
 func (l *logic) gameLogic() {

@@ -18,14 +18,13 @@ type view struct {
 	cameras      []CameraI
 }
 
-func startView(logic *logic) *view {
-	v := &view{
+func newView(logic *logic) *view {
+	return &view{
 		logic:        logic,
 		windowSize:   [2]int{640, 480},
 		activeCamera: 0,
 		cameras:      []CameraI{&FreeCamera{pos: [2]float32{25, 140}}},
 	}
-	return v
 }
 
 func (v *view) initAndMainLoop() {

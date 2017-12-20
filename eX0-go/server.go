@@ -43,12 +43,16 @@ type server struct {
 
 const serverLevelFilename = "test3"
 
-func startServer() *server {
-	s := &server{
+func newServer() *server {
+	return &server{
+		logic:             newLogic(),
 		chanListener:      make(chan *Connection),
 		chanListenerReply: make(chan struct{}),
 	}
-	s.logic = startLogic()
+}
+
+func (s *server) start() {
+	s.logic.start()
 	state.Lock()
 	s.logic.TotalPlayerCount = 16
 	s.pingSentTimes = make([]map[uint32]time.Time, s.logic.TotalPlayerCount)
@@ -76,8 +80,6 @@ func startServer() *server {
 
 	time.Sleep(time.Millisecond) // HACK: Give some time for listeners to start.
 	fmt.Println("Started server.")
-
-	return s
 }
 
 func (s *server) listenAndHandleTCP(nw network) {

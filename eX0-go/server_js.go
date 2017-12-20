@@ -9,6 +9,10 @@ type server struct {
 	logic *logic
 }
 
-func startServer() *server {
+func newServer() *server {
+	panic("server not implemented on js architecture")
+}
+
+func (*server) start() {
 	panic("server not implemented on js architecture")
 }

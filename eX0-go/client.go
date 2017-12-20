@@ -38,15 +38,19 @@ type client struct {
 	lastLatencies []uint16             // Index is Player ID. Units are 0.1 ms.
 }
 
-func startClient(nw network) *client {
-	c := &client{
+func newClient(nw network) *client {
+	return &client{
+		logic:                      newLogic(),
 		serverConn:                 nw.newConnection(),
 		sentTimeRequestPacketTimes: make(map[uint8]float64),
 		shortestLatency:            math.MaxFloat64,
 		finishedSyncingClock:       make(chan struct{}),
 		pongSentTimes:              make(map[uint32]time.Time),
 	}
-	c.logic = startLogic()
+}
+
+func (c *client) start() {
+	c.logic.start()
 	c.logic.Input <- func(logic *logic) packet.Move {
 		return packet.Move{
 			MoveDirection: -1,
@@ -54,7 +58,6 @@ func startClient(nw network) *client {
 		}
 	}
 	c.connectToServer()
-	return c
 }
 
 func (c *client) connectToServer() {

@@ -13,11 +13,26 @@ import (
 
 var state sync.Mutex // TODO: Remove in favor of more specific mutexes.
 
-// THINK: Is this the best way?
+// components defines pieces of the program that will be executed.
+// It must not be modified after startComponents is called, otherwise there'll be races.
 var components struct {
 	server *server
 	client *client
 	view   *view
+}
+
+func startComponents() {
+	// By now, all components have been set,
+	// so it's safe to start them.
+	if components.server != nil {
+		components.server.start()
+	}
+	if components.client != nil {
+		components.client.start()
+	}
+	if components.view != nil {
+		components.view.initAndMainLoop()
+	}
 }
 
 func usage() {
@@ -40,24 +55,26 @@ func main() {
 
 	switch args := flag.Args(); {
 	case len(args) == 1 && args[0] == "client":
-		components.client = startClient(clientNetwork)
+		components.client = newClient(clientNetwork)
+		startComponents()
 		time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
 	case len(args) == 1 && args[0] == "server":
-		components.server = startServer()
+		components.server = newServer()
+		startComponents()
 		select {}
 	case len(args) == 1 && args[0] == "server-view":
-		components.server = startServer()
-		components.view = startView(components.server.logic)
-		components.view.initAndMainLoop()
+		components.server = newServer()
+		components.view = newView(components.server.logic)
+		startComponents()
 	case len(args) == 1 && args[0] == "client-view":
-		components.client = startClient(clientNetwork)
-		components.view = startView(components.client.logic)
-		components.view.initAndMainLoop()
+		components.client = newClient(clientNetwork)
+		components.view = newView(components.client.logic)
+		startComponents()
 	case len(args) == 1 && (args[0] == "client-server-view" || args[0] == "server-client-view"):
-		components.server = startServer()
-		components.client = startClient(clientNetwork)
-		components.view = startView(components.client.logic)
-		components.view.initAndMainLoop()
+		components.server = newServer()
+		components.client = newClient(clientNetwork)
+		components.view = newView(components.client.logic)
+		startComponents()
 	default:
 		flag.Usage()
 		os.Exit(2)
