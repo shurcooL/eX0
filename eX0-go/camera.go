@@ -46,7 +46,14 @@ func (c *PlayerCamera) CalculateForFrame() {
 		c.logic.playersStateMu.Unlock()
 		return
 	}
-	c.pos = ps.Interpolated(c.logic, c.playerID)
+	// TODO: Consider using same position as calculated for all players
+	//       during "Calculate player positions for this frame" step,
+	//       instead of our own copy (which might not match).
+	if ps.Health > 0 {
+		c.pos = ps.Interpolated(c.logic, c.playerID)
+	} else {
+		c.pos = ps.DeadState
+	}
 	c.logic.playersStateMu.Unlock()
 }
 

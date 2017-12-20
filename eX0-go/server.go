@@ -716,6 +716,7 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 						playerPosVel:   playerSpawn,
 						SequenceNumber: s.logic.GlobalStateSequenceNumber - 1,
 					})
+					ps.Health = 100
 				}
 				s.logic.playersState[playerID] = ps
 				s.logic.playersStateMu.Unlock()

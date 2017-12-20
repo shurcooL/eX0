@@ -211,8 +211,9 @@ func (c *client) connectToServer() {
 				continue
 			}
 			ps := playerState{
-				Name: string(p.Name),
-				Team: p.Team,
+				Name:   string(p.Name),
+				Team:   p.Team,
+				Health: 100, // TODO: Transmit information from server; players may have less health.
 			}
 			if p.State != nil {
 				ps.PushAuthed(c.logic, sequencedPlayerPosVel{
@@ -281,7 +282,7 @@ func (c *client) connectToServer() {
 			case packet.PlayerJoinedServer:
 				ps := playerState{
 					Name: string(r.Name),
-					Team: 2,
+					Team: packet.Spectator,
 				}
 				c.logic.playersStateMu.Lock()
 				c.logic.playersState[r.PlayerID] = ps
@@ -322,6 +323,7 @@ func (c *client) connectToServer() {
 						},
 						SequenceNumber: r.State.CommandSequenceNumber,
 					})
+					ps.Health = 100
 					if r.PlayerID == c.playerID {
 						c.ZOffset = 0
 					}
@@ -338,8 +340,19 @@ func (c *client) connectToServer() {
 
 				fmt.Printf("%s: %s\n", ps.Name, r.Message)
 			case packet.PlayerWasHit:
+				c.logic.playersStateMu.Lock()
+				ps := c.logic.playersState[r.PlayerID]
+				ps.Health += r.HealthGiven
+				if ps.Health < 0 {
+					ps.Health = 0
+				}
+				if ps.Health == 0 {
+					ps.DeadState = ps.Interpolated(c.logic, r.PlayerID)
+				}
+				c.logic.playersState[r.PlayerID] = ps
+				c.logic.playersStateMu.Unlock()
+
 				fmt.Fprintf(os.Stderr, "[weapons] Player %v was hit for %v.\n", r.PlayerID, r.HealthGiven)
-				// TODO: Implement.
 			default:
 				fmt.Println("[client] got unsupported TCP packet type")
 			}

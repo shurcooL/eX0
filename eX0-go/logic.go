@@ -92,7 +92,7 @@ func (l *logic) gameLogic() {
 			if doInput != nil {
 				l.playersStateMu.Lock()
 				ps, ok := l.playersState[playerID]
-				if ok && ps.Team != packet.Spectator {
+				if ok && ps.Team != packet.Spectator && ps.Health > 0 {
 					// Fill all missing commands (from last authed until one we're supposed to be by now (based on GlobalStateSequenceNumber time).
 					for lastState := ps.LatestPredicted(); int8(lastState.SequenceNumber-l.GlobalStateSequenceNumber) < 0; lastState = ps.LatestPredicted() {
 						move := doInput(l)
@@ -109,6 +109,8 @@ func (l *logic) gameLogic() {
 				l.playersStateMu.Unlock()
 			}
 
+			// Send a ClientCommand packet to server.
+			// TODO: This should be done via Local/Network State Auther. This currently hardcodes network state auther.
 			state.Lock() // For GlobalStateSequenceNumber.
 			l.playersStateMu.Lock()
 			ps, ok := l.playersState[playerID]
@@ -118,8 +120,6 @@ func (l *logic) gameLogic() {
 					moves = append(moves, unconfirmed.move)
 				}
 
-				// TODO: This should be done via Local/Network State Auther. This currently hardcodes network state auther.
-				// Send a ClientCommand packet to server.
 				if components.client != nil && components.client.serverConn != nil && components.client.serverConn.JoinStatus >= IN_GAME {
 					var p packet.ClientCommand
 					p.CommandSequenceNumber = l.GlobalStateSequenceNumber - 1
@@ -167,6 +167,10 @@ type playerState struct {
 
 	Name string
 	Team packet.Team
+
+	// TODO: Might want to move Health to []sequencedPlayerPosVel, so its history is preserved, and DeadState won't be needed.
+	Health    float32      // Health is in [0, 100] range.
+	DeadState playerPosVel // DeadState is player state at the moment they died.
 
 	// TODO: Move this to a better place.
 	conn *Connection

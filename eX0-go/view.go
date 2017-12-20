@@ -155,13 +155,18 @@ func (v *view) initAndMainLoop() {
 				continue
 			}
 
-			pos := ps.Interpolated(v.logic, id)
+			var pos playerPosVel
+			if ps.Health > 0 {
+				pos = ps.Interpolated(v.logic, id)
+			} else {
+				pos = ps.DeadState
+			}
 
 			mvMatrix = v.cameras[v.activeCamera].ModelView()
 			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(pos.X, pos.Y, 0))
 			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-pos.Z))
 
-			players = append(players, visiblePlayer{MV: mvMatrix, Team: ps.Team})
+			players = append(players, visiblePlayer{MV: mvMatrix, Team: ps.Team, Dead: ps.Health == 0})
 		}
 		v.logic.playersStateMu.Unlock()
 		state.Unlock()
@@ -179,7 +184,7 @@ func (v *view) initAndMainLoop() {
 		gl.UniformMatrix4fv(c.pMatrixUniform, pMatrix[:])
 		for _, p := range players {
 			gl.UniformMatrix4fv(c.mvMatrixUniform, p.MV[:])
-			c.render(p.Team)
+			c.render(p.Team, p.Dead)
 		}
 
 		window.SwapBuffers()
@@ -194,4 +199,5 @@ func (v *view) initAndMainLoop() {
 type visiblePlayer struct {
 	MV   mgl32.Mat4 // Model-view matrix for player position.
 	Team packet.Team
+	Dead bool
 }

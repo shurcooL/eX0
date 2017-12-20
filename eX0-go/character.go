@@ -86,12 +86,14 @@ func (l *character) setup() {
 	gl.VertexAttribPointer(l.vertexPositionAttribute, 2, gl.FLOAT, false, 0, 0)
 }
 
-func (l *character) render(team packet.Team) {
-	switch team {
-	case packet.Red:
+func (l *character) render(team packet.Team, dead bool) {
+	switch {
+	case !dead && team == packet.Red:
 		gl.Uniform3f(l.colorUniform, 1, 0, 0)
-	case packet.Blue:
+	case !dead && team == packet.Blue:
 		gl.Uniform3f(l.colorUniform, 0, 0, 1)
+	case dead:
+		gl.Uniform3f(l.colorUniform, 0, 0, 0)
 	}
 	gl.DrawArrays(gl.TRIANGLE_STRIP, 0, l.vertexCount-4) // Circle border.
 	gl.DrawArrays(gl.TRIANGLE_FAN, l.vertexCount-4, 4)   // Gun quad.
