@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/shurcooL/eX0/eX0-go/packet"
@@ -23,7 +24,8 @@ type client struct {
 
 	playerID uint8
 
-	ZOffset float32
+	ZOffsetMu sync.Mutex
+	ZOffset   float32
 
 	serverConn *Connection
 
@@ -325,7 +327,9 @@ func (c *client) connectToServer() {
 					})
 					ps.Health = 100
 					if r.PlayerID == c.playerID {
+						c.ZOffsetMu.Lock()
 						c.ZOffset = 0
+						c.ZOffsetMu.Unlock()
 					}
 				}
 				ps.Team = r.Team

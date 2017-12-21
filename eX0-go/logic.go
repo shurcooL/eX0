@@ -286,7 +286,9 @@ func (ps playerState) Interpolated(logic *logic, playerID uint8) playerPosVel {
 
 	var z float32
 	if components.client != nil && components.client.playerID == playerID && b.SequenceNumber == logic.GlobalStateSequenceNumber {
+		components.client.ZOffsetMu.Lock()
 		z = b.playerPosVel.Z + components.client.ZOffset
+		components.client.ZOffsetMu.Unlock()
 	} else {
 		z = (1-interp)*a.playerPosVel.Z + interp*b.playerPosVel.Z
 	}

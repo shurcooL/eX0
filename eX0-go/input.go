@@ -7,11 +7,13 @@ import (
 
 func inputCommand(logic *logic, window *glfw.Window) packet.Move {
 	//playersStateMu.Lock()
+	components.client.ZOffsetMu.Lock()
 	var move = packet.Move{
 		MoveDirection: -1,
 		Z:             logic.playersState[components.client.playerID].LatestPredicted().Z + components.client.ZOffset,
 	}
 	components.client.ZOffset = 0
+	components.client.ZOffsetMu.Unlock()
 	//playersStateMu.Unlock()
 
 	var direction [2]int8
