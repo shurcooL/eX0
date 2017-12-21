@@ -144,6 +144,7 @@ func (s *server) listenAndHandleTCPRaw(nw network) {
 		s.connectionsMu.Unlock()
 
 		go s.handleTCPConnection(client)
+		// TODO: Who should be responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way. Maybe context.Context?
 		go s.handleUDP(client) // tcp-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
 	}
 }
@@ -164,6 +165,7 @@ func (s *server) listenAndHandleTCPWebSocket(nw network) {
 		s.connections = append(s.connections, client)
 		s.connectionsMu.Unlock()
 
+		// TODO: Who should be responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way. Maybe context.Context?
 		go s.handleUDP(client) // tcp-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
 		s.handleTCPConnection(client)
 		// Do not return until handleTCPConnection does, else WebSocket gets closed.
@@ -199,6 +201,7 @@ func (s *server) listenAndHandleChan(nw network) {
 		s.connectionsMu.Unlock()
 
 		go s.handleTCPConnection(serverToClientConn)
+		// TODO: Who should be responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way. Maybe context.Context?
 		go s.handleUDP(serverToClientConn) // chan-specific. Need to handle UDP directly on same connection, since there won't be a separate one.
 
 		s.chanListenerReply <- struct{}{}
@@ -219,6 +222,8 @@ func (s *server) handleUDP(mux *Connection) {
 			if c != nil {
 				c.tcp.Close()
 			}
+			// TODO: Should it return or continue on error? Depends on
+			//       whether it's a per-connection or global UDP handler...
 			return
 		}
 	}
@@ -295,7 +300,12 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 		// TODO: Properly process and authenticate new result states.
 		{
 			s.logic.playersStateMu.Lock()
-			lastState := s.logic.playersState[c.PlayerID].LatestAuthed()
+			ps, ok := s.logic.playersState[c.PlayerID]
+			if !ok { // TODO: Who should be responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way. Maybe context.Context?
+				s.logic.playersStateMu.Unlock()
+				return fmt.Errorf("player %d doesn't exist in s.logic.playersState", c.PlayerID)
+			}
+			lastState := ps.LatestAuthed()
 			s.logic.playersStateMu.Unlock()
 
 			lastMove := r.Moves[len(r.Moves)-1] // There's always at least one move in a ClientCommand packet.
@@ -305,7 +315,7 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 			newState := s.logic.nextState(lastState, lastMove)
 
 			s.logic.playersStateMu.Lock()
-			ps := s.logic.playersState[c.PlayerID]
+			ps = s.logic.playersState[c.PlayerID]
 			ps.PushAuthed(s.logic, newState)
 			s.logic.playersState[c.PlayerID] = ps
 			s.logic.playersStateMu.Unlock()
@@ -317,7 +327,7 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 func (s *server) sendServerUpdates(c *Connection) {
 	for ; true; time.Sleep(time.Second / 20) {
 		s.logic.playersStateMu.Lock()
-		if _, ok := s.logic.playersState[c.PlayerID]; !ok { // HACK: Who should be responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way.
+		if _, ok := s.logic.playersState[c.PlayerID]; !ok { // TODO: Who should be responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way. Maybe context.Context?
 			s.logic.playersStateMu.Unlock()
 			return
 		}
@@ -659,7 +669,7 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 		client.JoinStatus = IN_GAME
 		s.connectionsMu.Unlock()
 
-		// TODO: Who should be responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way.
+		// TODO: Who should be responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way. Maybe context.Context?
 		go s.sendServerUpdates(client)
 	}
 
