@@ -67,7 +67,6 @@ void main() {
 	l.mvMatrixUniform = gl.GetUniformLocation(l.program, "uMVMatrix")
 
 	l.vertexPositionAttribute = gl.GetAttribLocation(l.program, "aVertexPosition")
-	gl.EnableVertexAttribArray(l.vertexPositionAttribute)
 
 	var positionData []float32
 	for _, contour := range l.polygon.Contours {
@@ -87,7 +86,11 @@ func (l *level) setup() {
 	gl.UseProgram(l.program)
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, l.vertexPositionBuffer)
+	gl.EnableVertexAttribArray(l.vertexPositionAttribute)
 	gl.VertexAttribPointer(l.vertexPositionAttribute, 2, gl.FLOAT, false, 0, 0)
+}
+func (l *level) cleanup() {
+	gl.DisableVertexAttribArray(l.vertexPositionAttribute)
 }
 
 func (l *level) render() {

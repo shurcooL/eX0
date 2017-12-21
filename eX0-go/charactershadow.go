@@ -67,9 +67,7 @@ void main() {
 	l.mvMatrixUniform = gl.GetUniformLocation(l.program, "uMVMatrix")
 
 	l.vertexPositionAttribute = gl.GetAttribLocation(l.program, "aVertexPosition")
-	gl.EnableVertexAttribArray(l.vertexPositionAttribute)
 	l.vertexAlphaAttribute = gl.GetAttribLocation(l.program, "aVertexAlpha")
-	gl.EnableVertexAttribArray(l.vertexAlphaAttribute)
 
 	positionData := append([]float32{0, 0}, circle(mgl32.Vec2{}, mgl32.Vec2{16, 16}.Mul(1.75), 16)...)
 	l.vertexCount = len(positionData) / 2
@@ -89,10 +87,16 @@ func (l *characterShadow) setup() {
 	gl.UseProgram(l.program)
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, l.vertexPositionBuffer)
+	gl.EnableVertexAttribArray(l.vertexPositionAttribute)
 	gl.VertexAttribPointer(l.vertexPositionAttribute, 2, gl.FLOAT, false, 0, 0)
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, l.vertexAlphaBuffer)
+	gl.EnableVertexAttribArray(l.vertexAlphaAttribute)
 	gl.VertexAttribPointer(l.vertexAlphaAttribute, 1, gl.UNSIGNED_BYTE, true, 0, 0)
+}
+func (l *characterShadow) cleanup() {
+	gl.DisableVertexAttribArray(l.vertexPositionAttribute)
+	gl.DisableVertexAttribArray(l.vertexAlphaAttribute)
 }
 
 func (l *characterShadow) render() {

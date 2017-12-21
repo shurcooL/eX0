@@ -62,7 +62,6 @@ void main() {
 	l.colorUniform = gl.GetUniformLocation(l.program, "uColor")
 
 	l.vertexPositionAttribute = gl.GetAttribLocation(l.program, "aVertexPosition")
-	gl.EnableVertexAttribArray(l.vertexPositionAttribute)
 
 	// Circle border, then 4 vertices for the gun quad.
 	positionData := circleBorder(mgl32.Vec2{}, mgl32.Vec2{16, 16}, 2, 12, 1, 11)
@@ -83,7 +82,11 @@ func (l *character) setup() {
 	gl.UseProgram(l.program)
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, l.vertexPositionBuffer)
+	gl.EnableVertexAttribArray(l.vertexPositionAttribute)
 	gl.VertexAttribPointer(l.vertexPositionAttribute, 2, gl.FLOAT, false, 0, 0)
+}
+func (l *character) cleanup() {
+	gl.DisableVertexAttribArray(l.vertexPositionAttribute)
 }
 
 func (l *character) render(team packet.Team, dead bool) {

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -142,6 +144,7 @@ func (v *view) initAndMainLoop() {
 		gl.UniformMatrix4fv(v.logic.level.pMatrixUniform, pMatrix[:])
 		gl.UniformMatrix4fv(v.logic.level.mvMatrixUniform, mvMatrix[:])
 		v.logic.level.render()
+		v.logic.level.cleanup()
 
 		// Calculate player positions for this frame.
 		var players []visiblePlayer
@@ -178,6 +181,7 @@ func (v *view) initAndMainLoop() {
 			gl.UniformMatrix4fv(shadow.mvMatrixUniform, p.MV[:])
 			shadow.render()
 		}
+		shadow.cleanup()
 
 		// Render players.
 		c.setup()
@@ -186,8 +190,13 @@ func (v *view) initAndMainLoop() {
 			gl.UniformMatrix4fv(c.mvMatrixUniform, p.MV[:])
 			c.render(p.Team, p.Dead)
 		}
+		c.cleanup()
 
 		window.SwapBuffers()
+
+		if err := gl.GetError(); err != 0 {
+			log.Println(fmt.Errorf("gl.GetError: %v", err))
+		}
 	}
 
 	if components.client != nil {
