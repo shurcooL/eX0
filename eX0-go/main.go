@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"time"
 )
 
 var state sync.Mutex // TODO: Remove in favor of more specific mutexes.
@@ -22,12 +21,17 @@ var components struct {
 }
 
 func startComponents() {
-	// By now, all components have been set,
-	// so it's safe to start them.
+	// By now, all components have been set, so it's safe to start them.
+	// Start server first, client second.
 	if components.server != nil {
 		components.server.start()
 	}
 	if components.client != nil {
+		if components.server != nil && *hostFlag != "localhost" {
+			fmt.Fprintln(os.Stderr, "host must be localhost if both server and client are started")
+			flag.Usage()
+			os.Exit(2)
+		}
 		components.client.start()
 	}
 	if components.view != nil {
@@ -54,12 +58,17 @@ func main() {
 	}
 
 	switch args := flag.Args(); {
+	case len(args) == 1 && args[0] == "server":
+		components.server = newServer()
+		startComponents()
+		select {}
 	case len(args) == 1 && args[0] == "client":
 		components.client = newClient(clientNetwork)
 		startComponents()
-		time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
-	case len(args) == 1 && args[0] == "server":
+		select {}
+	case len(args) == 1 && (args[0] == "server-client" || args[0] == "client-server"):
 		components.server = newServer()
+		components.client = newClient(clientNetwork)
 		startComponents()
 		select {}
 	case len(args) == 1 && args[0] == "server-view":
@@ -70,7 +79,7 @@ func main() {
 		components.client = newClient(clientNetwork)
 		components.view = newView(components.client.logic)
 		startComponents()
-	case len(args) == 1 && (args[0] == "client-server-view" || args[0] == "server-client-view"):
+	case len(args) == 1 && (args[0] == "server-client-view" || args[0] == "client-server-view"):
 		components.server = newServer()
 		components.client = newClient(clientNetwork)
 		components.view = newView(components.client.logic)

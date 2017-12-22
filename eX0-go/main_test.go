@@ -16,7 +16,7 @@ func Example_fullConnection() {
 	// TODO: Test all networks? Use 4 tests or table of tests?
 	clientNetwork := tcpNetwork{useWebSocket: true}
 
-	components.server = newServer() // Wait for server to start listening.
+	components.server = newServer()
 	components.client = newClient(clientNetwork)
 	startComponents()
 	time.Sleep(10 * time.Second) // Wait 10 seconds before exiting.
