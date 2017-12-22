@@ -21,17 +21,19 @@ var components struct {
 }
 
 func startComponents() {
+	if components.server != nil && components.client != nil && *hostFlag != "localhost" {
+		fmt.Fprintln(os.Stderr, "Host must be localhost if both server and client are started.")
+		fmt.Fprintln(os.Stderr)
+		flag.Usage()
+		os.Exit(2)
+	}
+
 	// By now, all components have been set, so it's safe to start them.
 	// Start server first, client second.
 	if components.server != nil {
 		components.server.start()
 	}
 	if components.client != nil {
-		if components.server != nil && *hostFlag != "localhost" {
-			fmt.Fprintln(os.Stderr, "host must be localhost if both server and client are started")
-			flag.Usage()
-			os.Exit(2)
-		}
 		components.client.start()
 	}
 	if components.view != nil {
