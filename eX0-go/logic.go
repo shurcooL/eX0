@@ -16,6 +16,7 @@ import (
 const Tau = 2 * math.Pi
 
 type logic struct {
+	// Input channel is only read during ticks when components.client != nil.
 	Input chan func(logic *logic) packet.Move
 
 	started                   time.Time
@@ -51,22 +52,15 @@ func (l *logic) gameLogic() {
 	var doInput func(logic *logic) packet.Move
 
 	for {
-		select {
-		case doInput = <-l.Input:
-		default:
-		}
-
 		tick := false
-		sleep := time.Millisecond
 
 		state.Lock()
-		l.playersStateMu.Lock()
+		l.playersStateMu.Lock() // For GlobalStateSequenceNumber.
 		for now := time.Since(l.started).Seconds(); now >= l.NextTickTime; {
 			l.NextTickTime += 1.0 / commandRate
 			l.GlobalStateSequenceNumber++
 			tick = true
 		}
-		//sleep = time.Duration((l.NextTickTime - now) * float64(time.Second))
 		l.playersStateMu.Unlock()
 		state.Unlock()
 
@@ -89,6 +83,10 @@ func (l *logic) gameLogic() {
 			playerID := components.client.playerID
 			state.Unlock()
 
+			select {
+			case doInput = <-l.Input:
+			default:
+			}
 			if doInput != nil {
 				l.playersStateMu.Lock()
 				ps, ok := l.playersState[playerID]
@@ -111,8 +109,8 @@ func (l *logic) gameLogic() {
 
 			// Send a ClientCommand packet to server.
 			// TODO: This should be done via Local/Network State Auther. This currently hardcodes network state auther.
-			state.Lock() // For GlobalStateSequenceNumber.
-			l.playersStateMu.Lock()
+			state.Lock()
+			l.playersStateMu.Lock() // For GlobalStateSequenceNumber.
 			ps, ok := l.playersState[playerID]
 			if ok && ps.Team != packet.Spectator && len(ps.unconfirmed) > 0 {
 				var moves []packet.Move
@@ -141,6 +139,10 @@ func (l *logic) gameLogic() {
 			state.Unlock()
 		}
 
+		state.Lock() // For started and NextTickTime.
+		now := time.Since(l.started).Seconds()
+		sleep := time.Duration((l.NextTickTime - now) * float64(time.Second))
+		state.Unlock()
 		time.Sleep(sleep)
 	}
 }
