@@ -123,6 +123,10 @@ func (v *view) initAndMainLoop() {
 		timePassed := time.Since(frameStarted)
 		frameStarted = time.Now()
 
+		state.Lock() // For logic.started.
+		gameMoment := gameMoment(frameStarted.Sub(v.logic.started).Seconds())
+		state.Unlock()
+
 		glfw.PollEvents()
 
 		if components.client != nil {
@@ -137,7 +141,7 @@ func (v *view) initAndMainLoop() {
 
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		v.cameras[v.activeCamera].CalculateForFrame()
+		v.cameras[v.activeCamera].CalculateForFrame(gameMoment)
 		pMatrix := mgl32.Ortho2D(0, float32(v.windowSize[0]), 0, float32(v.windowSize[1]))
 		mvMatrix := v.cameras[v.activeCamera].ModelView()
 
@@ -160,12 +164,7 @@ func (v *view) initAndMainLoop() {
 				continue
 			}
 
-			var pos playerPosVel
-			if ps.Health > 0 {
-				pos = ps.Interpolated(v.logic, id)
-			} else {
-				pos = ps.DeadState
-			}
+			pos := ps.InterpolatedOrDead(gameMoment, id)
 
 			mvMatrix = v.cameras[v.activeCamera].ModelView()
 			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(pos.X, pos.Y, 0))

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-gl/mathgl/mgl32"
 	"github.com/shurcooL/eX0/eX0-go/packet"
 	"github.com/shurcooL/go-goon"
 )
@@ -344,14 +345,22 @@ func (c *client) connectToServer() {
 
 				fmt.Printf("%s: %s\n", ps.Name, r.Message)
 			case packet.PlayerWasHit:
+				state.Lock() // For logic.started.
+				gameMoment := gameMoment(time.Since(c.logic.started).Seconds())
+				state.Unlock()
+
 				c.logic.playersStateMu.Lock()
-				ps := c.logic.playersState[r.PlayerID]
+				ps, ok := c.logic.playersState[r.PlayerID]
+				if !ok {
+					c.logic.playersStateMu.Unlock()
+					continue
+				}
 				ps.Health += r.HealthGiven
 				if ps.Health < 0 {
 					ps.Health = 0
 				}
 				if ps.Health == 0 {
-					ps.DeadState = ps.Interpolated(c.logic, r.PlayerID)
+					ps.DeadState = ps.Interpolated(gameMoment, r.PlayerID)
 				}
 				c.logic.playersState[r.PlayerID] = ps
 				c.logic.playersStateMu.Unlock()
@@ -452,7 +461,22 @@ func (c *client) handleUDP(s *Connection) {
 			c.logic.playersStateMu.Unlock()
 
 		case packet.WeaponAction:
-			goon.DumpExpr(r)
+			switch r.Action {
+			case packet.Fire:
+				// TODO: In the future, go through a player.weapon.fire() abstraction
+				//       rather than creating bullets directly here ourselves.
+
+				// Find where the player was at the time the weapon fired.
+				c.logic.playersStateMu.Lock()
+				pos := c.logic.playersState[r.PlayerID].Interpolated(gameMoment(r.Time), r.PlayerID)
+				c.logic.playersStateMu.Unlock()
+
+				vel := mgl32.Vec2{} // TODO: Use r.Z.
+
+				c.logic.particles.add(mgl32.Vec2{pos.X, pos.Y}, vel)
+			default:
+				goon.DumpExpr(r)
+			}
 		default:
 			fmt.Println("[client] got unsupported UDP packet type")
 		}

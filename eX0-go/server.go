@@ -289,7 +289,9 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 		{
 			var p packet.Pung
 			p.PingData = r.PingData
+			state.Lock() // For logic.started.
 			p.Time = time.Since(s.logic.started).Seconds()
+			state.Unlock()
 
 			err := sendUDPPacket(c, &p)
 			if err != nil {

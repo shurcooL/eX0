@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"os"
 	"sync"
@@ -20,7 +21,7 @@ type logic struct {
 	Input chan func(logic *logic) packet.Move
 
 	started                   time.Time
-	GlobalStateSequenceNumber uint8
+	GlobalStateSequenceNumber uint8 // TODO: Use int.
 	NextTickTime              float64
 
 	TotalPlayerCount uint8
@@ -28,6 +29,8 @@ type logic struct {
 	// TODO: There's also some overlap with server.connections, shouldn't that be resolved?
 	playersStateMu sync.Mutex
 	playersState   map[uint8]playerState // Player ID -> Player State.
+
+	particles
 
 	level *level
 }
@@ -38,8 +41,7 @@ func newLogic() *logic {
 		started:                   time.Now(),
 		GlobalStateSequenceNumber: 0,
 		NextTickTime:              0,
-
-		playersState: make(map[uint8]playerState),
+		playersState:              make(map[uint8]playerState),
 	}
 }
 
@@ -147,6 +149,16 @@ func (l *logic) gameLogic() {
 	}
 }
 
+type gameMoment float64
+
+// SNAndTick returns game moment m as sequence number and tick.
+// Tick is in [0, 1) range.
+func (m gameMoment) SNAndTick() (sequenceNumber uint8, tick float64) {
+	sn, tick := math.Modf(float64(m) * commandRate)
+	sn2 := int(sn) // Workaround for https://github.com/gopherjs/gopherjs/issues/733.
+	return uint8(sn2), tick
+}
+
 type playerPosVel struct {
 	X, Y, Z    float32
 	VelX, VelY float32
@@ -154,7 +166,7 @@ type playerPosVel struct {
 
 type sequencedPlayerPosVel struct {
 	playerPosVel
-	SequenceNumber uint8
+	SequenceNumber uint8 // TODO: Use int.
 }
 
 type predictedMove struct {
@@ -202,9 +214,8 @@ func (ps *playerState) PushAuthed(logic *logic, newState sequencedPlayerPosVel) 
 		ps.unconfirmed = ps.unconfirmed[1:]
 	}
 	if len(ps.unconfirmed) > 0 && newState.SequenceNumber == ps.unconfirmed[0].predicted.SequenceNumber {
-		same := mgl32.FloatEqualThreshold(newState.X, ps.unconfirmed[0].predicted.X, 0.001) &&
-			mgl32.FloatEqualThreshold(newState.Y, ps.unconfirmed[0].predicted.Y, 0.001)
-		if same {
+		if same := mgl32.FloatEqualThreshold(newState.X, ps.unconfirmed[0].predicted.X, 0.001) &&
+			mgl32.FloatEqualThreshold(newState.Y, ps.unconfirmed[0].predicted.Y, 0.001); same {
 			//fmt.Fprintf(os.Stderr, "PushAuthed: dropping matched ps.unconfirmed, same!\n")
 		} else {
 			fmt.Fprintf(os.Stderr, "PushAuthed: dropping matched ps.unconfirmed, diff by %v, %v\n", newState.X-ps.unconfirmed[0].predicted.X, newState.Y-ps.unconfirmed[0].predicted.Y)
@@ -235,20 +246,32 @@ func (ps *playerState) NewSeries() {
 	ps.unconfirmed = nil
 }
 
-func (ps playerState) Interpolated(logic *logic, playerID uint8) playerPosVel {
-	desiredAStateSN := logic.GlobalStateSequenceNumber - 1
+func (ps playerState) InterpolatedOrDead(gameMoment gameMoment, playerID uint8) playerPosVel {
+	if ps.Health > 0 {
+		return ps.Interpolated(gameMoment, playerID)
+	} else {
+		return ps.DeadState
+	}
+}
+
+func (ps playerState) Interpolated(gameMoment gameMoment, playerID uint8) playerPosVel {
+	desiredAStateSN, tick := gameMoment.SNAndTick()
 
 	// When we don't have perfect information about present, return position 100 ms in the past.
 	if components.client == nil || components.client.playerID != playerID {
 		desiredAStateSN -= 2 // HACK: Assumes command rate of 20, this puts us 100 ms in the past (2 * 1s/20 = 100 ms).
 	}
 
-	// TODO: See if copying ps.authed slic is needed, maybe not.
+	// Gather all authed and predicted states to iterate over.
 	states := append([]sequencedPlayerPosVel(nil), ps.authed...)
 	for _, unconfirmed := range ps.unconfirmed {
 		states = append(states, unconfirmed.predicted)
 	}
 
+	if len(states) == 0 {
+		log.Println("playerState.Interpolated called when there are no states")
+		return playerPosVel{}
+	}
 	if len(states) == 1 {
 		return states[0].playerPosVel
 	}
@@ -282,12 +305,13 @@ func (ps playerState) Interpolated(logic *logic, playerID uint8) playerPosVel {
 	}
 	b := states[bi]
 
-	interp := float32(desiredAStateSN-a.SequenceNumber) + float32((time.Since(logic.started).Seconds()-logic.NextTickTime+1.0/commandRate)*commandRate)
+	interp := float32(desiredAStateSN-a.SequenceNumber) + float32(tick)
 	interpDistance := float32(b.SequenceNumber - a.SequenceNumber)
-	interp = interp / interpDistance
+	interp /= interpDistance // Normalize.
 
 	var z float32
-	if components.client != nil && components.client.playerID == playerID && b.SequenceNumber == logic.GlobalStateSequenceNumber {
+	// HACK, TODO: Clean this up. Currently assumes asking for latest time for client player.
+	if components.client != nil && components.client.playerID == playerID {
 		components.client.ZOffsetMu.Lock()
 		z = b.playerPosVel.Z + components.client.ZOffset
 		components.client.ZOffsetMu.Unlock()

@@ -8,7 +8,7 @@ import (
 )
 
 type CameraI interface {
-	CalculateForFrame()
+	CalculateForFrame(gameMoment)
 	ModelView() mgl32.Mat4
 }
 
@@ -18,7 +18,7 @@ type FreeCamera struct {
 	zoom float32
 }
 
-func (*FreeCamera) CalculateForFrame() {}
+func (*FreeCamera) CalculateForFrame(gameMoment) {}
 
 func (c *FreeCamera) ModelView() mgl32.Mat4 {
 	s := c.Scale()
@@ -39,7 +39,7 @@ type PlayerCamera struct {
 	pos playerPosVel
 }
 
-func (c *PlayerCamera) CalculateForFrame() {
+func (c *PlayerCamera) CalculateForFrame(gameMoment gameMoment) {
 	c.logic.playersStateMu.Lock()
 	ps := c.logic.playersState[c.playerID]
 	if (ps.conn != nil && ps.conn.JoinStatus < IN_GAME) || ps.Team == packet.Spectator {
@@ -49,11 +49,8 @@ func (c *PlayerCamera) CalculateForFrame() {
 	// TODO: Consider using same position as calculated for all players
 	//       during "Calculate player positions for this frame" step,
 	//       instead of our own copy (which might not match).
-	if ps.Health > 0 {
-		c.pos = ps.Interpolated(c.logic, c.playerID)
-	} else {
-		c.pos = ps.DeadState
-	}
+	//       This is better now that we're using same gameMoment.
+	c.pos = ps.InterpolatedOrDead(gameMoment, c.playerID)
 	c.logic.playersStateMu.Unlock()
 }
 
