@@ -130,13 +130,13 @@ func (v *view) initAndMainLoop() {
 		glfw.PollEvents()
 
 		if components.client != nil {
-			components.client.ZOffsetMu.Lock()
+			components.client.TargetZMu.Lock()
 			if (window.GetKey(glfw.KeyLeft) != glfw.Release) && !(window.GetKey(glfw.KeyRight) != glfw.Release) {
-				components.client.ZOffset -= 2.0 * float32(timePassed.Seconds())
+				components.client.TargetZ -= 2.0 * float32(timePassed.Seconds())
 			} else if (window.GetKey(glfw.KeyRight) != glfw.Release) && !(window.GetKey(glfw.KeyLeft) != glfw.Release) {
-				components.client.ZOffset += 2.0 * float32(timePassed.Seconds())
+				components.client.TargetZ += 2.0 * float32(timePassed.Seconds())
 			}
-			components.client.ZOffsetMu.Unlock()
+			components.client.TargetZMu.Unlock()
 		}
 
 		gl.Clear(gl.COLOR_BUFFER_BIT)

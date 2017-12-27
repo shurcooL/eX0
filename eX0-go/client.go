@@ -25,8 +25,8 @@ type client struct {
 
 	playerID uint8
 
-	ZOffsetMu sync.Mutex
-	ZOffset   float32
+	TargetZMu sync.Mutex
+	TargetZ   float32
 
 	serverConn *Connection
 
@@ -328,9 +328,9 @@ func (c *client) connectToServer() {
 					})
 					ps.Health = 100
 					if r.PlayerID == c.playerID {
-						c.ZOffsetMu.Lock()
-						c.ZOffset = 0
-						c.ZOffsetMu.Unlock()
+						c.TargetZMu.Lock()
+						c.TargetZ = r.State.Z
+						c.TargetZMu.Unlock()
 					}
 				}
 				ps.Team = r.Team
@@ -360,7 +360,7 @@ func (c *client) connectToServer() {
 					ps.Health = 0
 				}
 				if ps.Health == 0 {
-					ps.DeadState = ps.Interpolated(gameMoment, r.PlayerID)
+					ps.SetDead(gameMoment, r.PlayerID)
 				}
 				c.logic.playersState[r.PlayerID] = ps
 				c.logic.playersStateMu.Unlock()
@@ -468,7 +468,7 @@ func (c *client) handleUDP(s *Connection) {
 
 				// Find where the player was at the time the weapon fired.
 				c.logic.playersStateMu.Lock()
-				pos := c.logic.playersState[r.PlayerID].Interpolated(gameMoment(r.Time), r.PlayerID)
+				pos := c.logic.playersState[r.PlayerID].InterpolatedOrDead(gameMoment(r.Time), r.PlayerID)
 				c.logic.playersStateMu.Unlock()
 
 				vel := mgl32.Vec2{} // TODO: Use r.Z.

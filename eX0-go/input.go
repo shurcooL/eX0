@@ -5,16 +5,14 @@ import (
 	"github.com/shurcooL/eX0/eX0-go/packet"
 )
 
+// inputCommand returns a move.
 func inputCommand(logic *logic, window *glfw.Window) packet.Move {
-	//playersStateMu.Lock()
-	components.client.ZOffsetMu.Lock()
+	components.client.TargetZMu.Lock()
 	var move = packet.Move{
 		MoveDirection: -1,
-		Z:             logic.playersState[components.client.playerID].LatestPredicted().Z + components.client.ZOffset,
+		Z:             components.client.TargetZ,
 	}
-	components.client.ZOffset = 0
-	components.client.ZOffsetMu.Unlock()
-	//playersStateMu.Unlock()
+	components.client.TargetZMu.Unlock()
 
 	var direction [2]int8
 	if (window.GetKey(glfw.KeyA) != glfw.Release) && !(window.GetKey(glfw.KeyD) != glfw.Release) {

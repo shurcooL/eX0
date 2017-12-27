@@ -248,19 +248,46 @@ func (ps *playerState) NewSeries() {
 
 func (ps playerState) InterpolatedOrDead(gameMoment gameMoment, playerID uint8) playerPosVel {
 	if ps.Health > 0 {
-		return ps.Interpolated(gameMoment, playerID)
+		// When we don't have perfect information about present, return position 100 ms in the past.
+		if components.client == nil || components.client.playerID != playerID {
+			gameMoment -= 0.1
+		}
+
+		pos := ps.interpolated(gameMoment)
+
+		// HACK, TODO: Clean this up. Currently assumes asking for latest time for client player.
+		if components.client != nil && components.client.playerID == playerID {
+			components.client.TargetZMu.Lock()
+			pos.Z = components.client.TargetZ
+			components.client.TargetZMu.Unlock()
+		}
+
+		return pos
 	} else {
 		return ps.DeadState
 	}
 }
 
-func (ps playerState) Interpolated(gameMoment gameMoment, playerID uint8) playerPosVel {
-	desiredAStateSN, tick := gameMoment.SNAndTick()
-
+func (ps *playerState) SetDead(gameMoment gameMoment, playerID uint8) {
 	// When we don't have perfect information about present, return position 100 ms in the past.
 	if components.client == nil || components.client.playerID != playerID {
-		desiredAStateSN -= 2 // HACK: Assumes command rate of 20, this puts us 100 ms in the past (2 * 1s/20 = 100 ms).
+		gameMoment -= 0.1
 	}
+
+	pos := ps.interpolated(gameMoment)
+
+	// HACK, TODO: Clean this up. Currently assumes asking for latest time for client player.
+	if components.client != nil && components.client.playerID == playerID {
+		components.client.TargetZMu.Lock()
+		pos.Z = components.client.TargetZ
+		components.client.TargetZMu.Unlock()
+	}
+
+	ps.DeadState = pos
+}
+
+func (ps playerState) interpolated(gameMoment gameMoment) playerPosVel {
+	desiredAStateSN, tick := gameMoment.SNAndTick()
 
 	// Gather all authed and predicted states to iterate over.
 	states := append([]sequencedPlayerPosVel(nil), ps.authed...)
@@ -269,7 +296,7 @@ func (ps playerState) Interpolated(gameMoment gameMoment, playerID uint8) player
 	}
 
 	if len(states) == 0 {
-		log.Println("playerState.Interpolated called when there are no states")
+		log.Println("playerState.interpolated called when there are no states")
 		return playerPosVel{}
 	}
 	if len(states) == 1 {
@@ -309,18 +336,9 @@ func (ps playerState) Interpolated(gameMoment gameMoment, playerID uint8) player
 	interpDistance := float32(b.SequenceNumber - a.SequenceNumber)
 	interp /= interpDistance // Normalize.
 
-	var z float32
-	// HACK, TODO: Clean this up. Currently assumes asking for latest time for client player.
-	if components.client != nil && components.client.playerID == playerID {
-		components.client.ZOffsetMu.Lock()
-		z = b.playerPosVel.Z + components.client.ZOffset
-		components.client.ZOffsetMu.Unlock()
-	} else {
-		z = (1-interp)*a.playerPosVel.Z + interp*b.playerPosVel.Z
-	}
 	return playerPosVel{
 		X: (1-interp)*a.playerPosVel.X + interp*b.playerPosVel.X,
 		Y: (1-interp)*a.playerPosVel.Y + interp*b.playerPosVel.Y,
-		Z: z,
+		Z: (1-interp)*a.playerPosVel.Z + interp*b.playerPosVel.Z,
 	}
 }
