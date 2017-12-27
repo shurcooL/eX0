@@ -18,7 +18,7 @@ const Tau = 2 * math.Pi
 
 type logic struct {
 	// Input channel is only read during ticks when components.client != nil.
-	Input chan func(logic *logic) packet.Move
+	Input chan func() packet.Move
 
 	started                   time.Time
 	GlobalStateSequenceNumber uint8 // TODO: Use int.
@@ -37,7 +37,7 @@ type logic struct {
 
 func newLogic() *logic {
 	return &logic{
-		Input:                     make(chan func(logic *logic) packet.Move),
+		Input:                     make(chan func() packet.Move),
 		started:                   time.Now(),
 		GlobalStateSequenceNumber: 0,
 		NextTickTime:              0,
@@ -51,7 +51,7 @@ func (l *logic) start() {
 
 func (l *logic) gameLogic() {
 	var debugFirstJoin = true
-	var doInput func(logic *logic) packet.Move
+	var doInput func() packet.Move
 
 	for {
 		tick := false
@@ -95,7 +95,7 @@ func (l *logic) gameLogic() {
 				if ok && ps.Team != packet.Spectator && ps.Health > 0 {
 					// Fill all missing commands (from last authed until one we're supposed to be by now (based on GlobalStateSequenceNumber time).
 					for lastState := ps.LatestPredicted(); int8(lastState.SequenceNumber-l.GlobalStateSequenceNumber) < 0; lastState = ps.LatestPredicted() {
-						move := doInput(l)
+						move := doInput()
 
 						newState := l.nextState(lastState, move)
 

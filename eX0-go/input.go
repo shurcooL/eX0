@@ -6,13 +6,8 @@ import (
 )
 
 // inputCommand returns a move.
-func inputCommand(logic *logic, window *glfw.Window) packet.Move {
-	components.client.TargetZMu.Lock()
-	var move = packet.Move{
-		MoveDirection: -1,
-		Z:             components.client.TargetZ,
-	}
-	components.client.TargetZMu.Unlock()
+func inputCommand(window *glfw.Window) packet.Move {
+	var move packet.Move
 
 	var direction [2]int8
 	if (window.GetKey(glfw.KeyA) != glfw.Release) && !(window.GetKey(glfw.KeyD) != glfw.Release) {
@@ -42,7 +37,13 @@ func inputCommand(logic *logic, window *glfw.Window) packet.Move {
 		move.MoveDirection = 6
 	case direction[0] == -1 && direction[1] == -1:
 		move.MoveDirection = 7
+	default:
+		move.MoveDirection = -1
 	}
+
+	components.client.TargetZMu.Lock()
+	move.Z = components.client.TargetZ
+	components.client.TargetZMu.Unlock()
 
 	if window.GetKey(glfw.KeyLeftShift) != glfw.Release || window.GetKey(glfw.KeyRightShift) != glfw.Release {
 		move.Stealth = 1

@@ -110,7 +110,7 @@ func (v *view) initAndMainLoop() {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
 	if components.client != nil {
-		v.logic.Input <- func(logic *logic) packet.Move { return inputCommand(logic, window) }
+		v.logic.Input <- func() packet.Move { return inputCommand(window) }
 
 		// Create and set player-centric camera.
 		v.cameras = append(v.cameras, &PlayerCamera{logic: v.logic, playerID: components.client.playerID})

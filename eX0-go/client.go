@@ -54,12 +54,18 @@ func newClient(nw network) *client {
 
 func (c *client) start() {
 	c.logic.start()
-	c.logic.Input <- func(logic *logic) packet.Move {
+
+	// Default move provider to use (until view finishes loading and provides its own, if any).
+	c.logic.Input <- func() packet.Move {
+		c.TargetZMu.Lock()
+		z := c.TargetZ
+		c.TargetZMu.Unlock()
 		return packet.Move{
 			MoveDirection: -1,
-			Z:             logic.playersState[c.playerID].LatestAuthed().Z,
+			Z:             z,
 		}
 	}
+
 	c.connectToServer()
 }
 
