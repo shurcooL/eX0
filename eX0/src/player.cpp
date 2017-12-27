@@ -367,7 +367,7 @@ void CPlayer::GiveHealth(float fValue, int /*nSourcePlayerId*/)
 			m_oDeadState = GetStateInPast(kfInterpolate, &g_pGameSession->LogicTimer());
 	}
 
-	if (nullptr != pGameServer) {
+	if (GetTeam() != 2 && nullptr != pGameServer) {
 		// TEST: Send the Player Was Hit packet
 		CPacket oPlayerWasHit;
 		oPlayerWasHit.pack("hccf", 0, (uint8)40, (uint8)iID, (float)fValue);
@@ -378,11 +378,13 @@ void CPlayer::GiveHealth(float fValue, int /*nSourcePlayerId*/)
 	fHealth += fValue;
 	if (fHealth < 0) fHealth = 0;
 
-	if (fHealth > 0) {
-		PlaySound("data/sounds/hit-1.wav");
-	} else {
-		// Dead sound
-		PlaySound("data/sounds/die-1.wav");
+	if (GetTeam() != 2) {
+		if (fHealth > 0) {
+			PlaySound("data/sounds/hit-1.wav");
+		} else {
+			// Dead sound
+			PlaySound("data/sounds/die-1.wav");
+		}
 	}
 }
 
