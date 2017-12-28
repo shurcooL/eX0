@@ -6,12 +6,14 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"net"
 	"net/http"
 	"os"
 	"sync"
 	"time"
 
+	"github.com/go-gl/mathgl/mgl32"
 	"github.com/shurcooL/eX0/eX0-go/packet"
 	"github.com/shurcooL/go-goon"
 	"golang.org/x/net/websocket"
@@ -229,7 +231,7 @@ func (s *server) handleUDP(mux *Connection) {
 	}
 }
 
-func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDPAddr, mux *Connection) error {
+func (s *server) processUDPPacket(r interface{}, from *Connection, udpAddr *net.UDPAddr, mux *Connection) error {
 	switch r := r.(type) {
 	case packet.Handshake:
 		{
@@ -239,21 +241,21 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 		}
 
 		s.connectionsMu.Lock()
-		for _, connection := range s.connections {
-			if connection.Signature == r.Signature {
-				connection.JoinStatus = UDP_CONNECTED
-				connection.udp = mux.udp
-				connection.UDPAddr = udpAddr
+		for _, c := range s.connections {
+			if c.Signature == r.Signature {
+				c.JoinStatus = UDP_CONNECTED // TODO: Fix JoinStatus race with line 398.
+				c.udp = mux.udp
+				c.UDPAddr = udpAddr
 
-				c = connection
+				from = c
 				break
 			}
 		}
 		s.connectionsMu.Unlock()
 
-		if c != nil {
+		if from != nil {
 			var p packet.UDPConnectionEstablished
-			err := sendTCPPacket(c, &p)
+			err := sendTCPPacket(from, &p)
 			if err != nil {
 				return err
 			}
@@ -266,7 +268,7 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 			p.Time = time.Since(s.logic.started).Seconds()
 			state.Unlock()
 
-			err := sendUDPPacket(c, &p)
+			err := sendUDPPacket(from, &p)
 			if err != nil {
 				return err
 			}
@@ -276,12 +278,12 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 
 		s.pingSentTimesMu.Lock()
 		// Get the time sent of the matching Pong packet.
-		if localTimeAtPingSend, ok := s.pingSentTimes[c.PlayerID][r.PingData]; ok {
-			delete(s.pingSentTimes[c.PlayerID], r.PingData)
+		if localTimeAtPingSend, ok := s.pingSentTimes[from.PlayerID][r.PingData]; ok {
+			delete(s.pingSentTimes[from.PlayerID], r.PingData)
 
 			latency := uint16(localTimeAtPongReceive.Sub(localTimeAtPingSend).Seconds() * 10000) // Units are 0.1 ms.
 			s.lastLatenciesMu.Lock()
-			s.lastLatencies[c.PlayerID] = latency
+			s.lastLatencies[from.PlayerID] = latency
 			s.lastLatenciesMu.Unlock()
 		}
 		s.pingSentTimesMu.Unlock()
@@ -293,7 +295,7 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 			p.Time = time.Since(s.logic.started).Seconds()
 			state.Unlock()
 
-			err := sendUDPPacket(c, &p)
+			err := sendUDPPacket(from, &p)
 			if err != nil {
 				return err
 			}
@@ -302,10 +304,10 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 		// TODO: Properly process and authenticate new result states.
 		{
 			s.logic.playersStateMu.Lock()
-			ps, ok := s.logic.playersState[c.PlayerID]
+			ps, ok := s.logic.playersState[from.PlayerID]
 			if !ok { // TODO: Who should be responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way. Maybe context.Context?
 				s.logic.playersStateMu.Unlock()
-				return fmt.Errorf("player %d doesn't exist in s.logic.playersState", c.PlayerID)
+				return fmt.Errorf("player %d doesn't exist in s.logic.playersState", from.PlayerID)
 			}
 			lastState := ps.LatestAuthed()
 			s.logic.playersStateMu.Unlock()
@@ -317,17 +319,63 @@ func (s *server) processUDPPacket(r interface{}, c *Connection, udpAddr *net.UDP
 			newState := s.logic.nextState(lastState, lastMove)
 
 			s.logic.playersStateMu.Lock()
-			ps = s.logic.playersState[c.PlayerID]
+			ps = s.logic.playersState[from.PlayerID]
 			ps.PushAuthed(s.logic, newState)
-			s.logic.playersState[c.PlayerID] = ps
+			s.logic.playersState[from.PlayerID] = ps
 			s.logic.playersStateMu.Unlock()
+		}
+	case packet.WeaponCommand:
+		// TODO: Deduplicate/unify with packet.WeaponAction processing?
+		switch r.Action {
+		case packet.Fire:
+			// TODO: In the future, go through a player.weapon.fire() abstraction
+			//       rather than creating bullets directly here ourselves.
+
+			// Find where the player was at the time the weapon fired.
+			s.logic.playersStateMu.Lock()
+			ps, ok := s.logic.playersState[from.PlayerID]
+			s.logic.playersStateMu.Unlock()
+			if !ok {
+				return fmt.Errorf("player %d doesn't exist in s.logic.playersState", from.PlayerID)
+			}
+
+			pos := ps.interpolated(gameMoment(r.Time))
+			vel := mgl32.Vec2{float32(math.Sin(float64(r.Z))), float32(math.Cos(float64(r.Z)))}.Mul(275)
+
+			s.logic.particles.Add(mgl32.Vec2{pos.X, pos.Y}, vel)
+
+			// TODO: Factor out.
+			{
+				var p packet.WeaponAction
+				p.PlayerID = from.PlayerID
+				p.Action = packet.Fire
+				p.Time = r.Time
+				p.Z = r.Z
+
+				// Broadcast the packet to all other connections with at least IN_GAME.
+				var cs []*Connection
+				s.connectionsMu.Lock()
+				for _, c := range s.connections {
+					if c.JoinStatus < IN_GAME || c == from {
+						continue
+					}
+					cs = append(cs, c)
+				}
+				s.connectionsMu.Unlock()
+				err := broadcastUDPPacket(cs, &p)
+				if err != nil {
+					return err
+				}
+			}
+		default:
+			goon.DumpExpr(r)
 		}
 	}
 	return nil
 }
 
 func (s *server) sendServerUpdates(c *Connection) {
-	for ; true; time.Sleep(time.Second / 20) {
+	for range time.Tick(time.Second / 20) {
 		s.logic.playersStateMu.Lock()
 		if _, ok := s.logic.playersState[c.PlayerID]; !ok { // TODO: Who should be responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way. Maybe context.Context?
 			s.logic.playersStateMu.Unlock()
@@ -347,7 +395,7 @@ func (s *server) sendServerUpdates(c *Connection) {
 		state.Unlock()
 		s.logic.playersStateMu.Lock()
 		for id, ps := range s.logic.playersState {
-			if ps.conn == nil || ps.conn.JoinStatus < IN_GAME || ps.Team == packet.Spectator {
+			if ps.conn == nil || ps.conn.JoinStatus < IN_GAME || ps.Team == packet.Spectator { // TODO: Fix JoinStatus race with line 246.
 				continue
 			}
 			p.PlayerUpdates[id] = packet.PlayerUpdate{
@@ -373,7 +421,7 @@ func (s *server) sendServerUpdates(c *Connection) {
 func (s *server) broadcastPingPacket() {
 	const BROADCAST_PING_PERIOD = 2500 * time.Millisecond // How often to broadcast the Ping packet on the server.
 
-	for ; true; time.Sleep(BROADCAST_PING_PERIOD) {
+	for range time.Tick(BROADCAST_PING_PERIOD) {
 		// Prepare a Ping packet.
 		var p packet.Ping
 		p.PingData = s.lastPingData
@@ -668,7 +716,7 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 		goon.Dump(r)
 
 		s.connectionsMu.Lock()
-		client.JoinStatus = IN_GAME
+		client.JoinStatus = IN_GAME // TODO: Fix JoinStatus race with line view.go:155.
 		s.connectionsMu.Unlock()
 
 		// TODO: Who should be responsible for stopping these? Currently having them quit on own in a hacky way, see what's the best way. Maybe context.Context?

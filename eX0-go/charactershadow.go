@@ -93,16 +93,18 @@ func (l *characterShadow) setup() {
 	gl.BindBuffer(gl.ARRAY_BUFFER, l.vertexAlphaBuffer)
 	gl.EnableVertexAttribArray(l.vertexAlphaAttribute)
 	gl.VertexAttribPointer(l.vertexAlphaAttribute, 1, gl.UNSIGNED_BYTE, true, 0, 0)
+
+	gl.Enable(gl.BLEND)
 }
 func (l *characterShadow) cleanup() {
+	gl.Disable(gl.BLEND)
+
 	gl.DisableVertexAttribArray(l.vertexPositionAttribute)
 	gl.DisableVertexAttribArray(l.vertexAlphaAttribute)
 }
 
 func (l *characterShadow) render() {
-	gl.Enable(gl.BLEND)
 	gl.DrawArrays(gl.TRIANGLE_FAN, 0, l.vertexCount)
-	gl.Disable(gl.BLEND)
 }
 
 func circle(pos mgl32.Vec2, size mgl32.Vec2, slices int) (vertices []float32) {

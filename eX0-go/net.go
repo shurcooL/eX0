@@ -85,6 +85,21 @@ func broadcastTCPPacket(cs []*Connection, p encoding.BinaryMarshaler) error {
 	return nil
 }
 
+func broadcastUDPPacket(cs []*Connection, p encoding.BinaryMarshaler) error {
+	b, err := p.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	for _, c := range cs {
+		err = c.nw.sendUDPPacketBytes(c, b)
+		if err != nil {
+			// TODO: This error handling is wrong. If fail to send to one client, should still send to others, etc.
+			return err
+		}
+	}
+	return nil
+}
+
 func receiveTCPPacket2(c *Connection, totalPlayerCount uint8) (interface{}, error) {
 	b, tcpHeader, err := c.nw.receiveTCPPacket(c)
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 	"github.com/goxjs/gl"
 	"github.com/goxjs/glfw"
 	"github.com/shurcooL/eX0/eX0-go/packet"
+	"github.com/shurcooL/eX0/eX0-go/render"
 )
 
 type view struct {
@@ -106,6 +107,11 @@ func (v *view) initAndMainLoop() {
 		panic(err)
 	}
 
+	particle, err := render.NewParticle()
+	if err != nil {
+		panic(err)
+	}
+
 	gl.Enable(gl.CULL_FACE)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
@@ -141,6 +147,29 @@ func (v *view) initAndMainLoop() {
 
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
+		// Calculate player positions for this frame.
+		var players []visiblePlayer
+		state.Lock()
+		v.logic.playersStateMu.Lock()
+		for id, ps := range v.logic.playersState {
+			if ps.conn != nil && ps.conn.JoinStatus < IN_GAME { // TODO: Fix JoinStatus race with line server.go:719.
+				continue
+			}
+			if ps.Team == packet.Spectator {
+				continue
+			}
+
+			pos := ps.InterpolatedOrDead(gameMoment, id)
+
+			mvMatrix := v.cameras[v.activeCamera].ModelView()
+			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(pos.X, pos.Y, 0))
+			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-pos.Z))
+
+			players = append(players, visiblePlayer{MV: mvMatrix, Team: ps.Team, Dead: ps.Health == 0})
+		}
+		v.logic.playersStateMu.Unlock()
+		state.Unlock()
+
 		v.cameras[v.activeCamera].CalculateForFrame(gameMoment)
 		pMatrix := mgl32.Ortho2D(0, float32(v.windowSize[0]), 0, float32(v.windowSize[1]))
 		mvMatrix := v.cameras[v.activeCamera].ModelView()
@@ -151,29 +180,6 @@ func (v *view) initAndMainLoop() {
 		gl.UniformMatrix4fv(v.logic.level.mvMatrixUniform, mvMatrix[:])
 		v.logic.level.render()
 		v.logic.level.cleanup()
-
-		// Calculate player positions for this frame.
-		var players []visiblePlayer
-		state.Lock()
-		v.logic.playersStateMu.Lock()
-		for id, ps := range v.logic.playersState {
-			if ps.conn != nil && ps.conn.JoinStatus < IN_GAME {
-				continue
-			}
-			if ps.Team == packet.Spectator {
-				continue
-			}
-
-			pos := ps.InterpolatedOrDead(gameMoment, id)
-
-			mvMatrix = v.cameras[v.activeCamera].ModelView()
-			mvMatrix = mvMatrix.Mul4(mgl32.Translate3D(pos.X, pos.Y, 0))
-			mvMatrix = mvMatrix.Mul4(mgl32.HomogRotate3DZ(-pos.Z))
-
-			players = append(players, visiblePlayer{MV: mvMatrix, Team: ps.Team, Dead: ps.Health == 0})
-		}
-		v.logic.playersStateMu.Unlock()
-		state.Unlock()
 
 		// Render player shadows.
 		shadow.setup()
@@ -192,6 +198,19 @@ func (v *view) initAndMainLoop() {
 			c.render(p.Team, p.Dead)
 		}
 		c.cleanup()
+
+		// Render particles.
+		particle.Bind()
+		particle.SetProjection(pMatrix[:])
+		v.logic.particles.mu.Lock()
+		for _, p := range v.logic.particles.particles {
+			mv := mvMatrix
+			mv = mv.Mul4(mgl32.Translate3D(p.pos.X(), p.pos.Y(), 0))
+			particle.SetModelView(mv[:])
+			particle.Render()
+		}
+		v.logic.particles.mu.Unlock()
+		particle.Unbind()
 
 		window.SwapBuffers()
 

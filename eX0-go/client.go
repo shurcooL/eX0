@@ -266,7 +266,7 @@ func (c *client) connectToServer() {
 		}
 	}
 
-	time.Sleep(3 * time.Second)
+	//time.Sleep(3 * time.Second)
 
 	fmt.Println("Client connected and joining team.")
 	var debugFirstJoin = true
@@ -474,12 +474,16 @@ func (c *client) handleUDP(s *Connection) {
 
 				// Find where the player was at the time the weapon fired.
 				c.logic.playersStateMu.Lock()
-				pos := c.logic.playersState[r.PlayerID].InterpolatedOrDead(gameMoment(r.Time), r.PlayerID)
+				ps, ok := c.logic.playersState[r.PlayerID]
 				c.logic.playersStateMu.Unlock()
+				if !ok {
+					continue
+				}
 
-				vel := mgl32.Vec2{} // TODO: Use r.Z.
+				pos := ps.interpolated(gameMoment(r.Time))
+				vel := mgl32.Vec2{float32(math.Sin(float64(r.Z))), float32(math.Cos(float64(r.Z)))}.Mul(275)
 
-				c.logic.particles.add(mgl32.Vec2{pos.X, pos.Y}, vel)
+				c.logic.particles.Add(mgl32.Vec2{pos.X, pos.Y}, vel)
 			default:
 				goon.DumpExpr(r)
 			}

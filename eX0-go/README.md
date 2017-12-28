@@ -91,6 +91,7 @@ Directories
 |-------------------------------------------------------------------|----------------------------------------------------------------------------|
 | [gpc](https://godoc.org/github.com/shurcooL/eX0/eX0-go/gpc)       | Package gpc parses GPC format files.                                       |
 | [packet](https://godoc.org/github.com/shurcooL/eX0/eX0-go/packet) | Package packet is for TCP and UDP packets used in eX0 networking protocol. |
+| [render](https://godoc.org/github.com/shurcooL/eX0/eX0-go/render) | Package render provides functionality to render eX0 objects.               |
 
 License
 -------
