@@ -10,37 +10,6 @@ import (
 	"sync"
 )
 
-var state sync.Mutex // TODO: Remove in favor of more specific mutexes.
-
-// components defines pieces of the program that will be executed.
-// It must not be modified after startComponents is called, otherwise there'll be races.
-var components struct {
-	server *server
-	client *client
-	view   *view
-}
-
-func startComponents() {
-	if components.server != nil && components.client != nil && *hostFlag != "localhost" {
-		fmt.Fprintln(os.Stderr, "Host must be localhost if both server and client are started.")
-		fmt.Fprintln(os.Stderr)
-		flag.Usage()
-		os.Exit(2)
-	}
-
-	// By now, all components have been set, so it's safe to start them.
-	// Start server first, client second.
-	if components.server != nil {
-		components.server.start()
-	}
-	if components.client != nil {
-		components.client.start()
-	}
-	if components.view != nil {
-		components.view.initAndMainLoop()
-	}
-}
-
 func usage() {
 	fmt.Fprintln(os.Stderr, `Usage: eX0-go [flags] [server]-[client]-[view]
 
@@ -91,3 +60,34 @@ func main() {
 		os.Exit(2)
 	}
 }
+
+// components defines pieces of the program that will be executed.
+// It must not be modified after startComponents is called, otherwise there'll be races.
+var components struct {
+	server *server
+	client *client
+	view   *view
+}
+
+func startComponents() {
+	if components.server != nil && components.client != nil && *hostFlag != "localhost" {
+		fmt.Fprintln(os.Stderr, "Host must be localhost if both server and client are started.")
+		fmt.Fprintln(os.Stderr)
+		flag.Usage()
+		os.Exit(2)
+	}
+
+	// By now, all components have been set, so it's safe to start them.
+	// Start server first, client second.
+	if components.server != nil {
+		components.server.start()
+	}
+	if components.client != nil {
+		components.client.start()
+	}
+	if components.view != nil {
+		components.view.initAndMainLoop()
+	}
+}
+
+var state sync.Mutex // TODO: Remove in favor of more specific mutexes.

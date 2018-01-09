@@ -539,6 +539,8 @@ void CParticle::Tick()
 
 				oParticles[iLoop1].oPosition += oParticles[iLoop1].oVelocity;
 				if (BOUNCY_BULLET == oParticles[iLoop1].iWhatType) {
+					//printf("%f: bouncy bullet vel: %f (%s)\n", dCurrentTime, oParticles[iLoop1].oVelocity.Length(), (oParticles[iLoop1].dDieAt - dCurrentTime > 1.25)?"true":"false");
+
 					// DEBUG: This is actually bouncy-bullet-specific stuff (i.e. slow down significantly during its last 1.25 secs of life
 					if (oParticles[iLoop1].dDieAt - dCurrentTime > 1.25)
 						oParticles[iLoop1].oVelocity *= 0.990f;

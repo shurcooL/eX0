@@ -202,14 +202,14 @@ func (v *view) initAndMainLoop() {
 		// Render particles.
 		particle.Bind()
 		particle.SetProjection(pMatrix[:])
-		v.logic.particles.mu.Lock()
-		for _, p := range v.logic.particles.particles {
+		v.logic.particleSystem.Lock()
+		for _, p := range v.logic.particleSystem.particles {
 			mv := mvMatrix
-			mv = mv.Mul4(mgl32.Translate3D(p.pos.X(), p.pos.Y(), 0))
+			mv = mv.Mul4(mgl32.Translate3D(p.Position.X(), p.Position.Y(), 0))
 			particle.SetModelView(mv[:])
 			particle.Render()
 		}
-		v.logic.particles.mu.Unlock()
+		v.logic.particleSystem.Unlock()
 		particle.Unbind()
 
 		window.SwapBuffers()

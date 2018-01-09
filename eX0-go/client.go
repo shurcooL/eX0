@@ -258,6 +258,8 @@ func (c *client) connectToServer() {
 	s.JoinStatus = IN_GAME
 	state.Unlock()
 
+	fmt.Println("Client connected and joining team.")
+
 	{
 		var p packet.EnteredGameNotification
 		err := sendTCPPacket(s, &p)
@@ -265,11 +267,6 @@ func (c *client) connectToServer() {
 			panic(err)
 		}
 	}
-
-	//time.Sleep(3 * time.Second)
-
-	fmt.Println("Client connected and joining team.")
-	var debugFirstJoin = true
 
 	{
 		var p packet.JoinTeamRequest
@@ -280,6 +277,7 @@ func (c *client) connectToServer() {
 		}
 	}
 
+	var debugFirstJoin = true
 	go func() {
 		for {
 			r, err := receiveTCPPacket2(s, c.logic.TotalPlayerCount)
@@ -481,9 +479,9 @@ func (c *client) handleUDP(s *Connection) {
 				}
 
 				pos := ps.interpolated(gameMoment(r.Time))
-				vel := mgl32.Vec2{float32(math.Sin(float64(r.Z))), float32(math.Cos(float64(r.Z)))}.Mul(275)
+				vel := mgl32.Vec2{float32(math.Sin(float64(r.Z))), float32(math.Cos(float64(r.Z)))}.Mul(10) //275
 
-				c.logic.particles.Add(mgl32.Vec2{pos.X, pos.Y}, vel)
+				c.logic.particleSystem.Add(mgl32.Vec2{pos.X, pos.Y}, vel, r.Time, 3)
 			default:
 				goon.DumpExpr(r)
 			}

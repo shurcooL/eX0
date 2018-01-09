@@ -342,7 +342,7 @@ func (s *server) processUDPPacket(r interface{}, from *Connection, udpAddr *net.
 			pos := ps.interpolated(gameMoment(r.Time))
 			vel := mgl32.Vec2{float32(math.Sin(float64(r.Z))), float32(math.Cos(float64(r.Z)))}.Mul(275)
 
-			s.logic.particles.Add(mgl32.Vec2{pos.X, pos.Y}, vel)
+			s.logic.particleSystem.Add(mgl32.Vec2{pos.X, pos.Y}, vel, r.Time, 3)
 
 			// TODO: Factor out.
 			{

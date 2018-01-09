@@ -30,14 +30,14 @@ type logic struct {
 	playersStateMu sync.Mutex
 	playersState   map[uint8]playerState // Player ID -> Player State.
 
-	particles
+	particleSystem particleSystem
 
 	level *level
 }
 
 func newLogic() *logic {
 	return &logic{
-		Input:                     make(chan func() packet.Move),
+		Input:                     make(chan func() packet.Move, 1),
 		started:                   time.Now(),
 		GlobalStateSequenceNumber: 0,
 		NextTickTime:              0,
@@ -58,7 +58,8 @@ func (l *logic) gameLogic() {
 
 		state.Lock()
 		l.playersStateMu.Lock() // For GlobalStateSequenceNumber.
-		for now := time.Since(l.started).Seconds(); now >= l.NextTickTime; {
+		now := time.Since(l.started).Seconds()
+		for now >= l.NextTickTime {
 			l.NextTickTime += 1.0 / commandRate
 			l.GlobalStateSequenceNumber++
 			tick = true
@@ -74,8 +75,8 @@ func (l *logic) gameLogic() {
 			ps, ok := l.playersState[playerID]
 			if ok && ps.Team != packet.Spectator {
 				debugFirstJoin = false
-				logicTime := float64(l.GlobalStateSequenceNumber) + (time.Since(l.started).Seconds()-l.NextTickTime)*commandRate
-				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", time.Since(l.started).Seconds(), playerID, l.playersState[playerID].Name, ps.Team, logicTime, l.GlobalStateSequenceNumber)
+				logicTime := float64(l.GlobalStateSequenceNumber) + (now-l.NextTickTime)*commandRate
+				fmt.Fprintf(os.Stderr, "%.3f: Pl#%v (%q) joined team %v at logic time %.2f/%v [logic].\n", now, playerID, l.playersState[playerID].Name, ps.Team, logicTime, l.GlobalStateSequenceNumber)
 			}
 			l.playersStateMu.Unlock()
 		}
@@ -109,23 +110,20 @@ func (l *logic) gameLogic() {
 				l.playersStateMu.Unlock()
 			}
 
-			// Send a ClientCommand packet to server.
-			// TODO: This should be done via Local/Network State Auther. This currently hardcodes network state auther.
-			state.Lock()
-			l.playersStateMu.Lock() // For GlobalStateSequenceNumber.
-			ps, ok := l.playersState[playerID]
-			if ok && ps.Team != packet.Spectator && len(ps.unconfirmed) > 0 {
-				var moves []packet.Move
-				for _, unconfirmed := range ps.unconfirmed {
-					moves = append(moves, unconfirmed.move)
-				}
-
-				if components.client != nil && components.client.serverConn != nil && components.client.serverConn.JoinStatus >= IN_GAME {
+			if components.client.serverConn != nil && components.client.serverConn.JoinStatus >= IN_GAME {
+				// Send a ClientCommand packet to server.
+				// TODO: This should be done via Local/Network State Auther. This currently hardcodes network state auther.
+				state.Lock()
+				l.playersStateMu.Lock() // For GlobalStateSequenceNumber.
+				ps, ok := l.playersState[playerID]
+				if ok && ps.Team != packet.Spectator && len(ps.unconfirmed) > 0 {
 					var p packet.ClientCommand
 					p.CommandSequenceNumber = l.GlobalStateSequenceNumber - 1
 					p.CommandSeriesNumber = 1 // TODO: Don't hardcode this.
-					p.Moves = moves
-					//fmt.Printf("%.3f: sending ClientCommand with %v moves, clientLastAckedCSN=%v, G-1=%v\n", time.Since(l.started).Seconds(), len(p.Moves), clientLastAckedCmdSequenceNumber, l.GlobalStateSequenceNumber-1)
+					for _, unconfirmed := range ps.unconfirmed {
+						p.Moves = append(p.Moves, unconfirmed.move)
+					}
+					//fmt.Printf("%.3f: sending ClientCommand with %v moves, clientLastAckedCSN=%v, G-1=%v\n", now, len(p.Moves), clientLastAckedCmdSequenceNumber, l.GlobalStateSequenceNumber-1)
 					/*for i, unconfirmed := range ps.unconfirmed {
 						fmt.Println(i, "unconfirmed.predicted.SequenceNumber:", unconfirmed.predicted.SequenceNumber, "dir:", unconfirmed.move.MoveDirection)
 					}*/
@@ -136,13 +134,15 @@ func (l *logic) gameLogic() {
 						panic(err)
 					}
 				}
+				l.playersStateMu.Unlock()
+				state.Unlock()
 			}
-			l.playersStateMu.Unlock()
-			state.Unlock()
+
+			l.particleSystem.Tick(now)
 		}
 
 		state.Lock() // For started and NextTickTime.
-		now := time.Since(l.started).Seconds()
+		now = time.Since(l.started).Seconds()
 		sleep := time.Duration((l.NextTickTime - now) * float64(time.Second))
 		state.Unlock()
 		time.Sleep(sleep)

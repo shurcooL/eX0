@@ -233,13 +233,13 @@ func Example_fullConnection() {
 	// 		Type:   (packet.Type)(6),
 	// 	}),
 	// })
+	// Client connected and joining team.
 	// (packet.EnteredGameNotification)(packet.EnteredGameNotification{
 	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(0),
 	// 		Type:   (packet.Type)(7),
 	// 	}),
 	// })
-	// Client connected and joining team.
 	// (packet.JoinTeamRequest)(packet.JoinTeamRequest{
 	// 	TCPHeader: (packet.TCPHeader)(packet.TCPHeader{
 	// 		Length: (uint16)(1),
