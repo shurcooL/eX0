@@ -37,9 +37,10 @@ func queryToArgs() []string {
 	args := []string{path.Base(u.Path)} // First element is the process name.
 	for k, vs := range u.Query() {
 		for _, v := range vs {
-			args = append(args, k)
 			if v != "" {
-				args = append(args, v)
+				args = append(args, k+"="+v)
+			} else {
+				args = append(args, k)
 			}
 		}
 	}
