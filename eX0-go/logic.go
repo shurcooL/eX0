@@ -247,25 +247,25 @@ func (ps *playerState) NewSeries() {
 }
 
 func (ps playerState) InterpolatedOrDead(gameMoment gameMoment, playerID uint8) playerPosVel {
-	if ps.Health > 0 {
-		// When we don't have perfect information about present, return position 100 ms in the past.
-		if components.client == nil || components.client.playerID != playerID {
-			gameMoment -= 0.1
-		}
-
-		pos := ps.interpolated(gameMoment)
-
-		// HACK, TODO: Clean this up. Currently assumes asking for latest time for client player.
-		if components.client != nil && components.client.playerID == playerID {
-			components.client.TargetZMu.Lock()
-			pos.Z = components.client.TargetZ
-			components.client.TargetZMu.Unlock()
-		}
-
-		return pos
-	} else {
+	if ps.Health <= 0 {
 		return ps.DeadState
 	}
+
+	// When we don't have perfect information about present, return position 100 ms in the past.
+	if components.client == nil || components.client.playerID != playerID {
+		gameMoment -= 0.1
+	}
+
+	pos := ps.interpolated(gameMoment)
+
+	// HACK, TODO: Clean this up. Currently assumes asking for latest time for client player.
+	if components.client != nil && components.client.playerID == playerID {
+		components.client.TargetZMu.Lock()
+		pos.Z = components.client.TargetZ
+		components.client.TargetZMu.Unlock()
+	}
+
+	return pos
 }
 
 func (ps *playerState) SetDead(gameMoment gameMoment, playerID uint8) {
