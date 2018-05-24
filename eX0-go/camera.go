@@ -39,19 +39,19 @@ type PlayerCamera struct {
 	pos playerPosVel
 }
 
+// CalculateForFrame calculates camera position for frame at gameMoment.
+// c.logic.playersStateMu must be held.
 func (c *PlayerCamera) CalculateForFrame(gameMoment gameMoment) {
-	c.logic.playersStateMu.Lock()
 	ps := c.logic.playersState[c.playerID]
 	if (ps.conn != nil && ps.conn.JoinStatus < IN_GAME) || ps.Team == packet.Spectator {
-		c.logic.playersStateMu.Unlock()
 		return
 	}
 	// TODO: Consider using same position as calculated for all players
 	//       during "Calculate player positions for this frame" step,
 	//       instead of our own copy (which might not match).
-	//       This is better now that we're using same gameMoment.
+	//       This is better now that we're using same gameMoment
+	//       and locking playersStateMu outside.
 	c.pos = ps.InterpolatedOrDead(gameMoment, c.playerID)
-	c.logic.playersStateMu.Unlock()
 }
 
 func (c *PlayerCamera) ModelView() mgl32.Mat4 {

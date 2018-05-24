@@ -147,10 +147,11 @@ func (v *view) initAndMainLoop() {
 
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		// Calculate player positions for this frame.
+		// Calculate camera and player positions for this frame.
 		var players []visiblePlayer
 		state.Lock()
 		v.logic.playersStateMu.Lock()
+		v.cameras[v.activeCamera].CalculateForFrame(gameMoment)
 		for id, ps := range v.logic.playersState {
 			if ps.conn != nil && ps.conn.JoinStatus < IN_GAME { // TODO: Fix JoinStatus race with line server.go:719.
 				continue
@@ -170,7 +171,6 @@ func (v *view) initAndMainLoop() {
 		v.logic.playersStateMu.Unlock()
 		state.Unlock()
 
-		v.cameras[v.activeCamera].CalculateForFrame(gameMoment)
 		pMatrix := mgl32.Ortho2D(0, float32(v.windowSize[0]), 0, float32(v.windowSize[1]))
 		mvMatrix := v.cameras[v.activeCamera].ModelView()
 
