@@ -257,9 +257,9 @@ func Example_fullConnection() {
 	// 	Team:     (packet.Team)(0),
 	// 	State: (*packet.State)(&packet.State{
 	// 		CommandSequenceNumber: (uint8)(123),
-	// 		X: (float32)(1),
-	// 		Y: (float32)(2),
-	// 		Z: (float32)(3),
+	// 		X:                     (float32)(1),
+	// 		Y:                     (float32)(2),
+	// 		Z:                     (float32)(3),
 	// 	}),
 	// })
 	// Unnamed Player joined team Red.
@@ -444,9 +444,9 @@ func disabledExample_connectToEmptyRealServer() {
 	// 	Team:     (packet.Team)(0),
 	// 	State: (*packet.State)(&packet.State{
 	// 		CommandSequenceNumber: (uint8)(123),
-	// 		X: (float32)(1),
-	// 		Y: (float32)(2),
-	// 		Z: (float32)(3),
+	// 		X:                     (float32)(1),
+	// 		Y:                     (float32)(2),
+	// 		Z:                     (float32)(3),
 	// 	}),
 	// })
 	// Unnamed Player joined team Red.

@@ -402,9 +402,9 @@ func (s *server) sendServerUpdates(c *Connection) {
 				ActivePlayer: 1,
 				State: &packet.State{
 					CommandSequenceNumber: ps.LatestAuthed().SequenceNumber,
-					X: ps.LatestAuthed().X,
-					Y: ps.LatestAuthed().Y,
-					Z: ps.LatestAuthed().Z,
+					X:                     ps.LatestAuthed().X,
+					Y:                     ps.LatestAuthed().Y,
+					Z:                     ps.LatestAuthed().Z,
 				},
 			}
 		}
@@ -655,9 +655,9 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 				if playerInfo.Team != packet.Spectator {
 					playerInfo.State = &packet.State{
 						CommandSequenceNumber: ps.LatestAuthed().SequenceNumber,
-						X: ps.LatestAuthed().X,
-						Y: ps.LatestAuthed().Y,
-						Z: ps.LatestAuthed().Z,
+						X:                     ps.LatestAuthed().X,
+						Y:                     ps.LatestAuthed().Y,
+						Z:                     ps.LatestAuthed().Z,
 					}
 				}
 			}
@@ -785,9 +785,9 @@ func (s *server) handleTCPConnection2(client *Connection) error {
 				if p.Team != packet.Spectator {
 					p.State = &packet.State{
 						CommandSequenceNumber: ps.LatestAuthed().SequenceNumber,
-						X: ps.LatestAuthed().X,
-						Y: ps.LatestAuthed().Y,
-						Z: ps.LatestAuthed().Z,
+						X:                     ps.LatestAuthed().X,
+						Y:                     ps.LatestAuthed().Y,
+						Z:                     ps.LatestAuthed().Z,
 					}
 				}
 
