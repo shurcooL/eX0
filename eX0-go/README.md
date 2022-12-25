@@ -1,7 +1,7 @@
 eX0-go
 ======
 
-[![Build Status](https://travis-ci.org/shurcooL/eX0.svg?branch=master)](https://travis-ci.org/shurcooL/eX0) [![GoDoc](https://godoc.org/github.com/shurcooL/eX0/eX0-go?status.svg)](https://godoc.org/github.com/shurcooL/eX0/eX0-go)
+[![Go Reference](https://pkg.go.dev/badge/github.com/shurcooL/eX0/eX0-go.svg)](https://pkg.go.dev/github.com/shurcooL/eX0/eX0-go)
 
 eX0-go is a work in progress Go implementation of eX0.
 
@@ -12,9 +12,8 @@ Installation
 
 You'll need to have OpenGL headers (see [here](https://github.com/go-gl/glfw#installation)).
 
-```
-go get -u github.com/shurcooL/eX0/eX0-go
-GOARCH=js go get -u -d github.com/shurcooL/eX0/eX0-go
+```sh
+go install github.com/shurcooL/eX0/eX0-go@latest
 ```
 
 Screenshot
@@ -87,13 +86,13 @@ By default, it will use client-view mode and connect to an eX0-go server at "loc
 Directories
 -----------
 
-| Path                                                              | Synopsis                                                                   |
-|-------------------------------------------------------------------|----------------------------------------------------------------------------|
-| [gpc](https://godoc.org/github.com/shurcooL/eX0/eX0-go/gpc)       | Package gpc parses GPC format files.                                       |
-| [packet](https://godoc.org/github.com/shurcooL/eX0/eX0-go/packet) | Package packet is for TCP and UDP packets used in eX0 networking protocol. |
-| [render](https://godoc.org/github.com/shurcooL/eX0/eX0-go/render) | Package render provides functionality to render eX0 objects.               |
+| Path                                                               | Synopsis                                                                   |
+|--------------------------------------------------------------------|----------------------------------------------------------------------------|
+| [gpc](https://pkg.go.dev/github.com/shurcooL/eX0/eX0-go/gpc)       | Package gpc parses GPC format files.                                       |
+| [packet](https://pkg.go.dev/github.com/shurcooL/eX0/eX0-go/packet) | Package packet is for TCP and UDP packets used in eX0 networking protocol. |
+| [render](https://pkg.go.dev/github.com/shurcooL/eX0/eX0-go/render) | Package render provides functionality to render eX0 objects.               |
 
 License
 -------
 
--	[MIT License](https://opensource.org/licenses/mit-license.php)
+-	[MIT License](../LICENSE)

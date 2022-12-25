@@ -26,9 +26,9 @@ Screenshots
 Attribution
 -----------
 
-This software uses the PolyBoolean library v0.0 © 1998-1999 [Michael Leonov](http://www.complex-a5.ru/polyboolean/contacts.html#leonov).
+This software uses the PolyBoolean library v0.0 © 1998-1999 [Michael Leonov](https://web.archive.org/web/20181210013900/http://www.complex-a5.ru/polyboolean/contacts.html#leonov).
 
 License
 -------
 
--	[MIT License](https://opensource.org/licenses/mit-license.php)
+-	[MIT License](LICENSE)
